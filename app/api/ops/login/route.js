@@ -8,6 +8,11 @@ export const dynamic = 'force-dynamic';
 
 // Email a one-time sign-in link to anyone on the Team tab
 export async function POST(req) {
+  try { return await handle(req); }
+  catch (e) { console.error('Sign-in link failed:', e.message); return NextResponse.json({ error: 'Could not send a sign-in link' }, { status: 500 }); }
+}
+
+async function handle(req) {
   const { email } = await req.json().catch(() => ({}));
   const e = String(email || '').trim().toLowerCase();
   let person = (await loadTeam({ fresh: true })).find(t => t.email && t.email.trim() === e);
