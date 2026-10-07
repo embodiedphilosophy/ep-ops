@@ -1,0 +1,47 @@
+[
+ {
+  "name": "Jacob Kyle",
+  "role": "Founding Director",
+  "bio": "Doctoral candidate at the University of Oxford researching Utpaladeva and Abhinavagupta. Teaches Sādhana School and the philosophy of recognition, rasa, and Tantric meditation, in the lineage of Paul Muller-Ortega.",
+  "photo_url": "",
+  "order": "1",
+  "publish": "TRUE",
+  "wisdom_school": "guest"
+ },
+ {
+  "name": "Nataraj Chaitanya",
+  "role": "Faculty, Wisdom School & Sādhana School",
+  "bio": "Has led retreats, kīrtans and teacher trainings for more than twenty years. A formal initiate and custodian of the meditation tradition of Bhagavan Nityananda of Ganeshpuri; based in Melbourne.",
+  "photo_url": "",
+  "order": "2",
+  "publish": "TRUE",
+  "wisdom_school": "core"
+ },
+ {
+  "name": "Tova Olsson",
+  "role": "Guest teacher",
+  "bio": "Scholar-practitioner and co-teacher of Song of the Goddess, our Navarātri immersion in the Devī Gītā.",
+  "photo_url": "",
+  "order": "3",
+  "publish": "TRUE",
+  "wisdom_school": ""
+ },
+ {
+  "name": "Mary Reilly Nichols",
+  "role": "Guest teacher",
+  "bio": "Yoga teacher and contemplative guide with decades of experience in the Bhagavad Gītā, Tantra and cross-traditional mysticism.",
+  "photo_url": "",
+  "order": "4",
+  "publish": "TRUE",
+  "wisdom_school": "core"
+ },
+ {
+  "name": "Athena Potari",
+  "role": "Wisdom School faculty",
+  "bio": "Philosopher and teacher of the Hellenic wisdom traditions, leading a Wisdom School learning pathway on Greek esoteric thought.",
+  "photo_url": "",
+  "order": "5",
+  "publish": "TRUE",
+  "wisdom_school": "core"
+ }
+]
