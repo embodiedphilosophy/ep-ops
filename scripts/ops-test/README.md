@@ -12,6 +12,7 @@ before merging.
 | `run.sh` | Starts the mock, builds and starts the app on :3100, mints a sign-in cookie for jacob@ (`out/cookie.txt`, via `cookie.mjs`; pass another email to test as someone else), makes `out/upload-test.png`. `--no-build` skips the build. |
 | `shoot.cjs` | Screenshots every /ops page (list in `pages.json`) at desktop and phone width; reports HTTP status, horizontal overflow and page errors. POSTs are blocked. `node scripts/ops-test/shoot.cjs scripts/ops-test/out label` |
 | `feed.cjs` `crop.cjs` `newpost.cjs` `email.cjs` | Click-through tests of Content → Social (feed and post editor, crop/upload, new post, snippets/quotes) and Content → Email (promo emails vs Kit). Writes go to the mock; check `out/mock.log` for exactly what would have been written. |
+| `promo.cjs` | Content → Email promo emails: write a planned email (makes the Promo Emails tab), preview, build its Kit draft (the mock logs `KIT DRAFT CREATED`; nothing reaches Kit), add and delete an extra, mark one not needed and bring it back, phone width. |
 | `out/` | Logs, cookie, screenshots (git-ignored). |
 
 ## Typical loop

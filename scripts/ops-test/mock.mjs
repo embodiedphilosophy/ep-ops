@@ -108,6 +108,7 @@ const siteTabs = {
 const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimonials'] };
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
+const kitDrafts = [];
 const tabs = { ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
   'Post History': [['ig_media_id', 'posted_at', 'media_type', 'caption', 'permalink', 'like_count', 'comments_count', 'archived_image_id', 'pillar', 'notes'], ...Array.from({ length: 70 }, (_, i) => [`M${i}`, day(-i * 3) + 'T15:00:00Z', 'IMAGE', `Post number ${i}: a verse and a painting.`, 'https://instagram.com/p/x' + i, String(200 - i), String(i % 9), '', 'Content', ''])],
   'Quote Library': [['quote_id', 'quote', 'author', 'work', 'publication', 'location', 'source_link', 'themes', 'pillar_fit', 'verified', 'added_by', 'times_used', 'last_used'], ['Q1', 'The Self is the light by which all is seen.', 'Kṣemarāja', 'Pratyabhijñāhṛdayam', '', '', '', 'recognition', 'Content', 'TRUE', 'Jacob', '3', '2026-09-01'], ['Q2', 'Consciousness is the world.', 'Abhinavagupta', 'Tantrāloka', '', '', '', 'nondual', 'Practice', 'FALSE', 'Jacob', '0', '']],
@@ -202,7 +203,11 @@ http.createServer(async (req, res) => {
       return send(res, 200, 'Accepted');
     }
     if (p.startsWith('/kit/')) {
+      // Promo-email drafts (Publish → Email): logged, never real. Anything else written to Kit is refused.
+      if (req.method === 'POST' && p.endsWith('/broadcasts')) { const b = await body(req); const id = 900 + (kitDrafts.length); kitDrafts.push({ id, ...b }); log('KIT DRAFT CREATED', id, b.subject, '|', b.description, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
+      if (req.method === 'PUT' && /\/broadcasts\/\d+$/.test(p)) { const b = await body(req); const id = Number(p.split('/').pop()); log('KIT DRAFT UPDATED', id, b.subject, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
       if (req.method !== 'GET') { log('BLOCKED kit', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
+      if (/\/broadcasts\/\d+$/.test(p)) { const id = Number(p.split('/').pop()); const d = kitDrafts.find(x => x.id === id); return send(res, d ? 200 : 404, d ? { broadcast: { ...d, send_at: null } } : { error: 'not found' }); }
       if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }], pagination: {} });
       if (p.endsWith('/broadcasts')) return send(res, 200, { broadcasts: [
         { id: 11, subject: '[E002] Promo #1: the Goddess', send_at: new Date(Date.now() + 2 * 864e5).toISOString() },

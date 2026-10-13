@@ -10,8 +10,10 @@ import Shell, { opsUser } from '../Shell';
 import SiteEditor from './SiteEditor';
 import { tableOf } from '@/lib/ops/sitetables';
 import SocialEngine, { NextPosts } from './SocialEngine';
-import { kitConfigured, kitSignals, draftUrl } from '@/lib/kit';
-import { ruleOf } from '@/lib/ops/autocomplete';
+import { draftUrl } from '@/lib/kit';
+import { promoRows } from '@/lib/ops/promo';
+import { loadPages, offeringKey } from '@/lib/teach';
+import PromoEmails from './PromoEmails';
 import { upcomingSocial } from '@/lib/social';
 import { readPlain } from '@/lib/ops/store';
 import { flagOf } from '../SocialGrid';
@@ -35,7 +37,7 @@ export default async function Content({ searchParams }) {
       head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={k === 'overview' ? '/ops/content' : `/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'overview' && <Overview canReview={canEditSite(user)} />}
       {tab === 'social' && <SocialEngine director={!!user.director} initial={['plan', 'history', 'quotes', 'images', 'captions', 'rules', 'categories', 'sources'].includes(sp?.s) ? sp.s : 'plan'} />}
-      {tab === 'email' && <Email />}
+      {tab === 'email' && <Email canEdit={canEditSite(user)} />}
       {tab === 'email' && <SiteEditor scope="email" initial="scaffolding" base="/ops/content?tab=email&" />}
       {tab === 'media' && <Media />}
       {tab === 'review' && (<section><h2 className="ops-sub">Waiting for review</h2><p className="ops-empty">Bios and course pages teachers sent through onboarding. Approving or publishing puts them on the website.</p><Review /></section>)}
@@ -44,51 +46,35 @@ export default async function Content({ searchParams }) {
 }
 
 
-// Promo emails per event: the Marketing "kit_email" tasks in Task Templates say how many each track needs and
-// when; Kit broadcasts count for an event when their subject (or internal description) carries its ID, e.g.
-// "[E047] Promo #2". Read only: nothing is created or scheduled in Kit from here.
-async function promoRows() {
-  const [cal, tpls, kit] = await Promise.all([loadCalendar(), loadTemplates(), kitConfigured() ? kitSignals() : null]);
-  const slots = {};
-  for (const t of tpls) if (ruleOf(t) === 'kit_email' && /^marketing$/i.test(String(t.assign_to).trim()))
-    (slots[String(t.track).toUpperCase()] ||= []).push({ task: t.task, offset: Number(t.offset_days) || 0 });
-  const today = todayET(), until = addDays(today, 70);
-  const rows = cal.filter(e => slots[e.track] && e.date >= today && e.date <= until && !/cancel/i.test(e.status))
-    .map(e => {
-      const want = slots[e.track].map(s => ({ ...s, due: addDays(e.date, s.offset) })).sort((x, y) => x.due.localeCompare(y.due));
-      const got = kit ? kit.broadcasts.filter(b => b.ids.includes(e.sched_id)).sort((x, y) => (x.at || '9').localeCompare(y.at || '9')) : [];
-      return { e, want, got, ready: got.filter(b => b.at).length };
-    });
-  const untagged = kit ? kit.broadcasts.filter(b => !b.sent && b.at && !b.ids.length && b.at.slice(0, 10) >= today && b.at.slice(0, 10) <= addDays(today, 30)) : [];
-  return { rows, untagged, kit: !!kit };
-}
-
-async function Email() {
-  const { rows, untagged, kit } = await promoRows().catch(() => ({ rows: [], untagged: [], kit: false, failed: true }));
+// Promo emails per event: planned in Task Templates, written and adjusted on the Promo Emails tab, checked
+// against Kit (lib/ops/promo.js). Editing, previewing and building Kit drafts happen in PromoEmails.
+async function Email({ canEdit }) {
+  const [{ rows, untagged, kit, failed }, pages] = await Promise.all([
+    promoRows().catch(() => ({ rows: [], untagged: [], kit: false, failed: true })),
+    loadPages({ fresh: false }).catch(() => []),
+  ]);
   const short = iso => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }) : '';
+  const pageOf = Object.fromEntries(pages.map(p => [p.offering, p]));
+  const kitOf = b => b && { id: b.id, subject: b.subject || '', at: b.at || '', sent: !!b.sent, url: draftUrl(b.id) };
+  // Plain data for the client list (the teacher's promo blurbs seed the body of planned emails 1–3)
+  const events = rows.map(({ e, all, extra, ready }) => {
+    const page = pageOf[offeringKey(e)];
+    let n = 0;
+    return {
+      id: e.sched_id, title: e.title, date: e.date, when: longDate(e.date), registration: e.registration_url || '', kit, ready,
+      emails: all.map(x => ({ key: x.key, label: x.label, planned: x.planned, due: x.due, planDue: x.planDue || '', row: x.row, values: x.values, skipped: x.skipped,
+        kit: kitOf(x.kit), blurb: x.planned && page ? String(page[`promo_${++n}`] || '').trim() : '' })),
+      unmatched: extra.map(kitOf),
+    };
+  });
   return (
     <section>
       <h2 className="ops-sub">Promo emails <span>{rows.filter(r => r.ready < r.want.length).length || ''}</span></h2>
-      <p className="ops-empty" style={{ maxWidth: 680 }}>Each upcoming event’s promo emails, as Task Templates plan them, against what’s in Kit. A Kit email counts for an event when its subject (or internal description) carries the event ID, e.g. “[E047] Promo #2”.</p>
-      {!kit ? <p className="ops-empty">Kit isn’t connected (KIT_API_KEY), so emails can’t be checked yet.</p>
-        : rows.length === 0 ? <p className="ops-empty">No events in the next 10 weeks need promo emails.</p> : (
-        <ul className="ops-promo">
-          {rows.map(({ e, want, got, ready }) => (
-            <li key={e.id} className={ready >= want.length ? 'ok' : want[0].due < todayET() ? 'late' : ''}>
-              <div className="h"><b>{e.title}</b> <span className="id">[{e.sched_id}]</span> <span className="d">{longDate(e.date)}</span>
-                <span className="n">{ready} of {want.length} scheduled</span></div>
-              <ol>{want.map((w, i) => { const b = got[i]; return (
-                <li key={i} className={b?.at ? (b.sent ? 'sent' : 'sched') : 'miss'}>
-                  <span className="w">{w.task}</span><span className="due">due {short(w.due + 'T12:00:00Z')}</span>
-                  {b ? <a href={draftUrl(b.id)} target="_blank" rel="noopener">{b.subject || 'Untitled'}</a> : <span className="none">Not in Kit yet</span>}
-                  <span className="st">{!b ? '' : b.sent ? `Sent ${short(b.at)}` : b.at ? `Scheduled ${short(b.at)}` : 'Draft'}</span>
-                </li>); })}
-                {got.slice(want.length).map(b => <li key={b.id} className="extra"><span className="w">Extra</span><span className="due" /><a href={draftUrl(b.id)} target="_blank" rel="noopener">{b.subject}</a><span className="st">{b.sent ? `Sent ${short(b.at)}` : b.at ? `Scheduled ${short(b.at)}` : 'Draft'}</span></li>)}
-              </ol>
-            </li>
-          ))}
-        </ul>
-      )}
+      <p className="ops-empty" style={{ maxWidth: 680 }}>Each upcoming event’s promo emails, as Task Templates plan them. Click one to write it, preview it and build its Kit draft (sending stays in Kit). Mark a planned email “Not needed” if this event doesn’t need it, or add another. A Kit email counts for an event when its subject or internal description carries the event ID, e.g. “[E047] Promo #2”; drafts built here carry it already.</p>
+      {failed ? <p className="ops-empty">Couldn’t read the calendar sheet. Try again shortly.</p>
+        : !kit && <p className="ops-empty">Kit isn’t connected (KIT_API_KEY), so what’s scheduled can’t be checked yet.</p>}
+      {!failed && (events.length === 0 ? <p className="ops-empty">No events in the next 10 weeks need promo emails.</p>
+        : <PromoEmails events={events} canEdit={canEdit} today={todayET()} />)}
       {untagged.length > 0 && (<>
         <h3 className="ops-se-h">Scheduled without an event ID</h3>
         <p className="ops-empty">Add the event ID to the subject or internal description in Kit if these promote an event.</p>
