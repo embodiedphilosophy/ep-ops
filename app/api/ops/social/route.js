@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
 import { isStaff, canEditSocial } from '@/lib/ops/nav';
 import { readPlain, updatePlain, addPlain, ConflictError } from '@/lib/ops/store';
-import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel } from '@/lib/ops/socialengine';
+import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText } from '@/lib/ops/socialengine';
 import { loadCalendar } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
@@ -31,15 +31,17 @@ export async function GET(req) {
       rows = rows.filter(r => (r.values.publish_date || '9') >= from)
         .sort((a, b) => (a.values.publish_date || '9').localeCompare(b.values.publish_date || '9') || String(a.values.publish_time_ET).localeCompare(String(b.values.publish_time_ET)))
         .map(r => { const img = byImage[r.values.image_id] || {}; return { ...r, thumb: thumbOf(r.values.image_url || img.public_url, r.values.image_url ? '' : img.drive_file_id), src: img.drive_file_id || driveIdOf(img.public_url) || driveIdOf(r.values.image_url) }; });
-    } else if (v.key === 'images' && url.searchParams.get('pick')) {
-      // The post editor's picker: only pictures that may be used, newest first (uploads are added at the bottom)
-      rows = rows.filter(r => String(r.values.reuse_ok).toUpperCase() === 'TRUE' && String(r.values.hidden).toUpperCase() !== 'TRUE').reverse();
+    } else if (v.images && url.searchParams.get('pick')) {
+      // The post editor's picker: only Art (no words on the picture) that may be used, newest first (uploads are added at the bottom)
+      rows = rows.filter(r => !hasText(r.values) && String(r.values.reuse_ok).toUpperCase() === 'TRUE' && String(r.values.hidden).toUpperCase() !== 'TRUE').reverse();
+    } else if (v.only) {
+      rows = rows.filter(r => v.only(r.values));
     } else if (v.key === 'history') {
       rows = rows.sort((a, b) => String(b.values.posted_at).localeCompare(String(a.values.posted_at)));
     }
     if (q && v.search) rows = rows.filter(r => v.search.some(c => String(r.values[c] || '').toLowerCase().includes(q)));
     const total = rows.length, page = v.key === 'plan' ? rows : rows.slice(offset, offset + 60);
-    if (v.key === 'images') for (const r of page) r.thumb = thumbOf(r.values.public_url, r.values.drive_file_id);
+    if (v.images) for (const r of page) r.thumb = thumbOf(r.values.public_url, r.values.drive_file_id);
     const events = v.key !== 'plan' ? undefined : (await loadCalendar().catch(() => []))
       .filter(e => e.date >= addDays(todayET(), -3) && e.date <= addDays(todayET(), 120) && /public/i.test(e.audience || '') && e.track !== 'MM')
       .filter((e, i, a) => a.findIndex(x => eventLabel(x) === eventLabel(e)) === i).slice(0, 60).map(eventLabel);

@@ -49,7 +49,7 @@ export async function POST(req) {
     const image_id = `IMG-${String(n).padStart(4, '0')}`;
     await addPlain('Image Library', {
       image_id, file_name: file, drive_file_id: id, public_url: url, folder: 'EP Social – Dashboard images', type: 'Upload',
-      drive_link: `https://drive.google.com/file/d/${id}/view`, year: todayET().slice(0, 4), reuse_ok: 'TRUE', times_used: '0', hidden: 'FALSE', tags: 'uploaded',
+      drive_link: `https://drive.google.com/file/d/${id}/view`, year: todayET().slice(0, 4), reuse_ok: 'TRUE', has_text: 'FALSE', times_used: '0', hidden: 'FALSE', tags: 'uploaded',
     }, { who: user.name || user.email, sheet: 'social' });
     refreshSite();
     return NextResponse.json({ ok: true, image_id, image_url: url });

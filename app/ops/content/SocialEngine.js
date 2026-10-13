@@ -320,12 +320,12 @@ function Inserter({ kind, onPick }) {
   );
 }
 
-// Every picture that may be reused, newest first, 60 at a time; the grid scrolls inside the editor
+// Every Art picture (no words on it) that may be reused, newest first, 60 at a time; the grid scrolls inside the editor
 function ImagePicker({ onPick }) {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState([]);
-  const [data] = useView('images', q, offset, '&pick=1');
+  const [data] = useView('art', q, offset, '&pick=1');
   useEffect(() => { setOffset(0); setRows([]); }, [q]);
   useEffect(() => { if (data?.rows) setRows(r => offset === 0 ? data.rows : [...r, ...data.rows.filter(x => !r.some(y => y.row === x.row))]); }, [data]);
   const more = data && !data.error && rows.length < data.total;
@@ -389,7 +389,7 @@ function Library({ view }) {
       </div>
       {!data ? <p className="ops-empty">Loading…</p> : data.error ? <p className="ops-empty">{data.error}</p> : (<>
         {sel === 'new' && <Row view={view} head={data.head} locked={data.locked} row={null} values={{}} canEdit onDone={() => { setSel(null); reload(); }} />}
-        {view.key === 'images' ? (
+        {view.images ? (
           <ul className="ops-se-imgs">{data.rows.map(r => (
             <li key={r.row} className={String(r.values.hidden).toUpperCase() === 'TRUE' ? 'off' : ''}>
               {sel === r.row ? <Row view={view} head={data.head} locked={data.locked} row={r.row} values={r.values} canEdit={data.canEdit} onDone={c => { setSel(null); if (c) reload(); }} /> : (

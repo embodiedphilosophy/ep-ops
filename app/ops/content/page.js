@@ -36,7 +36,7 @@ export default async function Content({ searchParams }) {
     <Shell user={user} current="content" eyebrow="Social · Email · Media · Review" title="Publish"
       head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={k === 'overview' ? '/ops/content' : `/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'overview' && <Overview canReview={canEditSite(user)} />}
-      {tab === 'social' && <SocialEngine director={!!user.director} initial={['plan', 'history', 'quotes', 'images', 'captions', 'rules', 'categories', 'sources'].includes(sp?.s) ? sp.s : 'plan'} />}
+      {tab === 'social' && <SocialEngine director={!!user.director} initial={sp?.s === 'images' ? 'art' : ['plan', 'history', 'quotes', 'art', 'promo', 'captions', 'rules', 'categories', 'sources'].includes(sp?.s) ? sp.s : 'plan'} />}
       {tab === 'email' && <Email canEdit={canEditSite(user)} />}
       {tab === 'email' && <SiteEditor scope="email" initial="scaffolding" base="/ops/content?tab=email&" />}
       {tab === 'media' && <Media />}
