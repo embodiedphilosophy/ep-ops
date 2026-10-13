@@ -1,0 +1,24 @@
+[
+ {
+  "order": "1",
+  "question": "“What does yoga actually teach?”",
+  "title": "Classical Yoga & the Yoga Sūtras",
+  "description": "The classical sources, read with leading scholars.",
+  "courses": "Origins and Hidden History; Classical Yoga; The Eight Limbs",
+  "link": "",
+  "publish": "TRUE",
+  "ce_hours": "12",
+  "ya_category": "Yoga Humanities"
+ },
+ {
+  "order": "2",
+  "question": "“Is there more to the body than anatomy?”",
+  "title": "The Subtle Body: Chakras, Prāṇa & Breath",
+  "description": "How the yogic traditions map the body’s inner life.",
+  "courses": "Subtle Body Anatomy; Chakras Illuminated; Breath Mechanics",
+  "link": "",
+  "publish": "TRUE",
+  "ce_hours": "12",
+  "ya_category": "Anatomy & Physiology"
+ }
+]

@@ -1,57 +1,37 @@
 # ep-ops: Embodied Philosophy team dashboard & teacher onboarding
 
-Next.js app on Vercel at **ops.embodiedphilosophy.com** (like the quiz at report.embodiedphilosophy.com, it's its own
-repo and Vercel project). The public site (ep-website) only reads what this app writes.
+Its own repo and Vercel project (like the quiz at report.embodiedphilosophy.com), at **ops.embodiedphilosophy.com**.
+The public site (ep-website) reads the same sheets; this app writes them.
 
 | Path | What it is |
 |---|---|
-| /ops | Team dashboard: Motion tasks (past due / this week / coming up) and teaching sessions with Zoom links |
-| /teach | Teacher onboarding (directors see every assigned teacher and can "Try it as" them, saving nothing) |
-| /teach/preview/[slug] | A course page before it's published (directors and that course's teachers) |
-| /api/ops/daily | Daily cron: Motion tasks from Task Templates, teaching reminders, slides requests, "page is live" notes |
+| /ops | Team dashboard: Today, Events, Tasks, Publish, Business, People, Hours, Settings |
+| /teach | Teacher onboarding |
+| /api/ops/daily, /api/ops/auto, /api/zoom/sync, /api/scaffolding | Back-office crons (vercel.json); real runs need `OPS_LIVE=1` |
 
-## Sign-in
-Email link (Resend). Anyone on the **Team** tab, or anyone whose email is in a session's **Teacher/Host Emails** on
-the Master Schedule. Teachers with onboarding left are sent from /ops to /teach.
-
-## Teacher onboarding
-1. **Bio & headshot** (60–100 words, square photo, uploaded to the ep-media Blob store). Returning teachers confirm
-   what's on file (Teacher Profiles tab, or the website's Teachers tab) or update it.
-2. **Their offering**, once per upcoming offering (a Series, or a single event): title, subtitle, description,
-   what students will explore, who it's for, plus, when that track's **Task Templates** have a Teacher row for it:
-   - readings: share them all now (links or uploads) or send them a week before each session;
-   - three promotional email blurbs (rows mentioning "blurbs"/"promotional": EVENT, i.e. courses a teacher leads
-     on their own; Wisdom School and Sādhana School don't ask, since EP writes those);
-   - a promo clip link (rows mentioning a "clip", e.g. LRL).
-3. **Course page preview**; "This looks right" sends it to directors for review.
-4. **Circle** (tracks in `CIRCLE_TRACKS`, default `SS,SSWW,EVENT`; `ALL` after the full move to Circle): invite,
-   Teachers access group, course space; then how to teach there.
-5. **Dashboard tour**, **emails to expect**, a welcome email, and a row on the **Team** tab.
-
-What onboarding closes in Motion (and the daily job then stops creating): bio/headshot, title/description, promo
-blurbs, and readings if shared up front. The day after each session, the daily job asks that session's teachers for
-their slides as a PDF (tracks with a Teacher "slides" row); EP staff on the Team tab are left out.
-
-## Data: EP-Programming-Calendar (the service account needs edit access)
-| Tab | One row per | Set by hand |
-|---|---|---|
-| Master Schedule, Track Defaults, Task Templates, Team | (existing) | |
-| Teacher Profiles | teacher (email) | `status` = `approved` puts their bio/photo on the website's Teachers page |
-| Course Pages | offering (Series or event ID) | `status` = `published` puts embodiedphilosophy.com/courses/[slug] live; `circle_space_id` = their Circle space |
+Start with `CLAUDE.md` (rules, testing) and `docs/ops-handoff.md` (architecture, backlog).
 
 ## Settings (Vercel → ep-ops → Environment Variables)
-- Google: `CALENDAR_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`
-- Sign-in & email: `OPS_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `OPS_URL` (https://ops.embodiedphilosophy.com)
-- Motion: `MOTION_API_KEY` (optional `MOTION_WORKSPACE_ID`); cron: `CRON_SECRET`
-- Zoom (for join links): `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, optional `MEDITATION_MONDAYS_MEETING_ID`
-- Circle: `CIRCLE_API_TOKEN`, `CIRCLE_TEACHER_ACCESS_GROUP_ID`, optional `CIRCLE_SPACE_<TRACK>`, `CIRCLE_TRACKS`
-- Uploads: `BLOB_READ_WRITE_TOKEN` (ep-media store)
-- Website: `SITE_URL` (default https://www.embodiedphilosophy.com), `EVENTS_SHEET_CSV_URL` (to recognise teachers already on the site)
+Copy every variable from ep-website that the dashboard uses (same values):
+`CALENDAR_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `SOCIAL_SHEET_ID`, `METRICS_SHEET_ID`,
+`OPS_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `CRON_SECRET`, `DATABASE_URL` (Neon), `MOTION_API_KEY`,
+`MOTION_WORKSPACE_ID`, `KIT_API_KEY`, `CIRCLE_API_TOKEN`, `CIRCLE_TEACHER_ACCESS_GROUP_ID`, `CIRCLE_TRACKS`,
+`CIRCLE_GROUPS_JSON`, `CIRCLE_EVENT_SYNC`, `ZOOM_*`, `MEDITATION_MONDAYS_MEETING_ID`, `SOCIAL_IMAGES_HOOK`,
+`SCAFFOLDING_*`, `HOLD_TAG_ID`, `OPS_TEAM_CALENDARS`, `BLOB_READ_WRITE_TOKEN`, `EVENTS_SHEET_CSV_URL`, `THEME_YEAR`.
+New here:
+- `OPS_URL` = https://ops.embodiedphilosophy.com (sign-in links)
+- `SITE_URL` and `NEXT_PUBLIC_SITE_URL` = https://www.embodiedphilosophy.com
+- `REVALIDATE_SECRET` = a new random value, set on **both** projects (lets a save here refresh the website)
+- `OPS_LIVE` = `1`, only at cutover (step 4 below)
 
-The daily cron runs at 13:00 UTC (vercel.json). Run by hand: `/api/ops/daily?key=CRON_SECRET`; `&preview=21` sends
-nothing and lists what would go out.
+## Cutover (once)
+1. Merge the move PR here; in Vercel add the domain ops.embodiedphilosophy.com to ep-ops and the CNAME at GoDaddy.
+2. Add the settings above (without `OPS_LIVE`). Redeploy. Sign in at ops.embodiedphilosophy.com/ops and check each page.
+   Crons on this project do nothing yet.
+3. Merge the ep-website PR "ops-moves-out" (adds /api/revalidate and the switch below; changes nothing by itself).
+4. Flip, back to back: ep-website gets `OPS_ORIGIN=https://ops.embodiedphilosophy.com` (then redeploy ep-website:
+   the /ops → ops redirect is set at build time); ep-ops gets `OPS_LIVE=1` (redeploy).
+   Now ep-website's crons stand down, ep-ops runs them, and old /ops and /teach links forward here.
+5. A week later, if all is well: remove /ops, /teach, their APIs and the ops-only libraries from ep-website.
 
-## Moving over from ep-website
-1. Deploy this project and add the ops.embodiedphilosophy.com domain (CNAME at GoDaddy).
-2. Copy the settings above from the ep-website project.
-3. In ep-website set `OPS_ORIGIN=https://ops.embodiedphilosophy.com`: its /ops redirects here and its daily job stops.
+Rollback: remove `OPS_LIVE` here and `OPS_ORIGIN` on ep-website, redeploy both.
