@@ -1,8 +1,24 @@
 {
   "crons": [
-    { "path": "/api/zoom/sync", "schedule": "0 12 * * *" },
-    { "path": "/api/ops/daily", "schedule": "0 13 * * *" },
-    { "path": "/api/ops/auto", "schedule": "*/15 * * * *" },
-    { "path": "/api/scaffolding", "schedule": "0 14 * * 4" }
+    {
+      "path": "/api/zoom/sync",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/ops/daily",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/ops/auto",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/scaffolding",
+      "schedule": "0 14 * * 4"
+    },
+    {
+      "path": "/api/ops/library-sync",
+      "schedule": "20 * * * *"
+    }
   ]
 }

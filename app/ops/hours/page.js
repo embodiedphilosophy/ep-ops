@@ -18,13 +18,13 @@ export default async function Hours({ searchParams }) {
   const user = await opsUser(isStaff);
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp?.m || '') ? sp.m : monthNow();
-  if (!clockAvailable()) return <Shell user={user} current="team" title="Hours"><p className="ops-note">The time clock starts once the database is connected.</p></Shell>;
+  if (!clockAvailable()) return <Shell user={user} current="hours" desc="Time worked this month, against each person’s cap." title="Hours"><p className="ops-note">The time clock starts once the database is connected.</p></Shell>;
   const team = await loadTeam().catch(() => []);
 
   if (user.director) {
     const [rows, reqs] = await Promise.all([teamHours(team, month), pendingRequests()]);
     return (
-      <Shell user={user} current="team" eyebrow={monthName(month)} title="Team hours">
+      <Shell user={user} current="hours" desc="Time worked this month, against each person’s cap." eyebrow={monthName(month)} title="Team hours">
         {reqs.length > 0 && (<section className="ops-col">
           <h2 className="late">Waiting on your yes <span>{reqs.length}</span></h2>
           <ul className="ops-hours-req">{reqs.map(r => (
@@ -51,7 +51,7 @@ export default async function Hours({ searchParams }) {
 
   const st = await statusFor(user, month);
   return (
-    <Shell user={user} current="team" eyebrow={monthName(month)} title="My hours">
+    <Shell user={user} current="hours" desc="Time worked this month, against each person’s cap." eyebrow={monthName(month)} title="My hours">
       <div className="ops-glance">
         <a href="#shifts"><b>{st.used} h</b> {st.limit ? `of a ${st.limit} h cap` : 'this month'}</a>
         {st.pace != null && <a href="#shifts" className={st.limit && st.pace > st.limit ? 'is-bad' : ''}><b>{st.pace} h</b> at this pace{st.limit && st.pace > st.limit ? ` (${st.pace - st.limit} over)` : ''}</a>}

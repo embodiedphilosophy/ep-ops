@@ -75,7 +75,7 @@ export default async function Tasks({ searchParams }) {
   </>);
 
   return (
-    <Shell user={user} current="tasks" eyebrow={!user.director ? 'Yours, and anything waiting on you' : who === 'all' ? 'Everyone' : who} title="Tasks" head={head}>
+    <Shell user={user} current="tasks" desc="The whole task list, who owns what and when it is due." eyebrow={!user.director ? 'Yours, and anything waiting on you' : who === 'all' ? 'Everyone' : who} title="Tasks" head={head}>
       {error && <p className="ops-note">Couldn’t load tasks right now ({error}).</p>}
       {shown.length === 0 ? <p className="ops-empty">{view === 'done' ? 'Nothing finished recently.' : view === 'open' ? 'No open tasks.' : 'None.'}</p> : groups.map(g => (
         <div className="ops-group" key={g.key || 'other'}>

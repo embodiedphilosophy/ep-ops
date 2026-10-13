@@ -1,0 +1,200 @@
+'use client';
+import { useMemo, useState } from 'react';
+import { PROGRAMMES, ACCESS, KINDS, FORMATS, DEPTHS, TOPICS, checklist, canPublish, filtersLine, coverOf, label, progress } from '@/lib/ops/library';
+
+async function call(body) {
+  const r = await fetch('/api/ops/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'Something went wrong');
+  return j;
+}
+const SAVE_KEYS = ['programme', 'access', 'requires', 'unlock_note', 'card_label', 'kind', 'format', 'depth', 'topics', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'teachers', 'cover_override', 'director_email'];
+const long = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+const Lock = () => <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" fill="currentColor" /><path d="M3.8 5.5V4a2.2 2.2 0 0 1 4.4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>;
+const Source = ({ of }) => of ? <span className="chip-pine">From onboarding · {of}</span> : null;
+function Chips({ options, value, onChange, multi, name }) {
+  const on = o => multi ? value.includes(o) : value === o;
+  return (
+    <div className="ops-chips" role={multi ? 'group' : 'radiogroup'} aria-label={name}>
+      {options.map(o => { const [k, l] = Array.isArray(o) ? o : [o, o]; return (
+        <button type="button" key={k} className={`ops-chip${on(k) ? ' on' : ''}`} aria-pressed={on(k)} onClick={() => onChange(multi ? (on(k) ? value.filter(x => x !== k) : [...value, k]) : (on(k) ? '' : k))}>{l}</button>
+      ); })}
+    </div>
+  );
+}
+const Req = () => <span className="req" aria-hidden="true">*</span>;
+
+export default function Form({ initial, choices, changed, kalighat }) {
+  const [o, setO] = useState(initial);
+  const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null);
+  const set = (k, v) => setO(s => ({ ...s, [k]: v, sources: { ...s.sources, [k]: undefined } }));
+  const live = o.status === 'published';
+  const list = useMemo(() => checklist(o), [o]);
+  const ready = canPublish(o);
+  const incl = o.included.join('\n');
+  const manualPrice = !initial.price_label || !initial.checkout_url;
+
+  async function run(label, fn) {
+    setBusy(label); setMsg(null);
+    try { const r = await fn(); if (r?.offering) setO(r.offering); setMsg({ ok: true, text: r?.note || (label === 'save' ? 'Saved.' : 'Done.') }); }
+    catch (e) { setMsg({ ok: false, text: e.message }); }
+    setBusy('');
+  }
+  const payload = () => ({ ...Object.fromEntries(SAVE_KEYS.map(k => [k, o[k]])), ...(manualPrice ? { price_label: o.price_label, checkout_url: o.checkout_url, manual_price: true } : {}) });
+  const save = () => run('save', () => call({ action: 'save', id: o.offering_id, changes: payload() }));
+  const publish = update => run(update ? 'update' : 'publish', async () => { await call({ action: 'save', id: o.offering_id, changes: payload() }); return call({ action: update ? 'update' : 'publish', id: o.offering_id }); });
+  const unpublish = () => run('unpublish', () => call({ action: 'unpublish', id: o.offering_id }));
+  const link = id => run('link', async () => { const r = await call({ action: 'link', id: o.offering_id, onboarding_id: id }); return r; });
+  const teacherSet = (i, k, v) => set('teachers', o.teachers.map((t, j) => j === i ? { ...t, [k]: v } : t));
+  const sessSet = (i, k, v) => set('sessions', o.sessions.map((t, j) => j === i ? { ...t, [k]: v } : t));
+  const cover = coverOf(o);
+
+  return (
+    <div className="ops-pub">
+      <div className="ops-pub-main">
+        {(changed.circle.length > 0 || changed.onboarding.length > 0) && (
+          <div className="ops-note" role="status">
+            {changed.circle.length > 0 && <p><b>Changed in Circle:</b> {changed.circle.join(', ')}. The site follows Circle for these. Press “Update listing” to refresh the catalog row.</p>}
+            {changed.onboarding.length > 0 && <p><b>Changed in onboarding:</b> {changed.onboarding.join(', ')}. Not live until you press “Update listing”.</p>}
+          </div>
+        )}
+
+        <section className="ops-panel" aria-labelledby="from-circle">
+          <h2 id="from-circle">From Circle</h2>
+          <p><span className="chip-sand"><Lock /> Change these in Circle</span></p>
+          <dl className="ops-ro">
+            <div><dt>Title</dt><dd>{o.title || '—'}</dd></div>
+            <div><dt>Status in Circle</dt><dd><span className="st"><i className={`sq ${o.circle_status === 'published' ? 'green' : 'amber'}`} />{o.circle_status === 'published' ? 'Published' : o.circle_status === 'removed' ? 'Removed' : 'Draft'}</span></dd></div>
+            <div><dt>Price</dt><dd className="mono">{o.price_label || '—'}</dd></div>
+            <div><dt>Checkout link</dt><dd className="mono break">{o.checkout_url || '—'}</dd></div>
+          </dl>
+          {manualPrice && (
+            <div className="ops-note"><p>Circle didn’t give the {!initial.price_label ? 'price' : ''}{!initial.price_label && !initial.checkout_url ? ' or ' : ''}{!initial.checkout_url ? 'checkout link' : ''}. Enter {(!initial.price_label && !initial.checkout_url) ? 'them' : 'it'} here; changes in Circle then won’t be noticed.</p>
+              <div className="ops-grid2">
+                {!initial.price_label && <label>Price label<input value={o.price_label} onChange={e => set('price_label', e.target.value)} placeholder="$495" /></label>}
+                {!initial.checkout_url && <label>Checkout link<input value={o.checkout_url} onChange={e => set('checkout_url', e.target.value)} placeholder="https://…" /></label>}
+              </div>
+            </div>)}
+          <div className="ops-cover">
+            <span className="thumb big" aria-hidden="true">{cover ? <img src={cover} alt="" width="120" height="120" /> : 'No cover'}</span>
+            <div>
+              <label>Cover picture<input value={o.cover_override} onChange={e => set('cover_override', e.target.value)} placeholder={o.cover_url ? 'Using the picture from Circle' : 'Paste a picture link'} /></label>
+              <p className="ops-help">{o.cover_url ? 'This is the picture from Circle.' : 'Circle has no cover for this course.'} You can swap it for a Kalighat image.</p>
+              <button type="button" className="btn ghost" disabled={!kalighat} onClick={() => set('cover_override', kalighat)}>Use the Kalighat image</button>
+              {o.cover_override && <button type="button" className="btn ghost" onClick={() => set('cover_override', '')}>Back to the Circle picture</button>}
+              {!kalighat && <p className="ops-help">The Kalighat image isn’t set up yet (KALIGHAT_COVER_URL).</p>}
+            </div>
+          </div>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="onb">
+          <h2 id="onb">Teacher onboarding</h2>
+          {o.onboarding_id ? <p>Linked to <b>{choices.find(c => c.id === o.onboarding_id)?.title || o.onboarding_id}</b> <span className="chip-pine">{o.onboarding_source || 'linked'}</span></p>
+            : <p>Not linked yet. Link the teacher’s submission to pre-fill the description, teachers, sessions and dates.</p>}
+          <label>Link to onboarding submission
+            <select value={o.onboarding_id || ''} onChange={e => link(e.target.value)} disabled={busy === 'link'}>
+              <option value="">No link</option>
+              {choices.map(c => <option key={c.id} value={c.id}>{c.title} · {c.status}</option>)}
+            </select>
+          </label>
+          {(o.faculty || []).length > 0 && (
+            <ul className="ops-faculty">
+              {o.faculty.map(f => <li key={f.email}><span className="st"><i className={`sq ${f.done ? 'green' : 'amber'}`} />{f.done ? 'Submitted' : 'Waiting'}</span> {f.name}</li>)}
+            </ul>)}
+          <label>Programme director (optional, waited for before publishing)<input type="email" value={o.director_email || ''} onChange={e => set('director_email', e.target.value)} placeholder="name@embodiedphilosophy.com" /></label>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="details">
+          <h2 id="details">Catalog details</h2>
+          <fieldset><legend>Programme <Req /></legend><Chips name="Programme" options={PROGRAMMES} value={o.programme} onChange={v => set('programme', v)} /></fieldset>
+          <label>Card label <Req /><input value={o.card_label} onChange={e => set('card_label', e.target.value)} placeholder="FALL 2026" maxLength={60} /></label>
+          <fieldset><legend>Kind <Req /></legend><Chips name="Kind" options={KINDS} value={o.kind} onChange={v => set('kind', v)} /></fieldset>
+          <fieldset><legend>Format</legend><Chips name="Format" options={FORMATS} value={o.format} onChange={v => set('format', v)} /></fieldset>
+          <fieldset><legend>Depth</legend><Chips name="Depth" options={DEPTHS} value={o.depth} onChange={v => set('depth', v)} /></fieldset>
+          <fieldset><legend>Topics</legend><Chips name="Topics" multi options={TOPICS} value={o.topics} onChange={v => set('topics', v)} /></fieldset>
+          <div className="ops-grid2">
+            <label>Access level
+              <select value={o.access} onChange={e => set('access', e.target.value)}><option value="">Not set</option>{ACCESS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            </label>
+            <label>CE hours (blank if not for CE)<input className="mono" inputMode="decimal" value={o.ce_hours} onChange={e => set('ce_hours', e.target.value)} /></label>
+            <label>Length <Source of={o.sources.length} /><input value={o.length} onChange={e => set('length', e.target.value)} placeholder="8 weeks" /></label>
+            <label>Next date <Source of={o.sources.next_date} /><input type="date" className="mono" value={o.next_date} onChange={e => set('next_date', e.target.value)} /></label>
+          </div>
+          {o.requires === 'year_long' && <p className="ops-help">For year-long students only{o.unlock_note ? `: ${o.unlock_note}` : ''}. Set in the access map.</p>}
+          {o.next_session && <p className="ops-help">Card’s next-session line: <span className="mono">{o.next_session}</span></p>}
+          <label>Description <Req /> <Source of={o.sources.description} /><textarea rows={6} value={o.description} onChange={e => set('description', e.target.value)} /></label>
+          <label>What’s included <Req /> <Source of={o.sources.included} /><span className="ops-help"> One line each. At least one.</span>
+            <textarea rows={5} value={incl} onChange={e => set('included', e.target.value.split('\n'))} /></label>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="teach">
+          <h2 id="teach">Teachers <Source of={o.sources.teachers} /></h2>
+          {o.teachers.length === 0 && <p className="ops-help">No teachers yet. Link onboarding, or add one.</p>}
+          <ul className="ops-teachers">
+            {o.teachers.map((t, i) => (
+              <li key={i}>
+                <span className="thumb" aria-hidden="true">{t.photo ? <img src={t.photo} alt="" width="48" height="48" /> : (t.name || '?')[0]}</span>
+                <input aria-label="Teacher name" value={t.name} onChange={e => teacherSet(i, 'name', e.target.value)} />
+                <input aria-label="Headshot link" value={t.photo} onChange={e => teacherSet(i, 'photo', e.target.value)} placeholder="Headshot link" />
+                <button type="button" className="btn ghost" onClick={() => set('teachers', o.teachers.filter((_, j) => j !== i))}>Remove</button>
+              </li>))}
+          </ul>
+          <button type="button" className="btn ghost" onClick={() => set('teachers', [...o.teachers, { name: '', role: '', bio: '', photo: '', email: '' }])}>Add a teacher</button>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="sess">
+          <h2 id="sess">Sessions <Source of={o.sources.sessions} /></h2>
+          {o.sessions.length === 0 && <p className="ops-help">No sessions yet. They come from onboarding and the programming calendar.</p>}
+          <ul className="ops-sessions">
+            {o.sessions.map((s, i) => (
+              <li key={i}>
+                <input aria-label="Session date" type="date" className="mono" value={s.date} onChange={e => sessSet(i, 'date', e.target.value)} />
+                <input aria-label="Session title" value={s.title} onChange={e => sessSet(i, 'title', e.target.value)} />
+                <button type="button" className="btn ghost" onClick={() => set('sessions', o.sessions.filter((_, j) => j !== i))}>Remove</button>
+              </li>))}
+          </ul>
+          <button type="button" className="btn ghost" onClick={() => set('sessions', [...o.sessions, { id: '', date: '', time: '', title: '', teacher: '' }])}>Add a session</button>
+        </section>
+      </div>
+
+      <aside className="ops-pub-side" aria-label="Preview and publishing">
+        <section className="ops-panel" aria-labelledby="prev">
+          <h2 id="prev">Preview</h2>
+          <article className="site-card">
+            <div className="pic" aria-hidden="true">{cover ? <img src={cover} alt="" /> : <span>{(o.title || '?')[0]}</span>}</div>
+            <div className="in">
+              <span className="lab">{o.card_label || 'CARD LABEL'}</span>
+              <h3>{o.title}</h3>
+              <p className="by">{o.teachers.map(t => t.name).filter(Boolean).join(', ') || 'Teacher'}</p>
+              <p className="meta"><span className="mono">{o.price_label || 'Price'}</span>{o.length ? <> · {o.length}</> : null}{o.next_date ? <> · Next <span className="mono">{long(o.next_date)}</span></> : null}</p>
+              {o.next_session && <p className="next">Next: <span className="mono">{o.next_session}</span></p>}
+            </div>
+          </article>
+          <div className="site-row"><span className="d mono">{o.next_date ? long(o.next_date) : '—'}</span><span className="t">{o.title}</span><span className="k">{o.kind || 'Kind'}</span><span className="p mono">{o.price_label}</span></div>
+          <p className="ops-help" data-testid="filters">{filtersLine(o)}</p>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="chk">
+          <h2 id="chk">Checklist</h2>
+          <ul className="ops-checklist">
+            {list.map(c => <li key={c.key} className={c.ok ? 'ok' : ''}><span className="mk" aria-hidden="true">{c.ok ? '✓' : ''}</span><span>{c.label}{!c.required && !c.ok ? ' (suggested)' : ''}<span className="sr">{c.ok ? ', done' : c.required ? ', still needed' : ', optional'}</span></span></li>)}
+          </ul>
+        </section>
+
+        <div className="ops-pine-bar" role="group" aria-label="Publish">
+          <span className="state"><b>{live ? 'Live on the website' : o.status === 'unpublished' ? 'Unpublished' : 'Draft'}</b>{live && o.published_at ? <span className="mono"> since {new Date(o.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span> : null}<span className="mono"> · {progress(o)} of 9 fields</span></span>
+          <span className="acts">
+            <button className="btn ghost-light" onClick={save} disabled={!!busy}>{busy === 'save' ? 'Saving…' : 'Save draft'}</button>
+            {live ? <>
+              <button className="btn primary" onClick={() => publish(true)} disabled={!ready || !!busy}>{busy === 'update' ? 'Updating…' : 'Update listing'}</button>
+              <button className="btn ghost-light" onClick={unpublish} disabled={!!busy}>Unpublish</button>
+            </> : <button className="btn primary" onClick={() => publish(false)} disabled={!ready || !!busy}>{busy === 'publish' ? 'Publishing…' : 'Publish'}</button>}
+          </span>
+        </div>
+        {!ready && !live && <p className="ops-help">Publish turns on once the starred items are done.</p>}
+        {msg && <p role={msg.ok ? 'status' : 'alert'} className={msg.ok ? 'ops-say' : 'ops-err'}>{msg.text}</p>}
+      </aside>
+    </div>
+  );
+}

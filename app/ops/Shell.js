@@ -29,7 +29,7 @@ const roleOf = u => u.director ? 'Director' : isTeacher(u) ? 'Teacher' : (String
 
 // Sidebar and page header shared by every ops page. A terra count shows only when something needs action.
 // eyebrow: the small line over the page title (a date, a range, what the page covers).
-export default async function Shell({ user, current, title, eyebrow, head, children }) {
+export default async function Shell({ user, current, title, eyebrow, desc, head, children }) {
   const items = navFor(user);
   const badges = user.director ? { home: await triageCount() } : {};
   const link = i => (
@@ -42,7 +42,7 @@ export default async function Shell({ user, current, title, eyebrow, head, child
   return (
     <div className="ops-shell">
       <aside className="ops-side">
-        <a href="/ops" className="ops-brand"><img src="/brand/ep-mark-black.png" alt="" width="26" height="27" /><span>EP Ops</span></a>
+        <a href="/ops" className="ops-brand"><span className="w1">EP Ops</span><span className="w2">General Manager</span></a>
         {items.length > 1 && <nav className="ops-nav" aria-label="Dashboard">{main.map(link)}</nav>}
         {more.length > 0 && <nav className="ops-nav more" aria-label="More">{more.map(link)}</nav>}
         {isStaff(user) && !user.director && clockAvailable() && <ClockWidget tags={user.roles || []} />}
@@ -54,7 +54,7 @@ export default async function Shell({ user, current, title, eyebrow, head, child
       <main className="ops">
         {(title || head) && (
           <div className="ops-head">
-            {title && <div className="ttl">{eyebrow && <span className="ops-eyebrow">{eyebrow}</span>}<h1>{title}</h1></div>}
+            {title && <div className="ttl">{eyebrow && <span className="ops-eyebrow">{eyebrow}</span>}<h1>{title}</h1>{desc && <p className="ops-desc">{desc}</p>}</div>}
             {head}
           </div>
         )}

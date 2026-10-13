@@ -18,3 +18,6 @@ if [ -z "$GOOGLE_PRIVATE_KEY" ]; then
   [ -s "$K/out/test_key.pem" ] || (umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$K/out/test_key.pem" 2>/dev/null)
   export GOOGLE_PRIVATE_KEY="$(cat "$K/out/test_key.pem")" GOOGLE_SERVICE_ACCOUNT_EMAIL=mock@test.local
 fi
+# Course Library: a fake Circle (read only), a stand-in website sheet (the mock serves every sheet id) and site refresh
+export CIRCLE_API_TOKEN=mock CIRCLE_API_BASE=$M/circle WEBSITE_SHEET_ID=mock-website SITE_URL=$M/site COURSES_REVALIDATE_SECRET=mock-secret
+export KALIGHAT_COVER_URL=$M/img/kalighat.png

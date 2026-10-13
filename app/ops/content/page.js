@@ -33,7 +33,7 @@ export default async function Content({ searchParams }) {
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   const tab = tabs.some(([k]) => k === sp?.tab) ? sp.tab : 'overview';
   return (
-    <Shell user={user} current="content" eyebrow="Social · Email · Media · Review" title="Publish"
+    <Shell user={user} current="content" desc="Is everything we publish moving? Social posts, promo emails, pictures and review." eyebrow="Social · Email · Media · Review" title="Social"
       head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={k === 'overview' ? '/ops/content' : `/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'overview' && <Overview canReview={canEditSite(user)} />}
       {tab === 'social' && <SocialEngine director={!!user.director} initial={sp?.s === 'images' ? 'art' : ['plan', 'history', 'quotes', 'art', 'promo', 'captions', 'rules', 'categories', 'sources'].includes(sp?.s) ? sp.s : 'plan'} />}

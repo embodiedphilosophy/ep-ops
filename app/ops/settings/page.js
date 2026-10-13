@@ -16,7 +16,7 @@ export default async function Settings({ searchParams }) {
   const ok = t && ['site', 'admin'].includes(t.scope) && (t.scope !== 'admin' || user.director) && t.key !== 'scaffolding' && !['profiles', 'coursepages'].includes(t.key);
   const initial = ok ? t.key : user.director ? 'templates' : 'links';
   return (
-    <Shell user={user} current="settings" eyebrow="Every table the dashboard and the website read" title="Settings">
+    <Shell user={user} current="settings" desc="Every table the dashboard and the website read." eyebrow="Every table the dashboard and the website read" title="Settings">
       <SiteEditor scope="settings" director={!!user.director} initial={initial} base="/ops/settings?" />
     </Shell>
   );

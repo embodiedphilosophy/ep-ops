@@ -109,7 +109,7 @@ const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimon
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
 const kitDrafts = [];
-const tabs = { ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
+const tabs = { 'catalog': [['offering_id', 'status', 'programme', 'card_label', 'kind', 'format', 'depth', 'topics', 'title', 'teachers', 'cover_url', 'price_label', 'checkout_url', 'access', 'requires', 'unlock_note', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'published_at', 'updated_at']], ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
   'Post History': [['ig_media_id', 'posted_at', 'media_type', 'caption', 'permalink', 'like_count', 'comments_count', 'archived_image_id', 'pillar', 'notes'], ...Array.from({ length: 70 }, (_, i) => [`M${i}`, day(-i * 3) + 'T15:00:00Z', 'IMAGE', `Post number ${i}: a verse and a painting.`, 'https://instagram.com/p/x' + i, String(200 - i), String(i % 9), '', 'Content', ''])],
   'Quote Library': [['quote_id', 'quote', 'author', 'work', 'publication', 'location', 'source_link', 'themes', 'pillar_fit', 'verified', 'added_by', 'times_used', 'last_used'], ['Q1', 'The Self is the light by which all is seen.', 'Kṣemarāja', 'Pratyabhijñāhṛdayam', '', '', '', 'recognition', 'Content', 'TRUE', 'Jacob', '3', '2026-09-01'], ['Q2', 'Consciousness is the world.', 'Abhinavagupta', 'Tantrāloka', '', '', '', 'nondual', 'Practice', 'FALSE', 'Jacob', '0', '']],
   'Caption Bank': [['snippet_id', 'type', 'program', 'text', 'source', 'approved', 'notes'], ['C1', 'cta', 'sadhana', 'Join us live this week.', '', 'TRUE', '']],
@@ -117,7 +117,7 @@ const tabs = { ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults
   'Image Categories': [['category', 'use_in_auto_pick', 'notes'], ['Deity art', 'TRUE', '']],
   'Archive Sources': [['folder_id', 'name', 'include', 'last_synced', 'images_added'], ['F1', 'Ryan graphics', 'TRUE', '2026-10-01', '40']],
   'Teachers': [['email', 'name', 'role', 'bio', 'photo_url', 'status', 'updated_on', 'onboarded_on'], ['abha@example.com', 'Abha Rajbhandari', 'Guest teacher', 'Abha teaches the Wisdom School monthly lecture and has studied the Devī traditions for twenty years.', 'https://example.com/abha.jpg', 'submitted', '2026-10-05', '']],
-  'Course Pages': [['offering', 'slug', 'track', 'teacher_emails', 'title', 'subtitle', 'summary', 'status'], ['sadhana-fall-2026', 'heart-of-recognition', 'SS', 'jacob@example.com', 'The Heart of Recognition', 'Fall Sādhana 2026', 'Kṣemarāja’s little masterpiece, read closely over eight weeks.', 'submitted'], ['E003', 'old-course', 'EVENT', 'x@example.com', 'An earlier course', '', '', 'published']],
+  'Course Pages': [['offering', 'slug', 'track', 'teacher_emails', 'title', 'subtitle', 'summary', 'explore', 'audience', 'status', 'circle_space_id'], ['sadhana-fall-2026', 'heart-of-recognition', 'SS', 'jacob@example.com, abha@example.com', 'The Heart of Recognition', 'Fall Sādhana 2026', 'Kṣemarāja’s little masterpiece, read closely over eight weeks.', 'Weekly live seminar\nRecordings of every session\nReading guide', 'Students of yoga and Indian philosophy', 'submitted', '2002'], ['E003', 'old-course', 'EVENT', 'x@example.com', 'An earlier course', '', '', '', '', 'published', ''], ['mm-nov-2026', 'mm-nov', 'MM', 'abha@example.com', 'Meditation Mondays: November', '', 'A month of Monday practice.', 'Live sit every Monday', '', 'submitted', '']],
   'Weekly Scaffolding': [['Send Date', 'Status', 'Issue No', 'Subject', 'Preview Text', 'Events Intro', 'Reflection Headline', 'Reflection Body', 'Reflection URL', 'Sanskrit Devanagari', 'Sanskrit IAST', 'Sanskrit Translation', 'Sanskrit Source', 'Video Title', 'Video Meta', 'Video Caption', 'Video URL', 'Video Thumbnail', 'Tarka Issue', 'Tarka Title', 'Tarka Author', 'Tarka Teaser', 'Tarka URL', 'PS', 'Kit Draft', 'Built At', 'Notes', 'Pilgrimage Title', 'Pilgrimage Body', 'Pilgrimage URL', 'Pilgrimage Button'],
     ['2026-10-11', 'Draft', '1', 'The Nine Nights begin', 'Navaratri starts Sunday'], ['2026-10-18', 'Draft', '2'], ['2026-10-25', 'Draft', '3']], 'Event Details': [['ID']] };
 
@@ -162,6 +162,18 @@ function setCells(range, values) {
 }
 const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => r(b ? JSON.parse(b) : {})); });
 
+const circleData = {
+  spaces: [
+    { id: 2001, name: 'Meditation Mondays: November', slug: 'mm-nov', space_type: 'course', status: 'published', cover_image_url: 'http://localhost:4555/img/cover.png' },
+    { id: 2002, name: 'The Heart of Recognition', slug: 'heart', space_type: 'course', status: 'published', cover_image_url: '' },
+    { id: 2003, name: 'Spanda Karikas: a close reading', slug: 'spanda', space_type: 'course', status: 'draft', cover_image_url: '' },
+    { id: 2004, name: 'Community chat', slug: 'chat', space_type: 'discussion' },
+  ],
+  paywalls: [
+    { id: 301, name: 'Meditation Mondays', prices: [{ amount: 15, currency: 'usd', interval: 'month' }], checkout_url: 'https://ss.example.com/checkout/301', space_ids: [2001] },
+    { id: 302, name: 'Fall 2026 season', prices: [{ amount: 495, currency: 'usd', interval: 'one_time' }], checkout_url: 'https://ss.example.com/checkout/302', space_ids: [2002] },
+  ],
+};
 const grid = {};
 const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
 
@@ -188,6 +200,19 @@ http.createServer(async (req, res) => {
       if (url.searchParams.get('valueRenderOption') === 'FORMULA' && tab === 'Event Details' && row === 4) values = [values[0].map((v, i) => i >= 1 && i <= 3 ? `={"${v}";ARRAYFORMULA(...)}` : v), ...values.slice(1)];
       return send(res, 200, { range, values });
     }
+    if (p.startsWith('/circle/')) {
+      // Circle Admin API stand-in (read only). POST /circle/__set swaps the data, to test changes.
+      if (p === '/circle/__set' && req.method === 'POST') { Object.assign(circleData, await body(req)); log('CIRCLE DATA SET'); return send(res, 200, {}); }
+      if (req.method !== 'GET') { log('BLOCKED circle write', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
+      log('CIRCLE GET', p);
+      const list = a => send(res, 200, { page: 1, per_page: 100, has_next_page: false, count: a.length, records: a });
+      if (p === '/circle/spaces') return list(circleData.spaces);
+      const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
+      if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
+      if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
+      return send(res, 404, { message: 'not found' });
+    }
+    if (p === '/site/api/revalidate-courses') { log('SITE REVALIDATE-COURSES', req.method, req.headers['x-revalidate-secret'] === 'mock-secret' ? 'secret ok' : 'secret WRONG'); return send(res, 200, { ok: true }); }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);
       if (b.action === 'get') {

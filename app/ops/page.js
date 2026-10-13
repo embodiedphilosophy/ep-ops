@@ -103,7 +103,7 @@ export default async function Home({ searchParams }) {
   </>);
 
   return (
-    <Shell user={user} current="home" eyebrow={viewing === user ? dayLong(todayET()) : 'Viewing as'} title={viewing === user ? `Hello, ${first}` : viewing.name} head={head}>
+    <Shell user={user} current="home" desc="What needs you this week." eyebrow={viewing === user ? dayLong(todayET()) : 'Viewing as'} title={viewing === user ? `Hello, ${first}` : viewing.name} head={head}>
       <Note note={note} editable={user.director && viewing === user} author={(director?.name || 'Jacob').split(' ')[0]} />
       {error && <p className="ops-note">Couldn’t load tasks right now ({error}).</p>}
 

@@ -19,7 +19,7 @@ export default async function Team() {
   const groups = [...new Set(links.map(r => r.group))];
 
   return (
-    <Shell user={user} current="team" head={!teacher && <a className="chip" href="/ops/hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="People">
+    <Shell user={user} current="team" desc="Who does what, and where everything lives." head={!teacher && <a className="chip" href="/ops/hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="Faculty & people">
       <div className="ops-grid">
         <section className="ops-col">
           <h2>{teacher ? 'Your contacts at EP' : 'Staff'} <span>{staff.length}</span></h2>
