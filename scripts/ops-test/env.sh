@@ -21,3 +21,5 @@ fi
 # Course Library: a fake Circle (read only), a stand-in website sheet (the mock serves every sheet id) and site refresh
 export CIRCLE_API_TOKEN=mock CIRCLE_API_BASE=$M/circle WEBSITE_SHEET_ID=mock-website SITE_URL=$M/site COURSES_REVALIDATE_SECRET=mock-secret
 export KALIGHAT_COVER_URL=$M/img/kalighat.png
+# Landing Pages: the website's /api/landing-pages feed comes from the mock (MOCK_NOLP=1 makes it a 404)
+export LANDING_PAGES_URL=$M/site/api/landing-pages

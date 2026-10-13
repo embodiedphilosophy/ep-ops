@@ -625,3 +625,26 @@
   .ops-shell .ops-pub-actions { justify-content: flex-start }
 }
 .ops-shell .ops-lib-rows + .ops-panel, .ops-shell .ops-empty-box + .ops-panel { margin-top: 20px }
+
+/* Landing Pages (/ops/landing): Course Library rows without a thumbnail; ended pages muted with a nudge */
+.ops-shell .lp-row { grid-template-columns: minmax(0, 1fr) auto }
+.ops-shell .lp-row .st { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 600 }
+.ops-shell .lp-row .tag-pine { text-decoration: none }
+.ops-shell .lp-row a.tag-pine:hover { background: var(--accent) }
+.ops-shell .lp-links { display: flex; flex-direction: column; gap: 3px; font-size: 13px }
+.ops-shell .lp-link { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0 }
+.ops-shell .lp-link .k { flex: 0 0 72px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .lp-link a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; overflow-wrap: anywhere; min-width: 0 }
+.ops-shell .lp-link a:hover { color: var(--accent); text-decoration-color: currentColor }
+.ops-shell .lp-link .none { color: var(--ink-soft) }
+.ops-shell .lp-bad { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 600 }
+.ops-shell .lp-row.broken { border-left: 3px solid var(--accent) }
+.ops-shell .lp-row.ended { background: var(--ground); border-color: var(--line-in) }
+.ops-shell .lp-row.ended .ttl, .ops-shell .lp-row.ended .meta, .ops-shell .lp-row.ended .lp-link .k, .ops-shell .lp-row.ended .lp-link a, .ops-shell .lp-row.ended .lp-link .none { opacity: .62 }
+.ops-shell .lp-nudge { align-self: flex-start; background: var(--sand); border-left: 3px solid var(--ochre); padding: 6px 10px; font-size: 13px; color: var(--ink) }
+.ops-shell .ops-tile.lp-risk .n { color: var(--accent) }
+.ops-shell .lp-copy { min-width: 104px }
+@media (max-width: 900px) {
+  .ops-shell .lp-row { grid-template-columns: minmax(0, 1fr) }
+  .ops-shell .lp-row .acts { grid-column: 1 / -1; justify-content: flex-start }
+}

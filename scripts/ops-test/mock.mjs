@@ -213,6 +213,23 @@ http.createServer(async (req, res) => {
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
       return send(res, 404, { message: 'not found' });
     }
+    // Website landing pages feed (ep-website /api/landing-pages) and the pages and checkouts it links to,
+    // for /ops/landing: one of each state, one page that 404s and one checkout that fails.
+    if (p === '/site/api/landing-pages') {
+      if (process.env.MOCK_NOLP) return send(res, 404, { error: 'not found' });
+      const d = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10), S = `http://localhost:${PORT}/site`;
+      log('SITE LANDING-PAGES GET');
+      return send(res, 200, { pages: [
+        { slug: 'the-heart-of-recognition', title: 'The Heart of Recognition', teacher: 'Jacob Kyle', url: `${S}/lp/the-heart-of-recognition`, checkoutUrl: `${S}/checkout/ok`, publishedAt: d(-20), startsAt: d(-3), endsAt: d(30) },
+        { slug: 'spanda-intensive', title: 'Spanda Intensive', teachers: [{ name: 'Tova Olsson' }, { name: 'Jacob Kyle' }], url: `${S}/lp/spanda-intensive`, checkout_url: `${S}/checkout/broken`, published_at: d(-5), starts_at: d(12), ends_at: d(14) },
+        { slug: 'meditation-for-real-life', title: 'Meditation for Real Life', teacher: 'Jacob Kyle', url: `${S}/lp/meditation-for-real-life`, checkoutUrl: `${S}/checkout/ok`, publishedAt: d(-90) },
+        { slug: 'navaratri-2025', title: 'Navarātri 2025: Song of the Goddess', teacher: 'Tova Olsson', url: `${S}/lp/navaratri-2025`, checkoutUrl: `${S}/checkout/ok`, publishedAt: d(-400), startsAt: d(-370), endsAt: d(-361) },
+        { slug: 'old-retreat', title: 'Taos Summer Retreat', teacher: 'Jacob Kyle', url: `${S}/lp/old-retreat`, publishedAt: d(-200), startsAt: d(-120), endsAt: d(-115) },
+      ] });
+    }
+    if (p.startsWith('/site/lp/')) { const ok = !p.endsWith('/old-retreat'); return ok ? (res.writeHead(200, { 'Content-Type': 'text/html' }), res.end('<h1>ok</h1>')) : send(res, 404, {}); }
+    if (p === '/site/checkout/ok') { if (req.method === 'HEAD') { res.writeHead(405); return res.end(); } res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('checkout'); }
+    if (p === '/site/checkout/broken') return send(res, 500, {});
     if (p === '/site/api/revalidate-courses') { log('SITE REVALIDATE-COURSES', req.method, req.headers['x-revalidate-secret'] === 'mock-secret' ? 'secret ok' : 'secret WRONG'); return send(res, 200, { ok: true }); }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);

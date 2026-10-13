@@ -17,6 +17,7 @@ One place for EP staff, contractors and rotating teachers. Every screen answers 
 | Business `/ops/insights` | Is EP healthy? | director |
 | People `/ops/team`, Hours `/ops/hours` | Who does what; time worked | staff |
 | Settings `/ops/settings` | Every sheet-backed table | director + editors (manager, projects) |
+| Landing Pages `/ops/landing` | Is every /lp/ page live and its checkout working? | staff |
 
 ## 2. State of play (Oct 2026)
 
@@ -41,6 +42,7 @@ Production facts:
 - Tasks: always import from `lib/ops/taskstore.js` (never `motion.js` or `taskdb.js` directly). Shape: `{ id, name, description, due, labels[], completed, blockedOn, auto }`. Owners are labels (a person's name or a role). Conventions kept in `description`: `[ep:EVENTID:task-slug:owner-slug]` event tag, `[blocked:Name]`, `[auto:date:rule]`.
 - `lib/ops/tasks.js` task logic (expected tasks from Task Templates, `visibleTo`, `forHome`, `bucket`, `groupByEvent`, `needsOwner`). `syncToMotion()` is a legacy name; it writes to the task store.
 - `lib/ops/hours.js` time clock (Neon tables `ops_shifts`, `ops_hour_requests`, `ops_hour_alerts`; made on first use).
+- `lib/ops/landingpages.js` + `app/ops/landing/` Landing Pages: reads ep-website's `/api/landing-pages` (5-min cache, `LANDING_PAGES_URL` overrides), derives Upcoming/Running/Ended/Evergreen from `startsAt`/`endsAt` (New York dates), checks each page (must answer 200) and checkout link (2xx) with a 5-min per-instance cache (`?check=1` forces a fresh check), links to the Course Library when the slug matches an offering id. Stores nothing.
 - `lib/ops/store.js` the only safe writer to the calendar sheet (by header name, refuses formula columns, conflict check, Change Log). Use it for any sheet write.
 - `lib/ops/sitetables.js` + `app/ops/content/SiteEditor.js` the table editor behind Settings (`scope="settings"`).
 - `lib/ops/checks.js` + `lib/ops/readiness.js` event readiness checks.
