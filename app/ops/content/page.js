@@ -9,7 +9,7 @@ import { longDate } from '@/lib/dates';
 import Shell, { opsUser } from '../Shell';
 import SiteEditor from './SiteEditor';
 import { tableOf } from '@/lib/ops/sitetables';
-import SocialEngine from './SocialEngine';
+import SocialEngine, { NextPosts } from './SocialEngine';
 import { kitConfigured, kitSignals, draftUrl } from '@/lib/kit';
 import { ruleOf } from '@/lib/ops/autocomplete';
 import { upcomingSocial } from '@/lib/social';
@@ -171,13 +171,7 @@ async function Overview({ canReview }) {
           <a href={href}><b>{name}</b><span className="st"><i className={`dot ${level === 'none' ? '' : level}`} />{word}</span><span className="nx">{next}</span></a>
         </li>))}</ul>
       <h2 className="ops-sub">Next posts <span>{posts?.length || ''}</span></h2>
-      {!posts ? <p className="ops-empty">{social?.error || 'Couldn’t read the Social Engine.'}</p> : posts.length === 0 ? <p className="ops-empty">No posts scheduled.</p> : (
-        <ul className="ops-strip">{posts.map(p => (
-          <li key={p.id}>
-            {p.thumb ? <img src={p.thumb} alt="" loading="lazy" /> : <span className="none" aria-hidden="true" />}
-            <span className="d">{shortDay(p.date)}</span><span className="p">{p.platforms}</span><span className="s">{flagOf(p) || p.status}</span>
-          </li>))}</ul>
-      )}
+      <NextPosts />
       <h2 className="ops-sub">Promo emails by event <span>{behind.length || ''}</span></h2>
       {!promo?.kit ? <p className="ops-empty">Kit isn’t connected, so emails can’t be checked yet.</p> : promo.rows.length === 0 ? <p className="ops-empty">No events in the next 10 weeks need promo emails.</p> : (
         <ul className="ops-meet">{promo.rows.map(({ e, want, ready }) => (

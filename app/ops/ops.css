@@ -361,6 +361,10 @@
 .ops-shell .ops-strip li { flex: 0 0 120px; display: flex; flex-direction: column; gap: 3px; font-size: 12px }
 .ops-shell .ops-strip img, .ops-shell .ops-strip .none { width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-ctl); background: var(--hair); display: block }
 .ops-shell .ops-strip .d { font-weight: 700; color: var(--pine) }
+.ops-shell .ops-strip button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 3px; cursor: pointer; width: 120px }
+.ops-shell .ops-strip button:hover img, .ops-shell .ops-strip button:hover .none { outline: 2px solid var(--pine); outline-offset: 1px }
+.ops-shell .ops-strip button:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; border-radius: var(--r-ctl) }
+.ops-shell .ops-strip .s.warn { color: var(--risk) }
 .ops-shell .ops-strip .p, .ops-shell .ops-strip .s { color: var(--soft) }
 .ops-shell .ops-meet .z.late { color: var(--risk); font-weight: 600 }
 @media (max-width: 640px) { .ops-shell .ops-lanes a { grid-template-columns: 96px minmax(0, 1fr); padding: 8px 0 } .ops-shell .ops-lanes .nx { grid-column: 1 / -1 } }

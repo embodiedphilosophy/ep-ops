@@ -95,6 +95,37 @@ function Plan() {
   );
 }
 
+// Publish → Overview: the next posts as a strip. Each opens the same editor as the Social tab, right here.
+const todayNY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const flag = p => !p._thumb ? 'No image yet' : p.image_review !== 'Kept' ? 'Image not reviewed' : '';
+export function NextPosts({ n = 9 }) {
+  const [data, reload] = useView('plan');
+  const [open, setOpen] = useState(null);
+  if (!data) return <p className="ops-empty">Loading the next posts…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const today = todayNY();
+  const posts = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }))
+    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') && p.publish_date >= today && !/^skip/i.test(p.status || ''))
+    .slice(0, n);
+  if (!posts.length) return <p className="ops-empty">No posts scheduled.</p>;
+  const i = posts.findIndex(p => p._row === open);
+  return (
+    <>
+      <ul className="ops-strip">{posts.map(p => (
+        <li key={p._row}>
+          <button type="button" onClick={() => setOpen(p._row)} aria-label={`Open the ${day(p.publish_date)} post`}>
+            {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none" aria-hidden="true" />}
+            <span className="d">{day(p.publish_date)}{p.publish_time_ET ? ` · ${time(p.publish_time_ET)}` : ''}</span>
+            <span className="p">{p.platforms}</span>
+            <span className={`s${flag(p) ? ' warn' : ''}`}>{flag(p) || p.status || 'Proposed'}</span>
+          </button>
+        </li>))}</ul>
+      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} canEdit={data.canEdit} onSaved={reload}
+        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
+    </>
+  );
+}
+
 const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
 const blankPost = () => { const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', pillar: '', status: 'Proposed' }; return { ...v, _row: null, _raw: v, _new: true }; };
 
