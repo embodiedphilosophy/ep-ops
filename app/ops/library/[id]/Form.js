@@ -1,5 +1,6 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
 import { PROGRAMMES, PROGRAMME_COLOURS, ACCESS_BADGE, ACCESS, KINDS, FORMATS, DEPTHS, TOPICS, checklist, canPublish, filtersLine, coverOf, label, progress } from '@/lib/ops/library';
 
 async function call(body) {
@@ -21,6 +22,30 @@ function Chips({ options, value, onChange, multi, name, dots }) {
         <button type="button" key={k} className={`ops-chip${on(k) ? ' on' : ''}`} aria-pressed={on(k)} onClick={() => onChange(multi ? (on(k) ? value.filter(x => x !== k) : [...value, k]) : (on(k) ? '' : k))}>{dots && <i className="dot" style={{ background: dots[k] }} aria-hidden="true" />}{l}</button>
       ); })}
     </div>
+  );
+}
+// A button that uploads a JPG/PNG/WebP straight to Blob and hands back its link
+function PhotoUpload({ folder, name, onDone, label = 'Upload a photo' }) {
+  const ref = useRef(null);
+  const [say, setSay] = useState('');
+  const pick = async file => {
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { setSay('Please choose a JPG, PNG or WebP image.'); return; }
+    setSay('Uploading…');
+    try {
+      const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
+      const slug = (name || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'photo';
+      const blob = await upload(`${folder}/${slug}.${ext}`, file, { access: 'public', handleUploadUrl: '/api/teach/upload' });
+      onDone(blob.url); setSay('Uploaded. Press Save draft to keep it.');
+    } catch (e) { setSay(`Upload didn’t work: ${e.message}`); }
+    if (ref.current) ref.current.value = '';
+  };
+  return (
+    <span className="ops-upload">
+      <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e => pick(e.target.files?.[0])} />
+      <button type="button" className="btn ghost" disabled={say === 'Uploading…'} onClick={() => ref.current?.click()}>{say === 'Uploading…' ? 'Uploading…' : label}</button>
+      {say && say !== 'Uploading…' && <span className="ops-help" role="status">{say}</span>}
+    </span>
   );
 }
 const Req = () => <span className="req" aria-hidden="true">*</span>;
@@ -94,7 +119,8 @@ export default function Form({ initial, choices, changed, kalighat }) {
             <span className="thumb big" aria-hidden="true">{cover ? <img src={cover} alt="" width="120" height="120" /> : 'No cover'}</span>
             <div>
               <label>Cover picture<input value={o.cover_override} onChange={e => set('cover_override', e.target.value)} placeholder={o.cover_url ? 'Using the picture from Circle' : 'Paste a picture link'} /></label>
-              <p className="ops-help">{o.cover_url ? 'This is the picture from Circle.' : 'Circle has no cover for this course.'} You can swap it for a Kalighat image.</p>
+              <p className="ops-help">{o.cover_url ? 'This is the picture from Circle.' : 'Circle has no cover for this course.'} You can upload your own, paste a link, or use a Kalighat image.</p>
+              <PhotoUpload folder="covers" name={o.title} label="Upload a cover picture" onDone={url => set('cover_override', url)} />
               <button type="button" className="btn ghost" disabled={!kalighat} onClick={() => set('cover_override', kalighat)}>Use the Kalighat image</button>
               {o.cover_override && <button type="button" className="btn ghost" onClick={() => set('cover_override', '')}>Back to the Circle picture</button>}
               {!kalighat && <p className="ops-help">The Kalighat image isn’t set up yet (KALIGHAT_COVER_URL).</p>}
@@ -162,6 +188,7 @@ export default function Form({ initial, choices, changed, kalighat }) {
                 <span className="thumb" aria-hidden="true">{t.photo ? <img src={t.photo} alt="" width="48" height="48" /> : (t.name || '?')[0]}</span>
                 <input aria-label="Teacher name" value={t.name} onChange={e => teacherSet(i, 'name', e.target.value)} />
                 <input aria-label="Headshot link" value={t.photo} onChange={e => teacherSet(i, 'photo', e.target.value)} placeholder="Headshot link" />
+                <PhotoUpload folder="teachers" name={t.name || 'teacher'} label="Upload headshot" onDone={url => teacherSet(i, 'photo', url)} />
                 <button type="button" className="btn ghost" onClick={() => set('teachers', o.teachers.filter((_, j) => j !== i))}>Remove</button>
               </li>))}
           </ul>
