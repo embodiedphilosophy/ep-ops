@@ -8,7 +8,7 @@ async function call(body) {
   if (!r.ok) throw new Error(j.error || 'Something went wrong');
   return j;
 }
-const SAVE_KEYS = ['programme', 'access', 'requires', 'unlock_note', 'card_label', 'kind', 'format', 'depth', 'topics', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'teachers', 'cover_override', 'director_email'];
+const SAVE_KEYS = ['programme', 'access', 'requires', 'unlock_note', 'card_label', 'kind', 'format', 'depth', 'topics', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'teachers', 'cover_override', 'director_email', 'promise', 'live_label', 'when_label', 'sort_order', 'pwyc_amounts'];
 const long = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
 const Lock = () => <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" fill="currentColor" /><path d="M3.8 5.5V4a2.2 2.2 0 0 1 4.4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>;
@@ -140,6 +140,17 @@ export default function Form({ initial, choices, changed, kalighat }) {
           <label>Description <Req /> <Source of={o.sources.description} /><textarea rows={6} value={o.description} onChange={e => set('description', e.target.value)} /></label>
           <label>What’s included <Req /> <Source of={o.sources.included} /><span className="ops-help"> One line each. At least one.</span>
             <textarea rows={5} value={incl} onChange={e => set('included', e.target.value.split('\n'))} /></label>
+        </section>
+
+        <section className="ops-panel" aria-labelledby="extras">
+          <h2 id="extras">Card extras <span className="ops-help">Optional; the site uses them when present</span></h2>
+          <label>Promise line<input value={o.promise || ''} onChange={e => set('promise', e.target.value)} maxLength={300} /></label>
+          <div className="ops-grid2">
+            <label>Live label<input value={o.live_label || ''} onChange={e => set('live_label', e.target.value)} placeholder="Live on Zoom" /></label>
+            <label>When label<input value={o.when_label || ''} onChange={e => set('when_label', e.target.value)} placeholder="Mondays, 12pm ET" /></label>
+            <label>Sort order<input className="mono" inputMode="numeric" value={o.sort_order || ''} onChange={e => set('sort_order', e.target.value)} /></label>
+            <label>Pay-what-you-can amounts<input value={o.pwyc_amounts || ''} onChange={e => set('pwyc_amounts', e.target.value)} placeholder="10, 25, 50" /></label>
+          </div>
         </section>
 
         <section className="ops-panel" aria-labelledby="teach">

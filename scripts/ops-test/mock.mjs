@@ -174,6 +174,7 @@ const circleData = {
     { id: 302, name: 'Fall 2026 season', prices: [{ amount: 495, currency: 'usd', interval: 'one_time' }], checkout_url: 'https://ss.example.com/checkout/302', space_ids: [2002] },
   ],
 };
+if (process.env.MOCK_NOCATALOG) delete tabs.catalog;
 const grid = {};
 const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
 
