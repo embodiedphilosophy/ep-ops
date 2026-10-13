@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { teacherContext } from '@/lib/ops/auth';
-import { offeringsFor, loadPages, savePage, profileFor, usesCircle } from '@/lib/teach';
+import { offeringsFor, loadPages, savePage, profileFor, usesCircle, circleGroupsFor } from '@/lib/teach';
 import { giveTeacherAccess, circleConfigured } from '@/lib/circle';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,9 @@ export async function POST(req) {
   const page = (await loadPages()).find(p => p.offering === offering.key);
   const name = (await profileFor(ctx.email))?.name || '';
   try {
-    const steps = await giveTeacherAccess({ email: ctx.email, name, spaceId: page?.circle_space_id || process.env[`CIRCLE_SPACE_${offering.track}`] || '' });
+    const groupIds = await circleGroupsFor(offering.key);
+    const spaceId = page?.circle_space_id || (groupIds.length ? '' : process.env[`CIRCLE_SPACE_${offering.track}`] || '');
+    const steps = await giveTeacherAccess({ email: ctx.email, name, spaceId, groupIds });
     await savePage(offering.key, { circle_status: steps.map(s => `${s.ok ? '✓' : '•'} ${s.note}`).join('; ') }).catch(() => {});
     return NextResponse.json({ ok: true, steps });
   } catch (e) {

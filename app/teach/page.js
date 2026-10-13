@@ -2,10 +2,11 @@ import { redirect } from 'next/navigation';
 import { teacherContext } from '@/lib/ops/auth';
 import { onboardingState, deliverables, siteTeacher, usesCircle, names, profileFor } from '@/lib/teach';
 import { loadCalendar } from '@/lib/calendar';
-import { listTasks } from '@/lib/ops/motion';
+import { listTasks } from '@/lib/ops/taskstore';
 import { visibleTo, bucket } from '@/lib/ops/tasks';
 import { todayET, emailsOf } from '@/lib/events';
 import Onboarding from './Onboarding';
+import Shell from '../ops/Shell';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Teacher onboarding — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -16,7 +17,7 @@ export default async function Teach({ searchParams }) {
   const sp = await searchParams;
   const ctx = await teacherContext(sp?.as);
   if (!ctx) redirect('/ops/login');
-  if (ctx.director && !ctx.actingAs) return <DirectorView />;
+  if (ctx.director && !ctx.actingAs) return <DirectorView user={ctx.user} />;
 
   const st = await onboardingState(ctx.email);
   const firstTeachers = st.offerings.flatMap(o => names(o.teachers));
@@ -49,7 +50,7 @@ export default async function Teach({ searchParams }) {
 }
 
 // Directors see who's on the schedule and where each teacher is in onboarding, and can try it as them
-async function DirectorView() {
+async function DirectorView({ user }) {
   const today = todayET();
   const cal = (await loadCalendar()).filter(e => (e.end_date || e.date) >= today);
   const people = new Map();
@@ -63,10 +64,8 @@ async function DirectorView() {
     return { ...p, name: prof?.name || '', status: !st ? 'unknown' : !st.needed ? 'Done' : prof ? `${st.pending.length} course page${st.pending.length === 1 ? '' : 's'} to go` : 'Not started' };
   }));
   return (
-    <main className="ops">
-      <header className="ops-top"><a href="/ops" className="t-brand">Embodied <span>Philosophy</span></a><div className="ops-who"><a href="/ops">Dashboard</a> · <a href="/api/ops/logout">Sign out</a></div></header>
-      <div className="ops-head"><h1>Teacher onboarding</h1></div>
-      <p className="ops-empty" style={{ maxWidth: 640 }}>Everyone in a Teacher/Host Emails cell on an upcoming Master Schedule row. “Try it as” opens onboarding as that teacher; nothing is saved to the sheet, Motion, Circle or anyone’s inbox while you’re trying it out.</p>
+    <Shell user={user} current="team" title="Teacher onboarding">
+      <p className="ops-empty" style={{ maxWidth: 640 }}>Everyone with an email on an upcoming event (Event Details → Teacher/Host Emails, or named in Schedule → Teachers & Hosts and on the Team tab). “Try it as” opens onboarding as that teacher; nothing is saved to the sheet, Motion, Circle or anyone’s inbox while you’re trying it out.</p>
       <ul className="ops-tasks" style={{ marginTop: 18 }}>
         {rows.map(r => (
           <li key={r.email}>
@@ -75,7 +74,7 @@ async function DirectorView() {
           </li>
         ))}
       </ul>
-      {rows.length === 0 && <p className="ops-empty">No one is assigned yet. Add teacher emails to the Master Schedule’s Teacher/Host Emails column.</p>}
-    </main>
+      {rows.length === 0 && <p className="ops-empty">No one is assigned yet. Add teacher emails in Event Details → Teacher/Host Emails.</p>}
+    </Shell>
   );
 }

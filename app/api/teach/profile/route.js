@@ -7,7 +7,7 @@ import { sendEmail, layout, esc } from '@/lib/ops/email';
 export const dynamic = 'force-dynamic';
 const words = s => (String(s).trim().match(/\S+/g) || []).length;
 
-// Save (or confirm) the teacher's name, bio and headshot → Teacher Profiles tab
+// Save (or confirm) the teacher's name, bio and headshot → Teachers tab
 // { name, bio, photo_url } to submit a new/updated profile, or { keep: true, name } to confirm what's on file
 export async function POST(req) {
   const b = await req.json().catch(() => ({}));
@@ -37,7 +37,7 @@ export async function POST(req) {
     if (!ctx.actingAs) {
       const directors = (await loadTeam()).filter(t => t.director && t.email).map(t => t.email.trim());
       for (const to of directors) await sendEmail({ to, subject: `New teacher profile to approve: ${name}`,
-        html: layout(`${esc(name)} sent a bio and headshot`, `<p><img src="${esc(b.photo_url)}" width="120" height="120" style="border-radius:60px;object-fit:cover" alt=""></p><p>${esc(b.bio)}</p><p>To use it on the website, set <b>status</b> to <b>approved</b> on the Teacher Profiles tab.</p>`) }).catch(() => {});
+        html: layout(`${esc(name)} sent a bio and headshot`, `<p><img src="${esc(b.photo_url)}" width="120" height="120" style="border-radius:60px;object-fit:cover" alt=""></p><p>${esc(b.bio)}</p><p>To use it on the website, set <b>status</b> to <b>approved</b> on the Teachers tab.</p>`) }).catch(() => {});
     }
   }
   // Close "Send bio and headshot" in Motion for every upcoming offering

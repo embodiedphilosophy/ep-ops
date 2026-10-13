@@ -2,12 +2,13 @@ import { notFound, redirect } from 'next/navigation';
 import { loadPages, loadProfiles, offeringKey } from '@/lib/teach';
 import { loadCalendar } from '@/lib/calendar';
 import { currentUser } from '@/lib/ops/auth';
+import { canEditSite } from '@/lib/ops/nav';
 import { CoursePageView } from '@/app/teach/Onboarding';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Course page preview — Embodied Philosophy' };
 
-// Directors and the course's own teachers can see a course page before it's published on the website
+// The editors (Jacob, Irene, Floss) and the course's own teachers can see a course page before it's published
 export default async function Preview({ params }) {
   const { slug } = await params;
   const user = await currentUser();
@@ -15,7 +16,7 @@ export default async function Preview({ params }) {
   const page = (await loadPages()).find(p => p.slug === slug);
   if (!page) notFound();
   const emails = String(page.teacher_emails || '').split(/[\s,]+/).map(s => s.toLowerCase()).filter(Boolean);
-  if (!user.director && !emails.includes(user.email)) notFound();
+  if (!canEditSite(user) && !emails.includes(user.email)) notFound();
   const evs = (await loadCalendar()).filter(e => offeringKey(e) === page.offering).sort((a, b) => a.date.localeCompare(b.date));
   if (!evs.length) notFound();
   const f = evs[0], last = evs[evs.length - 1];
@@ -26,7 +27,7 @@ export default async function Preview({ params }) {
   const site = process.env.SITE_URL || 'https://www.embodiedphilosophy.com';
   return (
     <div className="ops-root course-page">
-      <div className="t-demo">{live ? <>This page is live at <a href={`${site}/courses/${slug}`}>{site.replace(/^https?:\/\//, '')}/courses/{slug}</a>.</> : 'Draft preview. It goes live on the website when its status on the Course Pages tab is set to published.'}</div>
+      <div className="t-demo">{live ? <>This page is live at <a href={`${site}/courses/${slug}`}>{site.replace(/^https?:\/\//, '')}/courses/{slug}</a>.</> : 'Draft preview. It goes live on the website once the EP team publishes it (Team → Waiting for review).'}</div>
       <CoursePageView o={o} page={page} profile={{ ...(profiles[0] || { name: f.teachers }), others: profiles.length ? profiles : undefined }} />
     </div>
   );

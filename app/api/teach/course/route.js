@@ -23,20 +23,22 @@ function missing(f, needs) {
   return m;
 }
 
-// A single-session offering's title and description also fill the Master Schedule row, if those cells are empty
+// A single-session offering's title and description also fill its Event Details row (matched by
+// event ID), if those cells are empty. The Master Schedule is formulas, so it picks them up from there.
 async function fillSchedule(offering, f) {
   if (offering.sessions.length !== 1) return;
   const sheet = process.env.CALENDAR_SHEET_ID;
-  const [head] = await readRange(sheet, "'Master Schedule'!A4:AF4", { fresh: true });
-  const col = name => head.findIndex(h => String(h).trim().toLowerCase() === name);
   const { loadCalendar } = await import('@/lib/calendar');
   const ev = (await loadCalendar({ fresh: true })).find(e => e.id === offering.sessions[0].id);
-  if (!ev) return;
+  if (!ev?.sched_id) return;
+  const rows = await readRange(sheet, "'Event Details'!A4:Z1000", { fresh: true });
+  const head = (rows[0] || []).map(h => String(h).trim().toLowerCase());
+  const i = rows.findIndex((r, n) => n > 0 && String(r[0] || '').trim() === ev.sched_id);
+  if (i < 0) return;
+  const rowNum = i + 4;
   for (const [name, val] of [['public title', f.title], ['summary', f.summary]]) {
-    const c = col(name); if (c < 0 || !val) continue;
-    const cell = `'Master Schedule'!${colLetter(c)}${ev._row}`;
-    const [[cur] = []] = await readRange(sheet, cell, { fresh: true });
-    if (!String(cur || '').trim()) await writeRange(sheet, cell, [[val]]);
+    const c = head.indexOf(name); if (c < 0 || !val) continue;
+    if (!String(rows[i][c] || '').trim()) await writeRange(sheet, `'Event Details'!${colLetter(c)}${rowNum}`, [[val]]);
   }
 }
 

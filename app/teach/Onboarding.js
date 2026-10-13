@@ -96,7 +96,7 @@ export default function Onboarding({ data }) {
     <div className="t-wrap">
       {data.actingAs && <div className="t-demo">Trying it out as <b>{data.actingAs}</b>. Nothing is saved or sent. <a href="/teach">Back to the teacher list</a></div>}
       <header className="t-top" ref={top}>
-        <a href="/" className="t-brand">Embodied <span>Philosophy</span> · Teachers</a>
+        <a href="/" className="ops-logo"><img src="/brand/ep-mark-black.png" alt="Embodied Philosophy" width="34" height="36" /><span>Teachers</span></a>
         <div className="t-who">{name ? `${name} · ` : ''}{data.email} · <a href="/api/ops/logout">Sign out</a></div>
       </header>
       <div className="t-shell">
