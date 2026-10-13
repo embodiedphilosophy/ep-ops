@@ -36,12 +36,12 @@ const OUT = __dirname + '/out';
   // 2. Link by hand and publish Meditation Mondays
   await p.locator('.ops-lib-row', { hasText: 'Meditation Mondays: November' }).getByRole('link', { name: 'Prepare listing' }).click();
   await p.waitForLoadState('networkidle');
-  ok(await p.getByRole('button', { name: 'Publish', exact: true }).isDisabled(), 'Publish is disabled with nothing filled in');
+  ok(await p.getByRole('button', { name: 'Publish to Course Library' }).isDisabled(), 'Publish is disabled with nothing filled in');
   await p.getByLabel('Link to onboarding submission').selectOption({ label: 'Meditation Mondays: November · submitted' });
   await p.waitForTimeout(1200);
   ok((await p.locator('textarea').first().inputValue()).includes('A month of Monday practice'), 'linking pre-fills the description');
   ok(await p.getByText('From onboarding · Course Pages tab').count() >= 1, 'pre-filled field shows its source');
-  ok(await p.getByRole('button', { name: 'Publish', exact: true }).isDisabled(), 'still disabled: programme, kind and card label missing');
+  ok(await p.getByRole('button', { name: 'Publish to Course Library' }).isDisabled(), 'still disabled: programme, kind and card label missing');
   await p.getByRole('button', { name: 'Meditation Mondays', exact: true }).first().click();
   await p.getByRole('button', { name: 'Live practice' }).click();
   await p.getByRole('button', { name: 'Live', exact: true }).click();
@@ -49,9 +49,9 @@ const OUT = __dirname + '/out';
   await p.getByLabel(/Card label/).fill('NOVEMBER 2026');
   ok(await p.locator('[data-testid=filters]').innerText().then(t => /Meditation Mondays/.test(t) && /Live practice/.test(t) && /Meditation/.test(t)), 'preview lists every filter the item appears under');
   ok(await p.locator('.site-card .lab').innerText() === 'NOVEMBER 2026', 'live preview shows the card label');
-  ok(await p.getByRole('button', { name: 'Publish', exact: true }).isEnabled(), 'Publish enabled once the checklist passes');
+  ok(await p.getByRole('button', { name: 'Publish to Course Library' }).isEnabled(), 'Publish enabled once the checklist passes');
   await p.screenshot({ path: OUT + '/library-prepare.png', fullPage: true });
-  await p.getByRole('button', { name: 'Publish', exact: true }).click();
+  await p.getByRole('button', { name: 'Publish to Course Library' }).click();
   await p.getByRole('button', { name: 'Update listing' }).waitFor();
   ok(await p.getByRole('button', { name: 'Unpublish' }).count() === 1, 'after publishing: Update listing and Unpublish');
   ok(await p.getByText(/website was asked to refresh/).count() === 1, 'staff are told the site was asked to refresh');
@@ -67,7 +67,7 @@ const OUT = __dirname + '/out';
   await p.getByRole('button', { name: 'Course', exact: true }).click();
   await p.getByLabel(/Card label/).fill('FALL 2026');
   ok(await p.locator('.ops-checklist li', { hasText: 'Waiting on' }).count() === 1, 'checklist names who hasn’t submitted');
-  ok(await p.getByRole('button', { name: 'Publish', exact: true }).isDisabled(), 'Publish blocked until every faculty member has submitted');
+  ok(await p.getByRole('button', { name: 'Publish to Course Library' }).isDisabled(), 'Publish blocked until every faculty member has submitted');
   ok(await p.locator('.ops-sessions li').count() >= 5, 'sessions come from the programming calendar');
 
   // 4. Changed in Circle: price and title change
@@ -117,7 +117,6 @@ const OUT = __dirname + '/out';
 
   // 7. Skip and bring back
   await p.goto(BASE + '/ops/library', { waitUntil: 'networkidle' });
-  const before = await tile('Skipped');
   await p.locator('.ops-lib-row', { hasText: 'Spanda' }).getByRole('button', { name: 'Skip' }).click();
   await p.waitForTimeout(1200);
   await p.goto(BASE + '/ops/library?tab=skipped', { waitUntil: 'networkidle' });

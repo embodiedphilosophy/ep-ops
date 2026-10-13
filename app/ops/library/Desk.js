@@ -58,23 +58,22 @@ export default function Desk({ rows, tab }) {
       <ul className="ops-lib-rows">
         {shown.map(r => (
           <li key={r.id} className="ops-lib-row">
-            <span className="thumb" aria-hidden="true">{r.cover ? <img src={r.cover} alt="" width="72" height="72" loading="lazy" /> : initials(r.title)}</span>
+            <span className="thumb" aria-hidden="true">{r.cover ? <img src={r.cover} alt="" width="96" height="64" loading="lazy" /> : <small>No cover yet</small>}</span>
             <span className="body">
               <a className="ttl" href={`/ops/library/${r.id}`}>{r.title}</a>
               <span className="meta">
-                <span>Course</span>
-                {r.price && <span className="mono">{r.price}</span>}
-                <span className="st"><i className={`sq ${r.circleStatus === 'published' ? 'green' : 'amber'}`} />{r.circleStatus === 'published' ? 'Published in Circle' : r.circleStatus === 'removed' ? 'Removed from Circle' : 'Draft in Circle'}</span>
-                {r.found && <span>Found <b className="mono">{day(r.found)}</b></span>}
+                <span className="tag">Circle course</span>
                 {r.prefilled && <span className="tag-pine">Pre-filled from onboarding</span>}
               </span>
-              {(tab === 'new' || tab === 'skipped') && <span className="bar" title={`${r.done} of 9 fields`}><span className="track"><i style={{ width: `${(r.done / 9) * 100}%` }} /></span><span className="mono">{r.done} of 9 fields</span></span>}
+              <span className="mono">{r.found ? `Found ${day(r.found)}` : ''}</span>
               {tab === 'changed' && <span className="why">
                 {r.circleChanged.length > 0 && <span><b>Changed in Circle:</b> {r.circleChanged.join(', ')}</span>}
                 {r.onboardingChanged.length > 0 && <span><b>Changed in onboarding:</b> {r.onboardingChanged.join(', ')}. Not live until you press Update.</span>}
               </span>}
               {r.autoHidden && <span className="why"><span>Hidden on the site because it was unpublished in Circle.</span></span>}
             </span>
+            <span className="pricecol mono">{r.price || 'No paywall yet'}<br /><span className="st"><i className={`sq ${r.circleStatus === 'published' ? 'green' : 'amber'}`} />{r.circleStatus === 'published' ? 'Published in Circle' : r.circleStatus === 'removed' ? 'Removed from Circle' : 'Draft in Circle'}</span></span>
+            {(tab === 'new' || tab === 'skipped') ? <span className="bar" title={`${r.done} of 9 fields`}><span className="mono">{r.done} of 9 fields</span><span className="track"><i style={{ width: `${(r.done / 9) * 100}%` }} /></span></span> : <span />}
             <span className="acts">
               {tab === 'new' && <><a className="btn primary" href={`/ops/library/${r.id}`}>Prepare listing</a><button className="btn ghost" onClick={() => act('skip', r.id)}>Skip</button></>}
               {tab === 'changed' && <><a className="btn primary" href={`/ops/library/${r.id}`}>Review</a>{r.circleChanged.length > 0 && !r.onboardingChanged.length && <button className="btn ghost" onClick={() => act('seen', r.id)}>Mark as seen</button>}</>}

@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { PROGRAMMES, ACCESS, KINDS, FORMATS, DEPTHS, TOPICS, checklist, canPublish, filtersLine, coverOf, label, progress } from '@/lib/ops/library';
+import { PROGRAMMES, PROGRAMME_COLOURS, ACCESS_BADGE, ACCESS, KINDS, FORMATS, DEPTHS, TOPICS, checklist, canPublish, filtersLine, coverOf, label, progress } from '@/lib/ops/library';
 
 async function call(body) {
   const r = await fetch('/api/ops/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -13,12 +13,12 @@ const long = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { t
 
 const Lock = () => <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" fill="currentColor" /><path d="M3.8 5.5V4a2.2 2.2 0 0 1 4.4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>;
 const Source = ({ of }) => of ? <span className="chip-pine">From onboarding · {of}</span> : null;
-function Chips({ options, value, onChange, multi, name }) {
+function Chips({ options, value, onChange, multi, name, dots }) {
   const on = o => multi ? value.includes(o) : value === o;
   return (
     <div className="ops-chips" role={multi ? 'group' : 'radiogroup'} aria-label={name}>
       {options.map(o => { const [k, l] = Array.isArray(o) ? o : [o, o]; return (
-        <button type="button" key={k} className={`ops-chip${on(k) ? ' on' : ''}`} aria-pressed={on(k)} onClick={() => onChange(multi ? (on(k) ? value.filter(x => x !== k) : [...value, k]) : (on(k) ? '' : k))}>{l}</button>
+        <button type="button" key={k} className={`ops-chip${on(k) ? ' on' : ''}`} aria-pressed={on(k)} onClick={() => onChange(multi ? (on(k) ? value.filter(x => x !== k) : [...value, k]) : (on(k) ? '' : k))}>{dots && <i className="dot" style={{ background: dots[k] }} aria-hidden="true" />}{l}</button>
       ); })}
     </div>
   );
@@ -27,7 +27,7 @@ const Req = () => <span className="req" aria-hidden="true">*</span>;
 
 export default function Form({ initial, choices, changed, kalighat }) {
   const [o, setO] = useState(initial);
-  const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null), [view, setView] = useState('card');
   const set = (k, v) => setO(s => ({ ...s, [k]: v, sources: { ...s.sources, [k]: undefined } }));
   const live = o.status === 'published';
   const list = useMemo(() => checklist(o), [o]);
@@ -50,7 +50,21 @@ export default function Form({ initial, choices, changed, kalighat }) {
   const sessSet = (i, k, v) => set('sessions', o.sessions.map((t, j) => j === i ? { ...t, [k]: v } : t));
   const cover = coverOf(o);
 
+  const band = PROGRAMME_COLOURS[o.programme] || '#D8C9AE';
+  const badge = ACCESS_BADGE[o.access] || '';
+  const actions = (
+    <div className="ops-pub-actions">
+      <button className="btn ghost" onClick={save} disabled={!!busy}>{busy === 'save' ? 'Saving…' : 'Save draft'}</button>
+      {live ? <>
+        <button className="btn primary" onClick={() => publish(true)} disabled={!ready || !!busy}>{busy === 'update' ? 'Updating…' : 'Update listing'}</button>
+        <button className="btn ghost" onClick={unpublish} disabled={!!busy}>Unpublish</button>
+      </> : <button className="btn primary" onClick={() => publish(false)} disabled={!ready || !!busy}>{busy === 'publish' ? 'Publishing…' : 'Publish to Course Library'}</button>}
+    </div>
+  );
   return (
+    <>
+    {actions}
+    {live && <div className="ops-live" role="status"><span><b>Live on the Course Library.</b> Edits here go live when you press Update listing.</span></div>}
     <div className="ops-pub">
       <div className="ops-pub-main">
         {(changed.circle.length > 0 || changed.onboarding.length > 0) && (
@@ -107,7 +121,7 @@ export default function Form({ initial, choices, changed, kalighat }) {
 
         <section className="ops-panel" aria-labelledby="details">
           <h2 id="details">Catalog details</h2>
-          <fieldset><legend>Programme <Req /></legend><Chips name="Programme" options={PROGRAMMES} value={o.programme} onChange={v => set('programme', v)} /></fieldset>
+          <fieldset><legend>Programme <Req /> <span className="ops-help">Sets the colour band</span></legend><Chips name="Programme" dots={PROGRAMME_COLOURS} options={PROGRAMMES} value={o.programme} onChange={v => set('programme', v)} /></fieldset>
           <label>Card label <Req /><input value={o.card_label} onChange={e => set('card_label', e.target.value)} placeholder="FALL 2026" maxLength={60} /></label>
           <fieldset><legend>Kind <Req /></legend><Chips name="Kind" options={KINDS} value={o.kind} onChange={v => set('kind', v)} /></fieldset>
           <fieldset><legend>Format</legend><Chips name="Format" options={FORMATS} value={o.format} onChange={v => set('format', v)} /></fieldset>
@@ -160,41 +174,43 @@ export default function Form({ initial, choices, changed, kalighat }) {
 
       <aside className="ops-pub-side" aria-label="Preview and publishing">
         <section className="ops-panel" aria-labelledby="prev">
-          <h2 id="prev">Preview</h2>
-          <article className="site-card">
-            <div className="pic" aria-hidden="true">{cover ? <img src={cover} alt="" /> : <span>{(o.title || '?')[0]}</span>}</div>
-            <div className="in">
-              <span className="lab">{o.card_label || 'CARD LABEL'}</span>
-              <h3>{o.title}</h3>
-              <p className="by">{o.teachers.map(t => t.name).filter(Boolean).join(', ') || 'Teacher'}</p>
-              <p className="meta"><span className="mono">{o.price_label || 'Price'}</span>{o.length ? <> · {o.length}</> : null}{o.next_date ? <> · Next <span className="mono">{long(o.next_date)}</span></> : null}</p>
-              {o.next_session && <p className="next">Next: <span className="mono">{o.next_session}</span></p>}
-            </div>
-          </article>
-          <div className="site-row"><span className="d mono">{o.next_date ? long(o.next_date) : '—'}</span><span className="t">{o.title}</span><span className="k">{o.kind || 'Kind'}</span><span className="p mono">{o.price_label}</span></div>
+          <div className="ops-prev-head"><h2 id="prev">Live preview</h2>
+            <div className="ops-seg" role="group" aria-label="Preview as">
+              <button type="button" className={view === 'card' ? 'on' : ''} aria-pressed={view === 'card'} onClick={() => setView('card')}>Card</button>
+              <button type="button" className={view === 'row' ? 'on' : ''} aria-pressed={view === 'row'} onClick={() => setView('row')}>List row</button>
+            </div></div>
+          {view === 'card' ? (
+            <article className="site-card">
+              <div className="band" style={{ background: band }} aria-hidden="true" />
+              <div className="in">
+                <div className="top"><span className="lab">{o.card_label || 'CARD LABEL'}</span>{badge && <span className="badge">{badge}</span>}</div>
+                <h3>{o.title}</h3>
+                <p className="by">{o.teachers.map(t => t.name).filter(Boolean).join(' & ') || 'Teacher'}</p>
+                <p className="meta"><span>{o.length || 'Length'}</span><span>·</span><span>{o.format || 'Format'}</span><span>·</span><span className="mono">{o.price_label || 'Price'}</span>{o.next_date ? <><span>·</span><span>Next <span className="mono">{long(o.next_date)}</span></span></> : null}</p>
+                {o.next_session && <p className="next">Next: <span className="mono">{o.next_session}</span></p>}
+              </div>
+            </article>
+          ) : (
+            <div className="site-row"><span className="bandv" style={{ background: band }} aria-hidden="true" /><span className="t">{o.title}<small>{o.teachers.map(t => t.name).filter(Boolean).join(' & ') || 'Teacher'} · {o.length || 'Length'} · {o.format || 'Format'}</small></span>{badge && <span className="badge">{badge}</span>}</div>
+          )}
+          <p className="ops-k">Filters this listing will appear under</p>
           <p className="ops-help" data-testid="filters">{filtersLine(o)}</p>
         </section>
 
         <section className="ops-panel" aria-labelledby="chk">
-          <h2 id="chk">Checklist</h2>
+          <h2 id="chk">Ready to publish?</h2>
           <ul className="ops-checklist">
-            {list.map(c => <li key={c.key} className={c.ok ? 'ok' : ''}><span className="mk" aria-hidden="true">{c.ok ? '✓' : ''}</span><span>{c.label}{!c.required && !c.ok ? ' (suggested)' : ''}<span className="sr">{c.ok ? ', done' : c.required ? ', still needed' : ', optional'}</span></span></li>)}
+            {list.map(c => <li key={c.key} className={c.ok ? 'ok' : ''}><span className="mk" aria-hidden="true">{c.ok ? '✓' : '○'}</span><span>{c.label}{!c.required && !c.ok ? ' (suggested)' : ''}<span className="sr">{c.ok ? ', done' : c.required ? ', still needed' : ', optional'}</span></span></li>)}
           </ul>
         </section>
 
         <div className="ops-pine-bar" role="group" aria-label="Publish">
-          <span className="state"><b>{live ? 'Live on the website' : o.status === 'unpublished' ? 'Unpublished' : 'Draft'}</b>{live && o.published_at ? <span className="mono"> since {new Date(o.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span> : null}<span className="mono"> · {progress(o)} of 9 fields</span></span>
-          <span className="acts">
-            <button className="btn ghost-light" onClick={save} disabled={!!busy}>{busy === 'save' ? 'Saving…' : 'Save draft'}</button>
-            {live ? <>
-              <button className="btn primary" onClick={() => publish(true)} disabled={!ready || !!busy}>{busy === 'update' ? 'Updating…' : 'Update listing'}</button>
-              <button className="btn ghost-light" onClick={unpublish} disabled={!!busy}>Unpublish</button>
-            </> : <button className="btn primary" onClick={() => publish(false)} disabled={!ready || !!busy}>{busy === 'publish' ? 'Publishing…' : 'Publish'}</button>}
-          </span>
+          <span className="state">{live ? 'Published · live on the site' : ready ? 'Ready to publish' : `${list.filter(c => c.required && !c.ok).length} required field${list.filter(c => c.required && !c.ok).length === 1 ? '' : 's'} left`}</span><b className="mono">{progress(o)} of 9 fields</b>
         </div>
         {!ready && !live && <p className="ops-help">Publish turns on once the starred items are done.</p>}
         {msg && <p role={msg.ok ? 'status' : 'alert'} className={msg.ok ? 'ops-say' : 'ops-err'}>{msg.text}</p>}
       </aside>
     </div>
+    </>
   );
 }

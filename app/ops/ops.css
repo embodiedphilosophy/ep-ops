@@ -579,3 +579,49 @@
   .ops-shell .ops-events .sub { overflow: hidden; text-overflow: ellipsis }
 }
 @media (max-width: 900px) { .ops-shell .ops-view label { flex-wrap: wrap; min-width: 0; max-width: 100% } .ops-shell .ops-view label select { width: 100%; max-width: 100% } }
+
+/* ---- Canvas alignment (EP Course Library canvas: "Ops — New from Circle" and "Ops — prepare & publish") ---- */
+.ops-shell .ops-last { color: var(--ink-soft); font-size: 12px }
+.ops-shell .ops-lib-row { grid-template-columns: 96px minmax(0, 1fr) 170px 150px auto; padding: 14px 16px 14px 14px }
+.ops-shell .ops-lib-row .thumb { width: 96px; height: 64px; font: 400 10px var(--mono); text-align: center; padding: 4px }
+.ops-shell .ops-lib-row .thumb small { font: inherit }
+.ops-shell .ops-lib-row .ttl { font-family: var(--serif); font-size: 22px; line-height: 1.1; font-weight: 600 }
+.ops-shell .ops-lib-row .body { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.ops-shell .ops-lib-row .pricecol { font-size: 12px; color: var(--ink-soft); line-height: 1.7 }
+.ops-shell .ops-lib-row .bar { display: flex; flex-direction: column; align-items: stretch; gap: 6px }
+.ops-shell .ops-lib-row .track { width: 100%; flex: none }
+.ops-shell .tag { display: inline-flex; font: 600 10.5px/1 var(--sans); letter-spacing: .4px; padding: 4px 6px; border: 1px solid var(--dashed); color: var(--ink) }
+.ops-shell .tag-pine { border: 1px solid var(--pine) }
+.ops-shell .ops-foot { margin-top: 28px }
+.ops-shell .ops-crumb { display: flex; gap: 8px; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .ops-crumb a { color: var(--accent) }
+.ops-shell .ops-pub-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin: -4px 0 16px }
+.ops-shell .ops-live { background: var(--sand); border: 1px solid var(--line); padding: 14px 18px; font-size: 14px; margin: 0 0 16px }
+.ops-shell .ops-chip .dot { display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px }
+.ops-shell .ops-chip.on .dot { outline: 1px solid var(--ground) }
+.ops-shell .ops-prev-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px }
+.ops-shell .ops-prev-head h2 { margin: 0; font: 600 11px/1 var(--sans); letter-spacing: 4px; text-transform: uppercase; color: var(--accent) }
+.ops-shell .ops-seg { display: inline-flex; border: 1px solid var(--line) }
+.ops-shell .ops-seg button { min-height: 36px; padding: 0 12px; border: 0; background: var(--ground); font: 500 12.5px var(--sans); color: var(--ink-soft); cursor: pointer }
+.ops-shell .ops-seg button.on { background: var(--ink); color: var(--ground) }
+.ops-shell .ops-k { font: 600 11px/1 var(--sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); margin: 16px 0 6px }
+.ops-shell .site-card { border-top: 1px solid var(--line) }
+.ops-shell .site-card .band { height: 8px }
+.ops-shell .site-card .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start }
+.ops-shell .site-card .lab { color: var(--ink-soft); letter-spacing: 1.6px; font-size: 10.5px; padding-top: 3px }
+.ops-shell .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 7px; background: var(--ochre); color: var(--ink); font: 600 10.5px/1 var(--sans); letter-spacing: .4px; white-space: nowrap }
+.ops-shell .site-card .meta { display: flex; flex-wrap: wrap; gap: 4px 8px; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px }
+.ops-shell .site-row { grid-template-columns: 6px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 0 12px 0 0; min-height: 64px; background: var(--ground); border: 1px solid var(--line) }
+.ops-shell .site-row .bandv { align-self: stretch }
+.ops-shell .site-row .t { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; font: 600 20px/1.1 var(--serif) }
+.ops-shell .site-row .t small { font: 400 12px var(--sans); color: var(--ink-soft) }
+.ops-shell .ops-pine-bar { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap }
+.ops-shell .ops-pine-bar b { color: var(--ochre); font-weight: 500 }
+@media (max-width: 900px) {
+  .ops-shell .ops-lib-row { grid-template-columns: 72px minmax(0, 1fr) }
+  .ops-shell .ops-lib-row .thumb { width: 72px; height: 54px; grid-row: 1 }
+  .ops-shell .ops-lib-row .pricecol, .ops-shell .ops-lib-row .bar, .ops-shell .ops-lib-row .acts { grid-column: 1 / -1 }
+  .ops-shell .ops-lib-row .acts { justify-content: flex-start }
+  .ops-shell .ops-pub-actions { justify-content: flex-start }
+}
+.ops-shell .ops-lib-rows + .ops-panel, .ops-shell .ops-empty-box + .ops-panel { margin-top: 20px }
