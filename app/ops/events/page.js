@@ -58,7 +58,7 @@ export default async function Events({ searchParams }) {
     const from = todayET();
     const gone = (await loadCalendar({ includeCancelled: true }).catch(() => [])).filter(e => /cancel/i.test(e.status) && (e.end_date || e.date) >= from).sort((a, b) => a.date.localeCompare(b.date));
     return (
-      <Shell user={user} current="events" title="Events" head={head}>
+      <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." title="Programming" head={head}>
         <h2 className="ops-sub">Cancelled</h2>
         {gone.length === 0 ? <p className="ops-empty">No upcoming sessions are cancelled.</p> : (
           <ul className="ops-cancelled">{gone.map(e => <li key={e.sched_id}><span>{short(e.date)} · {e.title} <span className="trk">{e.track}</span></span><Restore id={e.sched_id} /></li>)}</ul>
@@ -77,7 +77,7 @@ export default async function Events({ searchParams }) {
     const replay = e => e.video_id ? (e.website ? 'Replay on the site' : 'Has video, not on the site') : e.replay_link ? 'Replay in Circle' : 'No replay yet';
     const replayCls = e => e.video_id && e.website ? 'green' : e.video_id || e.replay_link ? 'amber' : 'grey';
     return (
-      <Shell user={user} current="events" title="Events" head={<Filters sp={sp} hidden={0} editor={editor} tracks={tracks} past />}>
+      <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." title="Programming" head={<Filters sp={sp} hidden={0} editor={editor} tracks={tracks} past />}>
         <div className="ops-add-wrap"><AddPastEvent tracks={tracks} /></div>
         <nav className="ops-filters ops-past-tracks" aria-label="Track">
           <a href={qs({}, { show: 'past' })} aria-current={!T ? 'page' : undefined}>All tracks</a>
@@ -117,7 +117,7 @@ export default async function Events({ searchParams }) {
   if (sp?.show === 'done') {
     const done = bucket(tasks).done;
     return (
-      <Shell user={user} current="events" title="Events" head={head}>
+      <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." title="Programming" head={head}>
         <h2 className="ops-sub">Recently done</h2>
         <TaskList tasks={done} showWho={!teacherView} done empty="Nothing completed recently." />
       </Shell>
@@ -133,7 +133,7 @@ export default async function Events({ searchParams }) {
   }
 
   return (
-    <Shell user={user} current="events" eyebrow={`Next ${WEEKS} weeks${teacherView ? ', your events' : ''}`} title="Events" head={head}>
+    <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." eyebrow={`Next ${WEEKS} weeks${teacherView ? ', your events' : ''}`} title="Programming" head={head}>
       {error && <p className="ops-note">Couldn’t load everything right now ({error}).</p>}
       {shown.length === 0 ? <p className="ops-empty" style={{ marginTop: 16 }}>No events in the next {WEEKS} weeks.</p> : (
         <ul className="ops-events">

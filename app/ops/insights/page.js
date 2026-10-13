@@ -22,7 +22,7 @@ export default async function Insights({ searchParams }) {
   const sp = await searchParams;
   let m, error = '';
   try { m = await loadMetrics(); } catch (e) { error = /403/.test(e.message) ? 'The Revenue & Metrics sheet isn’t shared with the website.' : 'Couldn’t read the Revenue & Metrics sheet right now.'; }
-  if (error) return <Shell user={user} current="insights" title="Business"><p className="ops-note">{error}</p></Shell>;
+  if (error) return <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"><p className="ops-note">{error}</p></Shell>;
 
   const period = PERIODS.some(([k]) => k === sp?.f) ? sp.f : '30';
   const funnel = await loadFunnel(Number(period)).catch(() => ({ steps: [], hidden: [], error: 'Couldn’t load the funnel.' }));
@@ -58,7 +58,7 @@ export default async function Insights({ searchParams }) {
   const trend = m.monthly.filter(x => x.month.startsWith(year) && x.month <= now);
 
   return (
-    <Shell user={user} current="insights" title="Business"
+    <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"
       head={<nav className="ops-filters" aria-label="Month">{choices.map(c => <a key={c} href={`/ops/insights?m=${c}`} aria-current={c === month ? 'page' : undefined}>{short(c)}{c === now ? ' (now)' : ''}</a>)}</nav>}>
       <p className="ops-empty">{monthName(month)}{live ? ', so far this month' : ''}. From the Revenue & Metrics sheet: Stripe and PayPal sales, Meta ad spend and your Budget.</p>
       {missing && <p className="ops-note">No sales or ad spend have been imported for {monthName(month)} yet, so its figures read $0. The plan for the month was {usd(cur.plan || 0)}.</p>}
