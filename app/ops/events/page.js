@@ -8,6 +8,7 @@ import { readinessRows, WEEKS } from '@/lib/ops/readiness';
 import { kitConfigured, tagCounts } from '@/lib/kit';
 import { isTeacher, canEditEvents } from '@/lib/ops/nav';
 import EventEditor from './EventEditor';
+import CirclePanel from './CirclePanel';
 import { AddEvent, AddPastEvent, Restore } from './EventActions';
 import { readRange, toObjects } from '@/lib/google';
 import Shell, { opsUser } from '../Shell';
@@ -179,6 +180,9 @@ export default async function Events({ searchParams }) {
           </>)}
           {canEditEvents(user) && (
             <EventEditor key={open.key} sessions={open.events.filter(e => e.sched_id).map(e => ({ id: e.sched_id, date: e.date, track: e.track, label: `${short(e.date)} · ${e.title}` }))} />
+          )}
+          {canEditEvents(user) && open.events.some(e => e.sched_id && inCircle(e)) && (
+            <CirclePanel key={`c-${open.key}`} ids={open.events.filter(e => e.sched_id && inCircle(e)).map(e => e.sched_id)} />
           )}
 
           <h3>People</h3>

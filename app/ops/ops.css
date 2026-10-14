@@ -648,3 +648,11 @@
   .ops-shell .lp-row { grid-template-columns: minmax(0, 1fr) }
   .ops-shell .lp-row .acts { grid-column: 1 / -1; justify-content: flex-start }
 }
+
+/* Events drawer → Circle panel (CirclePanel.js) */
+.ops-shell .ops-circle li { display: flex }
+.ops-shell .ops-circle .dot { display: inline-block; flex: none; border-radius: 50% }
+.ops-shell .ops-circle-course { margin: 8px 0 12px }
+.ops-shell .ops-circle-course .hint { margin: 0 0 8px }
+.ops-shell .ops-circle-flags { margin: 8px 0 0; padding-left: 18px }
+.ops-shell .ops-circle-flags li { margin-bottom: 4px }

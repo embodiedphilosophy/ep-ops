@@ -13,6 +13,7 @@ before merging.
 | `shoot.cjs` | Screenshots every /ops page (list in `pages.json`) at desktop and phone width; reports HTTP status, horizontal overflow and page errors. POSTs are blocked. `node scripts/ops-test/shoot.cjs scripts/ops-test/out label` |
 | `feed.cjs` `crop.cjs` `newpost.cjs` `email.cjs` | Click-through tests of Content → Social (feed and post editor, crop/upload, new post, snippets/quotes) and Content → Email (promo emails vs Kit). Writes go to the mock; check `out/mock.log` for exactly what would have been written. |
 | `promo.cjs` | Content → Email promo emails: write a planned email (makes the Promo Emails tab), preview, build its Kit draft (the mock logs `KIT DRAFT CREATED`; nothing reaches Kit), add and delete an extra, mark one not needed and bring it back, phone width. |
+| `circle.cjs` | Events drawer → Circle: session status, "Set up course in Circle" (standalone course) and "Push to Circle". Needs Circle writes switched on in the mock: `source env.sh`, `export CIRCLE_EVENT_SYNC=live MOCK_CIRCLE_WRITES=1`, restart the mock and `next start`; Circle writes show in `out/mock.log` as `CIRCLE WRITE`. |
 | `images.cjs` | Content → Social Image Library split into Art and Promo Images (by `has_text`), and the post picker offering Art only. |
 | `out/` | Logs, cookie, screenshots (git-ignored). |
 

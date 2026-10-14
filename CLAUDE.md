@@ -44,8 +44,10 @@ order. This file adds the safety rules and how to test.
 - **Tasks and the time clock** live in Neon Postgres (`DATABASE_URL`); always go through `lib/ops/taskstore.js`.
   Motion only gets Jacob's daily digest. Local tests unset `DATABASE_URL` (tasks then read from Motion, read only).
 - **Kit** (email, `KIT_API_KEY`; read-only checks; promo broadcasts carry the
-  event ID like `[E047] Promo #2`), **Circle** (community + live streams, `CIRCLE_API_TOKEN`; event sync is a dry
-  run until `CIRCLE_EVENT_SYNC=live`), **Make** (automations), **Vercel Blob** (teacher uploads).
+  event ID like `[E047] Promo #2`), **Circle** (community + live streams, `CIRCLE_API_TOKEN` = an Admin **V2** token; event sync is a dry
+  run until `CIRCLE_EVENT_SYNC=live`. New Circle events are drafts until "Push to Circle" on the event's drawer,
+  `app/ops/events/CirclePanel.js`; standalone courses (track EVENT) get a hidden course space + live-sessions space
+  from "Set up course in Circle", `lib/ops/circlecourse.js`), **Make** (automations), **Vercel Blob** (teacher uploads).
 - Being retired: Kajabi, Uscreen, Vimeo (the Vimeo ID only feeds the site's free-preview players).
 
 ## People and access (`lib/ops/nav.js`, Team tab)

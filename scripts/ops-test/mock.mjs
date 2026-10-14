@@ -67,6 +67,7 @@ const schedule = [H,
   ev('2026-11-25', 'SS', 'Sādhana School — Fall 2026 wk 6', { Series: 'sadhana-fall-2026' }),
   ev('2026-12-01', 'WSML', 'Wisdom School Monthly Lecture', { 'Public Title': 'Sanctifying the World' }),
   ev('2026-12-05', 'SSWW', 'SS Weekend Workshop — Winter on-ramp', T('Jacob Kyle')),
+  ev('2026-11-14', 'EVENT', 'Spanda Intensive  (Nov 14–Nov 15)', { ...T('Tova Olsson'), Time: '10am ET', 'Public Title': 'Spanda Intensive', Summary: 'Two mornings with the Spanda Kārikās.' }),
 ];
 const templates = [
   ['track', 'task', 'assign_to', 'offset_days', 'details'],
@@ -118,6 +119,8 @@ const tabs = { 'catalog': [['offering_id', 'status', 'programme', 'card_label', 
   'Archive Sources': [['folder_id', 'name', 'include', 'last_synced', 'images_added'], ['F1', 'Ryan graphics', 'TRUE', '2026-10-01', '40']],
   'Teachers': [['email', 'name', 'role', 'bio', 'photo_url', 'status', 'updated_on', 'onboarded_on'], ['abha@example.com', 'Abha Rajbhandari', 'Guest teacher', 'Abha teaches the Wisdom School monthly lecture and has studied the Devī traditions for twenty years.', 'https://example.com/abha.jpg', 'submitted', '2026-10-05', '']],
   'Course Pages': [['offering', 'slug', 'track', 'teacher_emails', 'title', 'subtitle', 'summary', 'explore', 'audience', 'status', 'circle_space_id'], ['sadhana-fall-2026', 'heart-of-recognition', 'SS', 'jacob@example.com, abha@example.com', 'The Heart of Recognition', 'Fall Sādhana 2026', 'Kṣemarāja’s little masterpiece, read closely over eight weeks.', 'Weekly live seminar\nRecordings of every session\nReading guide', 'Students of yoga and Indian philosophy', 'submitted', '2002'], ['E003', 'old-course', 'EVENT', 'x@example.com', 'An earlier course', '', '', '', '', 'published', ''], ['mm-nov-2026', 'mm-nov', 'MM', 'abha@example.com', 'Meditation Mondays: November', '', 'A month of Monday practice.', 'Live sit every Monday', '', 'submitted', '']],
+  // Circle event sync: which Circle space each program's live sessions go in
+  'Circle Groups': [['offering', 'circle_access_group_ids', 'name', 'circle_event_space_id'], ['sadhana-fall-2026', '7', 'SS 26-27 · Fall', '3001'], ['SS', '', 'Sādhana School · Live', '3001']],
   'Weekly Scaffolding': [['Send Date', 'Status', 'Issue No', 'Subject', 'Preview Text', 'Events Intro', 'Reflection Headline', 'Reflection Body', 'Reflection URL', 'Sanskrit Devanagari', 'Sanskrit IAST', 'Sanskrit Translation', 'Sanskrit Source', 'Video Title', 'Video Meta', 'Video Caption', 'Video URL', 'Video Thumbnail', 'Tarka Issue', 'Tarka Title', 'Tarka Author', 'Tarka Teaser', 'Tarka URL', 'PS', 'Kit Draft', 'Built At', 'Notes', 'Pilgrimage Title', 'Pilgrimage Body', 'Pilgrimage URL', 'Pilgrimage Button'],
     ['2026-10-11', 'Draft', '1', 'The Nine Nights begin', 'Navaratri starts Sunday'], ['2026-10-18', 'Draft', '2'], ['2026-10-25', 'Draft', '3']], 'Event Details': [['ID']] };
 
@@ -168,7 +171,13 @@ const circleData = {
     { id: 2002, name: 'The Heart of Recognition', slug: 'heart', space_type: 'course', status: 'published', cover_image_url: '' },
     { id: 2003, name: 'Spanda Karikas: a close reading', slug: 'spanda', space_type: 'course', status: 'draft', cover_image_url: '' },
     { id: 2004, name: 'Community chat', slug: 'chat', space_type: 'discussion' },
+    { id: 3001, name: 'Sādhana School · Live Sessions', slug: 'ss-live', space_type: 'event' },
   ],
+  // Circle events (Admin API v2 shape: time and length under event_setting_attributes)
+  events: [
+    { id: 9001, name: 'Orientation (made by hand)', status: 'published', url: 'https://ss.example.com/c/ss-live/orientation', space: { id: 3001, name: 'Sādhana School · Live Sessions' }, event_setting_attributes: { starts_at: '2026-10-18T16:00:00.000Z', duration_in_seconds: 5400 } },
+  ],
+  sections: [], lessons: [],
   paywalls: [
     { id: 301, name: 'Meditation Mondays', prices: [{ amount: 15, currency: 'usd', interval: 'month' }], checkout_url: 'https://ss.example.com/checkout/301', space_ids: [2001] },
     { id: 302, name: 'Fall 2026 season', prices: [{ amount: 495, currency: 'usd', interval: 'one_time' }], checkout_url: 'https://ss.example.com/checkout/302', space_ids: [2002] },
@@ -204,10 +213,36 @@ http.createServer(async (req, res) => {
     if (p.startsWith('/circle/')) {
       // Circle Admin API stand-in (read only). POST /circle/__set swaps the data, to test changes.
       if (p === '/circle/__set' && req.method === 'POST') { Object.assign(circleData, await body(req)); log('CIRCLE DATA SET'); return send(res, 200, {}); }
+      // MOCK_CIRCLE_WRITES=1: Circle writes are applied to the data above (and logged), to test "Push to Circle"
+      if (req.method !== 'GET' && process.env.MOCK_CIRCLE_WRITES) {
+        const b = await body(req), ok = x => { log('CIRCLE WRITE', req.method, p, JSON.stringify(b).slice(0, 300)); return send(res, 200, x); };
+        const n = () => 9100 + circleData.events.length + circleData.spaces.length + circleData.lessons.length + circleData.sections.length;
+        if (p === '/circle/events' && req.method === 'POST') {
+          const e = b.event || {}, sp = circleData.spaces.find(x => x.id === e.space_id);
+          if (!sp || !e.event_setting_attributes?.starts_at) return send(res, 422, { message: 'space_id and event_setting_attributes.starts_at are required' });
+          const id = n(), rec = { id, name: e.name, body: e.body, status: e.status || 'published', url: `https://ss.example.com/c/${sp.slug}/e${id}`, space: { id: sp.id, name: sp.name }, event_setting_attributes: { ...e.event_setting_attributes } };
+          circleData.events.push(rec); return ok(rec);
+        }
+        const em = p.match(/^\/circle\/events\/(\d+)$/);
+        if (em && req.method === 'PUT') {
+          const rec = circleData.events.find(x => String(x.id) === em[1]); if (!rec) return send(res, 404, { message: 'not found' });
+          const { event_setting_attributes: st, ...rest } = b.event || {}; Object.assign(rec, rest); if (st) Object.assign(rec.event_setting_attributes, st); return ok(rec);
+        }
+        if (p === '/circle/spaces' && req.method === 'POST') { const id = n(), rec = { id, slug: `s${id}`, ...b }; circleData.spaces.push(rec); return ok(rec); }
+        const spm = p.match(/^\/circle\/spaces\/(\d+)$/);
+        if (spm && req.method === 'PUT') { const rec = circleData.spaces.find(x => String(x.id) === spm[1]); if (!rec) return send(res, 404, {}); Object.assign(rec, b); return ok(rec); }
+        if (p === '/circle/course_sections' && req.method === 'POST') { const rec = { id: n(), ...b }; circleData.sections.push(rec); return ok(rec); }
+        if (p === '/circle/course_lessons' && req.method === 'POST') { const rec = { id: n(), ...b }; circleData.lessons.push(rec); return ok(rec); }
+        const lm = p.match(/^\/circle\/course_lessons\/(\d+)$/);
+        if (lm && req.method === 'PATCH') { const rec = circleData.lessons.find(x => String(x.id) === lm[1]); if (!rec) return send(res, 404, {}); Object.assign(rec, b); return ok(rec); }
+        log('BLOCKED circle write (no stand-in)', req.method, p); return send(res, 404, { message: 'not found' });
+      }
       if (req.method !== 'GET') { log('BLOCKED circle write', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
       log('CIRCLE GET', p);
       const list = a => send(res, 200, { page: 1, per_page: 100, has_next_page: false, count: a.length, records: a });
       if (p === '/circle/spaces') return list(circleData.spaces);
+      if (p === '/circle/events') return list(circleData.events);
+      if (p === '/circle/course_sections') return list(circleData.sections.filter(x => String(x.space_id) === url.searchParams.get('space_id')));
       const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
       if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
