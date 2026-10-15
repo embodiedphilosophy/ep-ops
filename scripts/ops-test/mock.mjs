@@ -297,6 +297,27 @@ http.createServer(async (req, res) => {
       if (b.action === 'put') { const id = 'MOCKDRIVE' + Date.now() + 'xxxxxxxxxx'; log('MAKE PUT', b.name, String(b.data || '').length, 'chars →', id); return send(res, 200, { id }); }
       return send(res, 200, 'Accepted');
     }
+    // Website CE ledger (ep-website /api/ce/admin) for /ops/ce: one held, two issued, one withdrawn, one unmatched event.
+    if (p.startsWith('/site/api/ce/admin')) {
+      if (req.headers['x-ce-key'] !== 'mock-ce') return send(res, 401, { error: 'Not allowed' });
+      if (p === '/site/api/ce/admin/export') { log('SITE CE EXPORT'); res.writeHead(200, { 'Content-Type': 'text/csv' }); return res.end('Certificate ID,Status\nEP-CE-2026-0001,issued\n'); }
+      if (req.method === 'POST') { const b = await body(req); log('SITE CE', JSON.stringify(b)); return send(res, 200, { ok: true }); }
+      const c = (id, status, name, title, hours, category, extra = {}) => ({ id, status, name, title, hours, category, email: name.split(' ')[0].toLowerCase() + '@example.com', ya_id: '', issued_at: '2026-10-12T15:00:00Z', first_at: '2026-09-20T15:00:00Z', done_at: '2026-10-12T14:00:00Z', pace: 'pass', r1: 'Reflection one.', r2: 'Reflection two.', notes: '', pdf: status === 'issued' ? 'https://example.com/x.pdf' : '', ...extra });
+      return send(res, 200, {
+        certs: [
+          c('EP-CE-2026-0004', 'held', 'Member B', 'Myth, Shadow & the Inner Journey', 56, 'Yoga Humanities', { first_at: '2026-10-14T10:00:00Z', done_at: '2026-10-14T13:00:00Z', pace: 'held', r1: 'I learned to sit with the shadow material without rushing past it.', r2: 'I will add a closing journaling prompt to my classes.' }),
+          c('EP-CE-2026-0003', 'issued', 'Maya Albright', 'Meditation for Real Life', 12, 'Techniques, Training & Practice', { ya_id: '123456' }),
+          c('EP-CE-2026-0002', 'issued', 'Sam Okafor', 'Classical Yoga & the Yoga Sūtras', 19.5, 'Yoga Humanities', { notes: 'Name changed by Floss' }),
+          c('EP-CE-2026-0001', 'revoked', 'Lee Park', 'The Subtle Body', 3.5, 'Anatomy & Physiology', { notes: 'Revoked by Jacob: duplicate' }),
+        ],
+        unmatched: [{ id: 9, at: '2026-10-14T12:00:00Z', kind: 'lesson', email: 'maya@example.com', space_id: '555', lesson_id: '42' }],
+        counts: { issued_month: 2, hours_all: 31.5, tracking: 14, held: 1, last_event: '2026-10-14T12:00:00Z' },
+        pathways: [
+          { slug: 'meditation-for-real-life', title: 'Meditation for Real Life', hours: 12, category: 'Techniques, Training & Practice', spaceIds: ['104'], lessons: 8, runtimeMinutes: 720 },
+          { slug: 'myth-shadow-and-the-inner-journey', title: 'Myth, Shadow & the Inner Journey', hours: 56, category: 'Yoga Humanities', spaceIds: [], lessons: 0, runtimeMinutes: 0 },
+        ],
+      });
+    }
     if (p.startsWith('/zendesk/api/v2/')) {
       const z = p.slice('/zendesk/api/v2'.length);
       if (req.method !== 'GET') { const b = await body(req); log('ZENDESK WRITE', req.method, z, JSON.stringify(b).slice(0, 200)); const m = z.match(/^\/tickets\/(\d+)\.json$/); const t = m && zdTickets.find(x => x.id === Number(m[1])); if (t && b.ticket?.status) t.status = b.ticket.status; if (t && b.ticket?.comment) (zdComments[t.id] ||= []).push({ id: Date.now(), author_id: b.ticket.comment.author_id || 3, public: b.ticket.comment.public !== false, created_at: new Date().toISOString(), plain_body: b.ticket.comment.body }); return send(res, 200, { ticket: t || {} }); }

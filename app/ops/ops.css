@@ -656,3 +656,16 @@
 .ops-shell .ops-circle-course .hint { margin: 0 0 8px }
 .ops-shell .ops-circle-flags { margin: 8px 0 0; padding-left: 18px }
 .ops-shell .ops-circle-flags li { margin-bottom: 4px }
+
+/* CE credits ledger (/ops/ce) */
+.ops-shell .ce-rows .ops-lib-row { grid-template-columns: minmax(0, 1fr) auto; align-items: flex-start }
+@media (max-width: 720px) { .ops-shell .ce-rows .ops-lib-row { grid-template-columns: minmax(0, 1fr) } .ops-shell .ce-acts { justify-content: flex-start } }
+.ops-shell .ce-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; max-width: 520px }
+.ops-shell .ce-reflection { flex-basis: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--paper); border: 1px solid var(--edge); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 13px; white-space: pre-wrap }
+.ops-shell .ce-notes { font-size: 12.5px; color: var(--soft) }
+.ops-shell .ce-fast { color: var(--risk); font-weight: 600 }
+.ops-shell .ce-miss { color: var(--risk) }
+.ops-shell .ce-mark { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 6px 0 18px }
+.ops-shell .ce-mark label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--soft) }
+.ops-shell .ce-mark input, .ops-shell .ce-mark select { min-height: 40px; padding: 0 10px; border: 1px solid var(--edge); border-radius: var(--r-ctl); font: inherit; font-size: 14px; background: var(--card, #fff); color: var(--ink) }
+.ops-shell .ce-mark .hint { flex-basis: 100% }
