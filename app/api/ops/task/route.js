@@ -3,7 +3,6 @@ import { currentUser } from '@/lib/ops/auth';
 import { listTasks, createTask, updateTask, addComment, listComments, reopenTask } from '@/lib/ops/taskstore';
 import { isStaff } from '@/lib/ops/nav';
 import { loadCalendar } from '@/lib/calendar';
-import { UNDO_DAYS } from '@/lib/ops/autocomplete';
 import { visibleTo, ownersOf, parseTag, loadTeam, addDays } from '@/lib/ops/tasks';
 import { todayET } from '@/lib/events';
 import { sendEmail, layout, button, esc } from '@/lib/ops/email';
@@ -87,12 +86,13 @@ export async function POST(req) {
       await notify(others, `New comment: ${bare(task.name).split(' — ')[0]}`, `<p><b>${esc(me)}</b> commented on <b>${title}</b>:</p><p>“${esc(body)}”</p>`, base);
       return NextResponse.json({ ok: true });
     }
-    if (action === 'undo') {
-      if (!task.auto || task.auto < addDays(todayET(), -UNDO_DAYS)) return NextResponse.json({ error: 'Only automatic ticks from the last week can be undone' }, { status: 400 });
-      // [auto-undone] keeps the job from closing it again
-      await updateTask(id, { description: task.description.replace(/\[auto:[^\]]+\]/, '[auto-undone]') });
+    // Untick a task: anyone who can see it can reopen it (a mis-click, or it wasn't really finished)
+    if (action === 'undo' || action === 'reopen') {
+      if (!task.completed) return NextResponse.json({ ok: true });
+      // [auto-undone] keeps the automatic job from closing it again
+      if (task.auto) await updateTask(id, { description: task.description.replace(/\[auto:[^\]]+\]/, '[auto-undone]') });
       await reopenTask(id);
-      await addComment(id, `**${me}** reopened this: the automatic tick was wrong.`).catch(() => {});
+      await addComment(id, task.auto ? `**${me}** reopened this: the automatic tick was wrong.` : `**${me}** unticked this.`).catch(() => {});
       return NextResponse.json({ ok: true });
     }
     if (action === 'assign') {
