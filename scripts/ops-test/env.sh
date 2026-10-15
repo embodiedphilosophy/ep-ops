@@ -24,3 +24,5 @@ export CIRCLE_API_TOKEN=mock CIRCLE_API_BASE=$M/circle WEBSITE_SHEET_ID=mock-web
 export KALIGHAT_COVER_URL=$M/img/kalighat.png
 # Landing Pages: the website's /api/landing-pages feed comes from the mock (MOCK_NOLP=1 makes it a 404)
 export LANDING_PAGES_URL=$M/site/api/landing-pages
+# CE credits ledger (/ops/ce): the website's CE admin API comes from the mock
+export CE_ADMIN_KEY=mock-ce
