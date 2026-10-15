@@ -143,7 +143,7 @@ const tabs = { 'Entries': kbEntries, 'Handoffs': kbHandoffs, 'catalog': [['offer
   'Course Pages': [['offering', 'slug', 'track', 'teacher_emails', 'title', 'subtitle', 'summary', 'explore', 'audience', 'status', 'circle_space_id'], ['sadhana-fall-2026', 'heart-of-recognition', 'SS', 'jacob@example.com, abha@example.com', 'The Heart of Recognition', 'Fall Sādhana 2026', 'Kṣemarāja’s little masterpiece, read closely over eight weeks.', 'Weekly live seminar\nRecordings of every session\nReading guide', 'Students of yoga and Indian philosophy', 'submitted', '2002'], ['E003', 'old-course', 'EVENT', 'x@example.com', 'An earlier course', '', '', '', '', 'published', ''], ['mm-nov-2026', 'mm-nov', 'MM', 'abha@example.com', 'Meditation Mondays: November', '', 'A month of Monday practice.', 'Live sit every Monday', '', 'submitted', '']],
   // Circle event sync: which Circle space each program's live sessions go in
   'Circle Groups': [['offering', 'circle_access_group_ids', 'name', 'circle_event_space_id'], ['sadhana-fall-2026', '7', 'SS 26-27 · Fall', '3001'], ['SS', '', 'Sādhana School · Live', '3001']],
-  'Weekly Scaffolding': [['Send Date', 'Status', 'Issue No', 'Subject', 'Preview Text', 'Events Intro', 'Reflection Headline', 'Reflection Body', 'Reflection URL', 'Sanskrit Devanagari', 'Sanskrit IAST', 'Sanskrit Translation', 'Sanskrit Source', 'Video Title', 'Video Meta', 'Video Caption', 'Video URL', 'Video Thumbnail', 'Tarka Issue', 'Tarka Title', 'Tarka Author', 'Tarka Teaser', 'Tarka URL', 'PS', 'Kit Draft', 'Built At', 'Notes', 'Pilgrimage Title', 'Pilgrimage Body', 'Pilgrimage URL', 'Pilgrimage Button'],
+  'Weekly Scaffolding': [['Send Date', 'Status', 'Issue No', 'Subject', 'Preview Text', 'Events Intro', 'Reflection Headline', 'Reflection Body', 'Reflection URL', 'Sanskrit Devanagari', 'Sanskrit IAST', 'Sanskrit Translation', 'Sanskrit Source', 'Video Title', 'Video Meta', 'Video Caption', 'Video URL', 'Video Thumbnail', 'Tarka Issue', 'Tarka Title', 'Tarka Author', 'Tarka Teaser', 'Tarka URL', 'PS', 'Kit Draft', 'Built At', 'Notes'],
     ['2026-10-11', 'Draft', '1', 'The Nine Nights begin', 'Navaratri starts Sunday'], ['2026-10-18', 'Draft', '2'], ['2026-10-25', 'Draft', '3']], 'Event Details': [['ID']] };
 
 // ---------- team calendar (Google Calendar events) ----------
@@ -182,6 +182,7 @@ function setCells(range, values) {
   const { tab, col, row } = parseRange(range);
   if (!tabs[tab]) throw new Error('no tab ' + tab);
   if (grid[tab] && row - 1 + values.length > grid[tab]) throw new Error('exceeds grid limits');
+  if (col + Math.max(0, ...values.map(l => l.length)) > colsOf(tab)) throw new Error(`exceeds grid limits (columns) on ${tab}`);
   values.forEach((line, i) => line.forEach((v, j) => { if (v === null) return; const R = tabs[tab][row - 1 + i] ||= []; while (R.length < col + j) R.push(''); R[col + j] = v; }));
   log('WROTE', range, JSON.stringify(values).slice(0, 160));
 }
@@ -207,6 +208,9 @@ const circleData = {
 };
 if (process.env.MOCK_NOCATALOG) delete tabs.catalog;
 const grid = {};
+// Column grid like Google's: a tab is as wide as its widest row (at least 26); writing past it is a 400
+const cgrid = {};
+const colsOf = t => (cgrid[t] ??= Math.max(26, ...(tabs[t] || []).map(r => r.length)));
 const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
 
 http.createServer(async (req, res) => {
@@ -216,10 +220,10 @@ http.createServer(async (req, res) => {
     if (p === '/token' && req.method === 'POST') return send(res, 200, { access_token: 'mock', expires_in: 3600 });
     if (p.startsWith('/v4/spreadsheets/')) {
       if (process.env.MOCK_READONLY && req.method !== 'GET') { log('BLOCKED sheet write', req.method, decodeURIComponent(p)); return send(res, 403, { error: 'writes blocked' }); }
-      if (req.method === 'GET' && !p.includes('/values')) { const names = Object.keys(tabs).filter(t => tabs[t]); return send(res, 200, { sheets: names.map((t, i) => ({ properties: { sheetId: 900 + i, title: t, gridProperties: { rowCount: (grid[t] ??= tabs[t].length) } } })) }); }
+      if (req.method === 'GET' && !p.includes('/values')) { const names = Object.keys(tabs).filter(t => tabs[t]); return send(res, 200, { sheets: names.map((t, i) => ({ properties: { sheetId: 900 + i, title: t, gridProperties: { rowCount: (grid[t] ??= tabs[t].length), columnCount: colsOf(t) } } })) }); }
       const cp = p.match(/\/sheets\/(\d+):copyTo$/);
       if (cp) { const src = oldSite[cp[1]]; if (!src) return send(res, 404, {}); const id = nextSheet++, t = `Copy of ${cp[1]}`; tabs[t] = src.map(r => [...r]); sheetIds[id] = t; log('COPIED TAB', cp[1], '→', t); return send(res, 200, { sheetId: id, title: t }); }
-      if (p.endsWith(':batchUpdate') && !p.includes('/values')) { const b = await body(req); for (const q of b.requests || []) if (q.updateSheetProperties) { const { sheetId, title } = q.updateSheetProperties.properties; const old = sheetIds[sheetId]; tabs[title] = tabs[old]; delete tabs[old]; log('RENAMED TAB', old, '→', title); } for (const q of b.requests || []) if (q.appendDimension) { const t = Object.keys(tabs).filter(t => tabs[t])[q.appendDimension.sheetId - 900]; grid[t] = (grid[t] || 0) + q.appendDimension.length; log('ADDED ROWS', t, q.appendDimension.length); } for (const q of b.requests || []) if (q.addSheet) { const t = q.addSheet.properties.title; if (tabs[t]) return send(res, 400, { error: { message: 'already exists' } }); tabs[t] = []; log('ADDED TAB', t); } return send(res, 200, {}); }
+      if (p.endsWith(':batchUpdate') && !p.includes('/values')) { const b = await body(req); for (const q of b.requests || []) if (q.updateSheetProperties) { const { sheetId, title } = q.updateSheetProperties.properties; const old = sheetIds[sheetId]; tabs[title] = tabs[old]; delete tabs[old]; log('RENAMED TAB', old, '→', title); } for (const q of b.requests || []) if (q.appendDimension) { const t = Object.keys(tabs).filter(t => tabs[t])[q.appendDimension.sheetId - 900]; if (q.appendDimension.dimension === 'COLUMNS') { cgrid[t] = colsOf(t) + q.appendDimension.length; log('ADDED COLUMNS', t, q.appendDimension.length); } else { grid[t] = (grid[t] || 0) + q.appendDimension.length; log('ADDED ROWS', t, q.appendDimension.length); } } for (const q of b.requests || []) if (q.addSheet) { const t = q.addSheet.properties.title; if (tabs[t]) return send(res, 400, { error: { message: 'already exists' } }); tabs[t] = []; log('ADDED TAB', t); } return send(res, 200, {}); }
       if (p.endsWith('/values:batchUpdate')) { const b = await body(req); for (const d of b.data) setCells(d.range, d.values); return send(res, 200, {}); }
       const range = decodeURIComponent(p.split('/values/')[1] || '');
       if (range.endsWith(':append')) { const b = await body(req); const { tab } = parseRange(range.slice(0, -7)); if (!tabs[tab]) return send(res, 400, { error: { message: 'Unable to parse range' } }); for (const l of b.values) tabs[tab].push(l); log('APPENDED', tab, JSON.stringify(b.values).slice(0, 200)); return send(res, 200, {}); }
