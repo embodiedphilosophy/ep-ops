@@ -7,6 +7,7 @@ export M=http://localhost:4555
 export GOOGLE_TOKEN_URL=$M/token SHEETS_BASE=$M CALENDAR_API_BASE=$M MOTION_BASE=$M/motion
 export RESEND_BASE=$M/resend KIT_BASE=$M/kit/v4 KIT_API_KEY=mock ZOOM_API_BASE=$M/zoom ZOOM_OAUTH_BASE=$M/zoomauth
 export SOCIAL_IMAGES_HOOK=$M/make-hook
+export ZENDESK_BASE=$M/zendesk ZENDESK_EMAIL=mock@example.com ZENDESK_API_TOKEN=mock KB_SHEET_ID=mock-kb
 # Tasks and the time clock live in Neon when DATABASE_URL is set: unset it so tests never touch the real database
 # (tasks then come read-only from Motion through the mock; the time clock shows as unavailable).
 unset RESEND_API_KEY CIRCLE_API_TOKEN CRON_SECRET OPS_ORIGIN OPS_LIVE REVALIDATE_SECRET CIRCLE_EVENT_SYNC DATABASE_URL POSTGRES_URL TASKS_BACKEND

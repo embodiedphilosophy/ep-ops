@@ -82,7 +82,7 @@ Each item: build passes (`npm run build`), works at phone width, follows section
 - 3 done (#10).
 - 4 partly: Enrolled count from the Kit Enrolled Tag (list + drawer). Not done: "paid but not in Circle" (needs payments joined to Circle members).
 - 5 done as config: Settings → Funnel lists each step and its Kit tag; steps without a tag are hidden. Fill in the tags (Practice Report quiz, Meditation Mondays, Wisdom School, Plus, Sādhana School) to light it up. Counts use Kit's `tagged_after`, untested against live Kit.
-- 6 not started. Ether is a separate project. Needed: an API or shared table listing Ether → Ichha handoffs (id, person, topic, opened_at, status). Then add a Support section to Today (Ichha first, director count).
+- 6 done as its own page, `/ops/support` (`lib/ops/support.js`, `app/ops/support/`, `app/api/ops/support/route.js`): Ichha's Zendesk inbox (Needs a reply / Waiting on customer / Pitches & automated), replies and status changes sent to Zendesk as the signed-in person, suggested answers from the EP Support KB sheet (Entries tab), "save a new answer" → a Draft row on Entries through `addPlain` (Change Log), and Ether's gaps from the Handoffs tab. Access: `canSupport` in `nav.js` (directors, manager, projects, any role matching customer/support/happiness). Vercel: `ZENDESK_EMAIL`, `ZENDESK_API_TOKEN` (optional `ZENDESK_SUBDOMAIN`, `KB_SHEET_ID`); the service account needs edit access to EP Support KB. Not done: a count on Today.
 - 7 partly: root `ops/` removed, `syncToMotion` renamed `syncTasks`. Not done (needs a browser to check `/teach`/`SocialEngine.js`): pruning ops rules from `app/globals.css`; moving Social libraries into Settings.
 
 ## 6. Verifying without a login

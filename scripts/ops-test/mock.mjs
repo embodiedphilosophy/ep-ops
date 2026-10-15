@@ -15,6 +15,7 @@ const team = [
   ['Jacob Kyle', 'jacob@embodiedphilosophy.com', 'director', 'Director, Marketing, Media, Social, Ads', 'TRUE', '', ''],
   ['Irene Barber', ex('Irene'), 'manager', 'General Manager', 'TRUE', '', ''],
   ['Floss Harry', ex('Floss'), 'projects', 'Project Manager, Course Host', 'TRUE', '', ''],
+  ['Ichha Nihalani', ex('Ichha'), '', 'Customer Happiness Manager', 'TRUE', '', ''],
   ['Rebecka Oberg', ex('Rebecka'), 'marketing', 'Marketing Assistant, Marketing, Media, Social, Ads', 'TRUE', '', ''],
   ['Abha Rajbhandari', ex('Abha'), 'teacher', 'Teacher', 'TRUE', '2026-09-01', ''],
   ['Mary Reilly Nichols', ex('Mary'), 'teacher', 'Teacher', 'TRUE', '', ''],
@@ -110,7 +111,23 @@ const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimon
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
 const kitDrafts = [];
-const tabs = { 'catalog': [['offering_id', 'status', 'programme', 'card_label', 'kind', 'format', 'depth', 'topics', 'title', 'teachers', 'cover_url', 'price_label', 'checkout_url', 'access', 'requires', 'unlock_note', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'published_at', 'updated_at']], ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
+
+// EP Support KB (Entries, Handoffs) and a Zendesk stand-in for the Support page
+const kbEntries = [['ID', 'Replaces', 'Topic', 'Programs', 'Platform', 'Question', 'Other phrasings', 'Public answer', 'Ether notes', 'Hand to Ichha when', 'Public', 'Status', 'Owner', 'Last reviewed', 'Open question'],
+  ['c04', 'A02', 'Your Course Dashboard', 'All', 'Circle', 'I paid, but my course isn\'t in my dashboard.', 'Paid but no access; course missing after purchase', 'Sign out and back in, and check you\'re signed in with the email you paid with. If it\'s still missing, our team will add it for you.', 'Several of these came from Meta ad checkouts.', 'Always.', 'Yes', 'Draft', 'Ichha', '2026-10-15', ''],
+  ['b01', 'A09', 'Billing, refunds & cancelling', 'All', '', 'Can I get a refund?', 'Refund policy; money back', 'Courses and certificate programs: a full refund within 30 days of purchase.', 'Never say a refund has been made.', 'A course within 30 days.', 'Yes', 'Live', 'Jacob', '2026-10-15', '']];
+const kbHandoffs = [['Time (UTC)', 'Zendesk ticket', 'Entry used', 'Topic', 'Gap (no entry)', 'Summary for Ichha', 'Test run'],
+  [new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 16).replace('T', ' '), '9102', 'none', 'other', 'Yes', 'Asks whether the Devī Gītā course has a reading list in Spanish.', '']];
+const zdUsers = [{ id: 1, name: 'Maya Rivers', email: 'maya@example.com', role: 'end-user' }, { id: 2, name: 'PayPal', email: 'service@paypal.com', role: 'end-user' }, { id: 3, name: 'Ichha Nihalani', email: 'ichha@embodiedphilosophy.com', role: 'agent' }, { id: 4, name: 'Sam Lee', email: 'sam@example.com', role: 'end-user' }];
+const zdTickets = [
+  { id: 9101, subject: '[Chat · c04] dashboard: Paid for Wisdom School but the course is not showing', status: 'new', requester_id: 1, created_at: new Date(Date.now() - 5 * 36e5).toISOString(), updated_at: new Date(Date.now() - 5 * 36e5).toISOString() },
+  { id: 9100, subject: 'Refund for Navaratri?', status: 'open', requester_id: 4, created_at: new Date(Date.now() - 30 * 36e5).toISOString(), updated_at: new Date(Date.now() - 26 * 36e5).toISOString() },
+  { id: 9099, subject: 'You received a payment', status: 'new', requester_id: 2, created_at: new Date(Date.now() - 8 * 36e5).toISOString(), updated_at: new Date(Date.now() - 8 * 36e5).toISOString() },
+];
+const zdComments = { 9101: [{ id: 1, author_id: 1, public: true, created_at: zdTickets[0].created_at, plain_body: 'Hi, I paid for Wisdom School yesterday but nothing shows in my dashboard. My email is maya@example.com.' }],
+  9100: [{ id: 2, author_id: 4, public: true, created_at: zdTickets[1].created_at, plain_body: 'I joined Navaratri last week but cannot make the times. Can I get a refund?' }, { id: 3, author_id: 3, public: false, created_at: zdTickets[1].updated_at, plain_body: 'Bought 6 days ago, within 30 days.' }],
+  9099: [{ id: 4, author_id: 2, public: true, created_at: zdTickets[2].created_at, plain_body: 'You received a payment of $27.00.' }] };
+const tabs = { 'Entries': kbEntries, 'Handoffs': kbHandoffs, 'catalog': [['offering_id', 'status', 'programme', 'card_label', 'kind', 'format', 'depth', 'topics', 'title', 'teachers', 'cover_url', 'price_label', 'checkout_url', 'access', 'requires', 'unlock_note', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'published_at', 'updated_at']], ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
   'Post History': [['ig_media_id', 'posted_at', 'media_type', 'caption', 'permalink', 'like_count', 'comments_count', 'archived_image_id', 'pillar', 'notes'], ...Array.from({ length: 70 }, (_, i) => [`M${i}`, day(-i * 3) + 'T15:00:00Z', 'IMAGE', `Post number ${i}: a verse and a painting.`, 'https://instagram.com/p/x' + i, String(200 - i), String(i % 9), '', 'Content', ''])],
   'Quote Library': [['quote_id', 'quote', 'author', 'work', 'publication', 'location', 'source_link', 'themes', 'pillar_fit', 'verified', 'added_by', 'times_used', 'last_used'], ['Q1', 'The Self is the light by which all is seen.', 'Kṣemarāja', 'Pratyabhijñāhṛdayam', '', '', '', 'recognition', 'Content', 'TRUE', 'Jacob', '3', '2026-09-01'], ['Q2', 'Consciousness is the world.', 'Abhinavagupta', 'Tantrāloka', '', '', '', 'nondual', 'Practice', 'FALSE', 'Jacob', '0', '']],
   'Caption Bank': [['snippet_id', 'type', 'program', 'text', 'source', 'approved', 'notes'], ['C1', 'cta', 'sadhana', 'Join us live this week.', '', 'TRUE', '']],
@@ -279,6 +296,15 @@ http.createServer(async (req, res) => {
       }
       if (b.action === 'put') { const id = 'MOCKDRIVE' + Date.now() + 'xxxxxxxxxx'; log('MAKE PUT', b.name, String(b.data || '').length, 'chars →', id); return send(res, 200, { id }); }
       return send(res, 200, 'Accepted');
+    }
+    if (p.startsWith('/zendesk/api/v2/')) {
+      const z = p.slice('/zendesk/api/v2'.length);
+      if (req.method !== 'GET') { const b = await body(req); log('ZENDESK WRITE', req.method, z, JSON.stringify(b).slice(0, 200)); const m = z.match(/^\/tickets\/(\d+)\.json$/); const t = m && zdTickets.find(x => x.id === Number(m[1])); if (t && b.ticket?.status) t.status = b.ticket.status; if (t && b.ticket?.comment) (zdComments[t.id] ||= []).push({ id: Date.now(), author_id: b.ticket.comment.author_id || 3, public: b.ticket.comment.public !== false, created_at: new Date().toISOString(), plain_body: b.ticket.comment.body }); return send(res, 200, { ticket: t || {} }); }
+      if (z === '/search.json') return send(res, 200, { results: zdTickets.filter(t => t.status !== 'solved' && t.status !== 'closed'), users: zdUsers });
+      if (z === '/users/search.json') { const e = (url.searchParams.get('query') || '').replace('email:', ''); return send(res, 200, { users: zdUsers.filter(u => u.email === e) }); }
+      let m = z.match(/^\/tickets\/(\d+)\.json$/); if (m) return send(res, 200, { ticket: zdTickets.find(t => t.id === Number(m[1])), users: zdUsers });
+      m = z.match(/^\/tickets\/(\d+)\/comments\.json$/); if (m) return send(res, 200, { comments: zdComments[m[1]] || [], users: zdUsers });
+      return send(res, 404, {});
     }
     if (p.startsWith('/kit/')) {
       // Promo-email drafts (Publish → Email): logged, never real. Anything else written to Kit is refused.
