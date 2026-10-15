@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
 import { isStaff, canEditSocial } from '@/lib/ops/nav';
 import { readPlain, updatePlain, addPlain, ConflictError } from '@/lib/ops/store';
-import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText } from '@/lib/ops/socialengine';
+import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText, timeKey, isFeed } from '@/lib/ops/socialengine';
 import { loadCalendar } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
@@ -23,14 +23,27 @@ export async function GET(req) {
   try {
     const data = await readPlain(v.tab, SHOW);
     let rows = data.rows;
+    let extra = {};
     if (v.key === 'plan') {
       // Last week and everything ahead, soonest first; each with its thumbnail
-      const from = addDays(todayET(), -7);
+      const from = addDays(todayET(), -7), today = todayET();
       const lib = await readPlain('Image Library', SHOW).catch(() => ({ rows: [] }));
       const byImage = Object.fromEntries(lib.rows.map(r => [r.values.image_id, r.values]));
-      rows = rows.filter(r => (r.values.publish_date || '9') >= from)
-        .sort((a, b) => (a.values.publish_date || '9').localeCompare(b.values.publish_date || '9') || String(a.values.publish_time_ET).localeCompare(String(b.values.publish_time_ET)))
-        .map(r => { const img = byImage[r.values.image_id] || {}; return { ...r, thumb: thumbOf(r.values.image_url || img.public_url, r.values.image_url ? '' : img.drive_file_id), src: img.drive_file_id || driveIdOf(img.public_url) || driveIdOf(r.values.image_url) }; });
+      const mine = r => { const img = byImage[r.values.image_id] || {}; return { ...r, thumb: thumbOf(r.values.image_url || img.public_url, r.values.image_url ? '' : img.drive_file_id), src: img.drive_file_id || driveIdOf(img.public_url) || driveIdOf(r.values.image_url) }; };
+      const order = (a, b) => (a.values.publish_date || '9').localeCompare(b.values.publish_date || '9') || timeKey(a.values.publish_time_ET).localeCompare(timeKey(b.values.publish_time_ET));
+      const live = data.rows.filter(r => !['Skip', 'Failed', 'Needs edit'].includes(r.values.status) && r.values.publish_date);
+      // When each type of post last went out, and when the next one is planned
+      const types = {};
+      for (const r of live) {
+        const t = String(r.values.pillar || '').trim(); if (!t) continue;
+        const d = r.values.publish_date, e = types[t] || (types[t] = {});
+        if (d <= today && (!e.last || d > e.last)) e.last = d;
+        if (d > today && (!e.next || d < e.next)) e.next = d;
+      }
+      // The grid preview: the last twelve feed posts that went out, for context beneath the upcoming ones
+      const past = live.filter(r => r.values.publish_date <= today && ['Posted', 'Manual'].includes(r.values.status) && isFeed(r.values)).sort(order).reverse().slice(0, 12).map(mine);
+      extra = { types, past };
+      rows = rows.filter(r => (r.values.publish_date || '9') >= from).sort(order).map(mine);
     } else if (v.images && url.searchParams.get('pick')) {
       // The post editor's picker: only Art (no words on the picture) that may be used, newest first (uploads are added at the bottom)
       rows = rows.filter(r => !hasText(r.values) && String(r.values.reuse_ok).toUpperCase() === 'TRUE' && String(r.values.hidden).toUpperCase() !== 'TRUE').reverse();
@@ -39,13 +52,35 @@ export async function GET(req) {
     } else if (v.key === 'history') {
       rows = rows.sort((a, b) => String(b.values.posted_at).localeCompare(String(a.values.posted_at)));
     }
+    // Quotes and pictures: when each was last put in a post, so people can see what's fresh
+    let used = {};
+    if (v.images || v.key === 'quotes') {
+      const idCol = v.images ? 'image_id' : 'quote_id', plan = await readPlain('Weekly Plan', SHOW).catch(() => ({ rows: [] }));
+      for (const r of plan.rows) {
+        if (['Skip', 'Failed', 'Needs edit'].includes(r.values.status)) continue;
+        const id = r.values[idCol], d = r.values.publish_date; if (!id || !d) continue;
+        if (!used[id] || d > used[id]) used[id] = d;
+      }
+      for (const r of rows) { const id = r.values[idCol], d = String(r.values.last_used || '').slice(0, 10); if (id && /^\d{4}-\d{2}-\d{2}$/.test(d) && (!used[id] || d > used[id])) used[id] = d; }
+      rows = rows.map(r => ({ ...r, used: used[r.values[idCol]] || '' }));
+    }
     if (q && v.search) rows = rows.filter(r => v.search.some(c => String(r.values[c] || '').toLowerCase().includes(q)));
     const total = rows.length, page = v.key === 'plan' ? rows : rows.slice(offset, offset + 60);
+    if (v.key === 'history') {
+      // Instagram's history has no picture of its own: borrow it from the plan row that published it, or the archive image
+      const [plan, lib] = await Promise.all([readPlain('Weekly Plan', SHOW).catch(() => ({ rows: [] })), readPlain('Image Library', SHOW).catch(() => ({ rows: [] }))]);
+      const byMedia = {}; for (const r of plan.rows) for (const k of ['ig_feed_id', 'ig_story_id']) if (r.values[k]) byMedia[r.values[k]] = r.values;
+      const byImage = Object.fromEntries(lib.rows.map(r => [r.values.image_id, r.values]));
+      for (const r of page) {
+        const p = byMedia[r.values.ig_media_id], img = byImage[r.values.archived_image_id || p?.image_id];
+        r.thumb = thumbOf(p?.image_url || img?.public_url, p?.image_url ? '' : img?.drive_file_id); r.type = r.values.pillar || p?.pillar || '';
+      }
+    }
     if (v.images) for (const r of page) r.thumb = thumbOf(r.values.public_url, r.values.drive_file_id);
     const events = v.key !== 'plan' ? undefined : (await loadCalendar().catch(() => []))
       .filter(e => e.date >= addDays(todayET(), -3) && e.date <= addDays(todayET(), 120) && /public/i.test(e.audience || '') && e.track !== 'MM')
       .filter((e, i, a) => a.findIndex(x => eventLabel(x) === eventLabel(e)) === i).slice(0, 60).map(eventLabel);
-    return NextResponse.json({ head: data.head, rows: page, total, offset, events, canEdit: canEditSocial(user) && (!v.director || user.director),
+    return NextResponse.json({ head: data.head, rows: page, total, offset, events, ...extra, canEdit: canEditSocial(user) && (!v.director || user.director),
       locked: data.head.filter(h => isLocked(v.tab, h)) });
   } catch (e) {
     console.error('Social read failed', v.tab, e.message);
@@ -73,6 +108,17 @@ export async function POST(req) {
     return { out, errors };
   };
   try {
+    // Swap two posts' slots (date and time): what dragging in the grid preview does
+    if (v.key === 'plan' && body.swap) {
+      const [a, b] = body.swap;
+      if (!a || !b || a.row === b.row) return NextResponse.json({ error: 'Pick two different posts' }, { status: 400 });
+      for (const x of [a, b]) if (['Posted', 'Manual'].includes(x.before?.status)) return NextResponse.json({ error: 'A post that’s already out can’t be moved' }, { status: 400 });
+      const slot = x => ({ publish_date: x.before.publish_date, publish_time_ET: x.before.publish_time_ET });
+      await updatePlain(v.tab, Number(a.row), slot(b), { before: a.before, who, ...SHEET });
+      await updatePlain(v.tab, Number(b.row), slot(a), { before: b.before, who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true });
+    }
     if (v.key === 'plan' && Array.isArray(body.approve)) {
       let n = 0;
       for (const a of body.approve) {
