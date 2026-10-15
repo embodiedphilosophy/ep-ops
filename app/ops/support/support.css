@@ -50,3 +50,21 @@
   .ops-shell .ops-sup.has-ticket .ops-sup-list { display: none }
   .ops-shell .ops-sup-tickethead .back { display: inline-block }
 }
+.ops-shell .ops-sup-filter input { font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--edge); border-radius: var(--r-ctl); background: var(--paper); width: 100%; box-sizing: border-box }
+.ops-shell .ops-sup-filter .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
+.ops-shell .ops-sup-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px }
+.ops-shell .ops-sup-list b .tag { vertical-align: 1px }
+.ops-shell .dot.ans-live { background: var(--ok) }
+.ops-shell .dot.ans-draft { background: var(--soon) }
+.ops-shell .dot.ans-conflict { background: var(--risk) }
+.ops-shell .dot.ans-retired { background: var(--none) }
+.ops-shell .ops-sup-steps { margin: 0 0 12px; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ops-sup-answer { display: flex; flex-direction: column; gap: 14px }
+.ops-shell .ops-sup-answer h2 .tag { vertical-align: 4px }
+.ops-shell .ops-sup-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600 }
+.ops-shell .ops-sup-field small { font-weight: 400; color: var(--mute); font-size: 12px }
+.ops-shell .ops-sup-field input, .ops-shell .ops-sup-field textarea, .ops-shell .ops-sup-field select { font: inherit; font-size: 14px; font-weight: 400; padding: 9px 12px; border: 1px solid var(--edge); border-radius: var(--r-ctl); background: var(--paper); width: 100%; box-sizing: border-box }
+.ops-shell .ops-sup-acts.sticky { position: sticky; bottom: 0; background: var(--ground, #FAF5EB); padding: 10px 0; border-top: 1px solid var(--hair) }
+.ops-shell .ops-sup-answer .hint { font-size: 12.5px }
+.ops-shell .ops-sup-answer .hint.ok { color: var(--ok-text) }
+.ops-shell .ops-sup-answer .hint.err { color: var(--risk) }
