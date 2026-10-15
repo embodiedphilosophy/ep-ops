@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loadTeam, loadTemplates } from '@/lib/calendar';
-import { syncTasks, addDays, eventIdFromTag, dedupe, needsOwner, ownersOf, NUDGE_DAYS } from '@/lib/ops/tasks';
+import { syncTasks, addDays, eventIdFromTag, dedupe, needsOwner, ownersOf, NUDGE_DAYS, needsYouFor } from '@/lib/ops/tasks';
+import { syncPayables } from '@/lib/ops/payables';
 import { listTasks } from '@/lib/ops/taskstore';
 import { runRecurring } from '@/lib/ops/recurring';
 import { runAutoComplete } from '@/lib/ops/autocomplete';
@@ -93,6 +94,11 @@ export async function GET(req) {
   const base = process.env.OPS_URL || url.origin;
   const only = url.searchParams.get('only');
   const preview = Number(url.searchParams.get('preview') || 0);
+  // &digest=preview: SENDS NOTHING. Who would get Monday's "your week" email, and what it would list
+  if (url.searchParams.get('digest') === 'preview') {
+    const [team, tasks] = await Promise.all([loadTeam({ fresh: true }), listTasks({ fresh: true }).catch(() => [])]);
+    return NextResponse.json({ mode: 'preview: nothing was sent', digests: weekDigests(team, dedupe(tasks), base).map(d => ({ to: d.to, subject: d.subject, items: d.items })) });
+  }
   if (!preview && !jobsHere()) return NextResponse.json(SKIPPED);
   const testTo = String(url.searchParams.get('test_to') || '').trim().toLowerCase();
 
@@ -138,7 +144,6 @@ export async function GET(req) {
 
   // ---- The real daily run ----
   const out = { tasks: null, reminders: [], errors: [] };
-  try { out.tasks = await syncToMotion(); } catch (e) { out.errors.push('Task sync: ' + e.message); }
   try { out.recurring = await runRecurring(); } catch (e) { out.errors.push('Recurring tasks: ' + e.message); }
   try { out.tasks = await syncTasks(); } catch (e) { out.errors.push('Task sync: ' + e.message); }
   try { out.auto = (await runAutoComplete()).closed.map(c => `${c.task}: ${c.why}`); } catch (e) { out.errors.push('Auto-complete: ' + e.message); }
@@ -212,5 +217,37 @@ export async function GET(req) {
   // 6) Jacob's overview in Motion (only once tasks live in the dashboard's database)
   try { out.motionDigest = await sendMotionDigest({ tasks, team: await loadTeam(), base }); }
   catch (e) { out.errors.push('Motion digest: ' + e.message); }
+
+  // 7) Contractor pay: faculty fees for sessions taught so far go on the Contractor Payables tab
+  try { out.payables = await syncPayables({ who: 'daily job' }); } catch (e) { out.errors.push('Payables: ' + e.message); }
+
+  // 8) Mondays: each staff member's week by email ("Needs you"), so nobody has to remember to open the dashboard
+  if (new Date(`${today}T12:00:00Z`).getUTCDay() === 1) {
+    try {
+      for (const d of weekDigests(await loadTeam(), dedupe(tasks), base)) {
+        try { await sendEmail({ to: d.to, subject: d.subject, html: d.html }); out.reminders.push(`${d.to}: weekly digest (${d.items.length})`); }
+        catch (e) { out.errors.push(`Digest ${d.to}: ${e.message}`); }
+      }
+    } catch (e) { out.errors.push('Weekly digest: ' + e.message); }
+  }
   return NextResponse.json(out);
+}
+
+// Monday's "your week" email for each staff member with something late or due this week (teachers get their
+// own reminders; directors see everything on Today). One email per person, nothing if their week is clear.
+function weekDigests(team, tasks, base) {
+  const out = [];
+  for (const m of team.filter(m => m.email && String(m.type).toLowerCase() !== 'teacher')) {
+    const { list } = needsYouFor({ ...m, director: false }, tasks);
+    if (!list.length) continue;
+    const today = todayET();
+    const items = list.map(t => ({ name: t.name.replace(/^\[[^\]]+\]\s*/, ''), due: t.due, late: !!(t.due && t.due < today) }));
+    const late = items.filter(i => i.late).length;
+    out.push({
+      to: m.email, items: items.map(i => `${i.late ? 'LATE ' : ''}${i.due || 'no date'} ${i.name}`),
+      subject: `Your week at EP: ${items.length} thing${items.length === 1 ? '' : 's'}${late ? `, ${late} late` : ''}`,
+      html: layout(`Your week, ${m.name.split(' ')[0]}`, `<p>Here’s what needs you this week.</p><ul>${items.map(i => `<li>${i.late ? '<b style="color:#A5432A">Late</b> · ' : ''}${esc(i.name)}${i.due ? ` <span style="color:#6E6658">(due ${longDate(i.due)})</span>` : ''}</li>`).join('')}</ul>${button(`${base}/ops`, 'Open Today')}`),
+    });
+  }
+  return out;
 }

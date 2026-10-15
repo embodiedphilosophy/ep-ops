@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { refreshSite } from '@/lib/ops/refresh';
 import { currentUser } from '@/lib/ops/auth';
-import { canEditEvents } from '@/lib/ops/nav';
+import { canEditEvents, isTeacher } from '@/lib/ops/nav';
 import { readRows, updateRows, nextIds, ensureColumns, TABLES, ConflictError } from '@/lib/ops/store';
 import { readRange, toObjects } from '@/lib/google';
 import { FIELDS, check } from '@/lib/ops/eventfields';
@@ -17,12 +17,16 @@ const field = key => FIELDS.find(f => f.key === key);
 const TABLE_OF = { 'Teachers & Hosts': 'schedule', Time: 'schedule', 'Program Name': 'details', 'Module Title': 'details' };
 const tableOf = key => TABLE_OF[key] || field(key)?.table || 'details';
 
-async function editor() {
+async function editor({ teachers = false } = {}) {
   const user = await currentUser();
   if (!user) return [null, fail('Please sign in again', 401)];
-  if (!canEditEvents(user)) return [null, fail('Only Jacob, Irene and Floss can edit programs', 403)];
+  if (!canEditEvents(user) && !(teachers && isTeacher(user))) return [null, fail('Only Jacob, Irene and Floss can edit programs', 403)];
   return [user];
 }
+// A teacher may write the module title and description of the sessions they teach (named in Teachers, or
+// their email in the reminder emails), nothing else
+const teaches = (user, s) => String(s.values['Teachers & Hosts']).split(',').map(x => x.trim()).includes(user.name)
+  || String(s.values['Teacher/Host Emails']).toLowerCase().split(/[\s,;]+/).includes(String(user.email).toLowerCase());
 
 // A program's sessions straight from Schedule + Event Details (fresh), soonest first
 async function sessionsOf(series) {
@@ -59,11 +63,17 @@ const guessName = sessions => sharedOf(sessions)['Program Name']
 
 // GET ?series=slug → the program's sessions and shared values, for the Modules editor
 export async function GET(req) {
-  const [user, denied] = await editor(); if (!user) return denied;
+  const [user, denied] = await editor({ teachers: true }); if (!user) return denied;
   const series = new URL(req.url).searchParams.get('series') || '';
   if (!series) return fail('Which program?');
   const sessions = await sessionsOf(series);
   if (!sessions.length) return fail('No sessions with that series on the Schedule', 404);
+  if (!canEditEvents(user)) {
+    const mine = sessions.filter(s => teaches(user, s)).map(s => s.id);
+    if (!mine.length) return fail('You don’t teach in this program', 403);
+    const slim = s => ({ ...s, values: { 'Module Title': s.values['Module Title'], Summary: s.values.Summary, 'Teachers & Hosts': s.values['Teachers & Hosts'] } });
+    return NextResponse.json({ series, name: guessName(sessions), shared: {}, sessions: sessions.map(slim), mine, teacher: true });
+  }
   return NextResponse.json({ series, name: guessName(sessions), shared: sharedOf(sessions), sessions });
 }
 
@@ -72,12 +82,12 @@ export async function GET(req) {
 //      { action: 'shared', series, changes: { field: value }, before: { field: value } }
 //      { action: 'add-session', series, date? }
 export async function POST(req) {
-  const [user, denied] = await editor(); if (!user) return denied;
   const body = await req.json().catch(() => ({}));
+  const [user, denied] = await editor({ teachers: body.action === 'modules' }); if (!user) return denied;
   const who = user.name || user.email;
   try {
     if (body.action === 'create') return await create(body, who);
-    if (body.action === 'modules') return await saveModules(body, who);
+    if (body.action === 'modules') return await saveModules(body, who, canEditEvents(user) ? null : user);
     if (body.action === 'shared') return await saveShared(body, who);
     if (body.action === 'add-session') return await addSession(body, who);
     return fail('Unknown action');
@@ -91,7 +101,7 @@ export async function POST(req) {
 const ensureProgramCols = () => ensureColumns(TABLES.details.title, PROGRAM_COLS, { headerRow: TABLES.details.headerRow });
 const done = (written, extra = {}) => { if (written.length) refreshSite(); return NextResponse.json({ ok: true, written: written.length, ...extra }); };
 
-async function create({ name, track, start, count, every = 'weekly', time = '', teachers = '', emails = '', course_host = '', website = false, series = '' }, who) {
+async function create({ name, track, start, count, every = 'weekly', time = '', teachers = '', emails = '', course_host = '', website = false, series = '', copyFrom = '' }, who) {
   const tracks = toObjects(await readRange(process.env.CALENDAR_SHEET_ID, "'Track Defaults'!A1:A50")).map(r => String(r.track).toUpperCase()).filter(Boolean);
   const T = String(track || '').toUpperCase();
   const title = String(name || '').trim();
@@ -114,6 +124,14 @@ async function create({ name, track, start, count, every = 'weekly', time = '', 
   const used = (await readRows('details')).some(r => String(r.fields.Series || '').trim() === slug);
   if (used) return fail(`The series name “${slug}” is already used by another program. Choose another.`);
 
+  // Starting from an earlier program: its modules (in order) and, where this form left them blank, its
+  // teachers, reminder emails, course host and time
+  const from = copyFrom ? await sessionsOf(String(copyFrom)) : [];
+  if (copyFrom && !from.length) return fail('That earlier program has no sessions to copy');
+  const old = from.length ? sharedOf(from) : {};
+  for (const [k, f] of [['Time', 'Time'], ['Teachers & Hosts', 'Teachers & Hosts'], ['Teacher/Host Emails', 'Teacher/Host Emails'], ['Course Host', 'Course Host']]) if (!values[k] && old[f]) values[k] = old[f];
+  const mod = i => from[i]?.values || {};
+
   await ensureProgramCols();
   const dates = sessionDates(start, n, every);
   const ids = await nextIds('schedule', n);
@@ -121,17 +139,24 @@ async function create({ name, track, start, count, every = 'weekly', time = '', 
     ...(await updateRows('schedule', ids.map((id, i) => ({ id, changes: {
       Date: dates[i], Track: T, Event: sessionName(title, i + 1), 'Teachers & Hosts': values['Teachers & Hosts'], Time: values.Time, Status: 'Not started',
     } })), { who, create: true, dates: ['Date'] })),
-    ...(await updateRows('details', ids.map(id => ({ id, changes: {
-      Series: slug, 'Program Name': title, 'Public Title': title, 'Teacher/Host Emails': values['Teacher/Host Emails'],
+    ...(await updateRows('details', ids.map((id, i) => ({ id, changes: {
+      Series: slug, 'Program Name': title, 'Public Title': publicTitle(title, mod(i)['Module Title']), 'Teacher/Host Emails': values['Teacher/Host Emails'],
       'Course Host': values['Course Host'], Website: website ? 'TRUE' : 'FALSE',
+      ...(mod(i)['Module Title'] ? { 'Module Title': mod(i)['Module Title'] } : {}), ...(mod(i).Summary ? { Summary: mod(i).Summary } : {}),
     } })), { who, create: true })),
   ];
-  return done(written, { series: slug, key: `P-${slug}`, message: `Added ${n} session${n === 1 ? '' : 's'}, ${dates[0]} to ${dates.at(-1)}. Add each module’s title and description next.` });
+  return done(written, { series: slug, key: `P-${slug}`, message: `Added ${n} session${n === 1 ? '' : 's'}, ${dates[0]} to ${dates.at(-1)}.${from.length ? ` Modules copied from the earlier program; check them.` : ' Add each module’s title and description next.'}` });
 }
 
-async function saveModules({ series, name = '', modules = [], before = {} }, who) {
+async function saveModules({ series, name = '', modules = [], before = {} }, who, teacher = null) {
   if (!series) return fail('Which program?');
-  const sessions = await sessionsOf(series);
+  let sessions = await sessionsOf(series);
+  if (teacher) {
+    const programName = guessName(sessions);
+    sessions = sessions.filter(s => teaches(teacher, s));
+    name = programName; // teachers don't rename the program
+    modules = modules.map(m => ({ id: m.id, module: m.module, summary: m.summary })); // nor change who teaches
+  }
   const byId = Object.fromEntries(sessions.map(s => [s.id, s]));
   const program = String(name || '').trim() || guessName(sessions);
   if (!program) return fail('Give the program a name first');

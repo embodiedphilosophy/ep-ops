@@ -4,13 +4,14 @@ import { loadCalendar } from '@/lib/calendar';
 import { emailsOf, todayET } from '@/lib/events';
 import { longDate } from '@/lib/dates';
 import { joinUrlFor, seriesLinksOf, upcomingMeetings, inCircle } from '@/lib/ops/joinurl';
-import { readinessRows, labelOf, WEEKS } from '@/lib/ops/readiness';
+import { readinessRows, labelOf } from '@/lib/ops/readiness';
 import { kitConfigured, tagCounts } from '@/lib/kit';
 import { isTeacher, canEditEvents } from '@/lib/ops/nav';
 import EventEditor from './EventEditor';
 import CirclePanel from './CirclePanel';
 import { AddEvent, AddPastEvent, Restore } from './EventActions';
 import { AddProgram, ProgramEditor } from './ProgramEditor';
+import { sheetChecks } from '@/lib/ops/sheetchecks';
 import { readRange, toObjects } from '@/lib/google';
 import Shell, { opsUser } from '../Shell';
 import TaskList from '../TaskList';
@@ -20,9 +21,12 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Events — Embodied Philosophy', robots: { index: false, follow: false } };
 
 const short = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+// How far ahead Programming looks. Six months by default, so a season can be planned and edited end to end.
+const RANGES = [['8w', 8, '8 weeks'], ['3m', 13, '3 months'], ['6m', 26, '6 months'], ['12m', 52, '12 months']];
+const rangeOf = sp => RANGES.find(([k]) => k === sp?.range) || RANGES[2];
 const qs = (sp, extra) => {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries({ all: sp?.all, show: sp?.show, track: sp?.track, ...extra })) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries({ range: sp?.range, all: sp?.all, show: sp?.show, track: sp?.track, ...extra })) if (v) p.set(k, v);
   const s = p.toString();
   return s ? `/ops/events?${s}` : '/ops/events';
 };
@@ -35,11 +39,16 @@ export default async function Events({ searchParams }) {
   let tasks = [], error = '';
   // Teachers: their own events, and only their own tasks on them
   try { tasks = dedupe(await listTasks()); if (teacherView) tasks = visibleTo(user, tasks); } catch (e) { error = e.message; }
-  const rows = await readinessRows(user, tasks, { teacherView }).catch(e => { error ||= e.message; return []; });
-  const showAll = sp?.all === '1';
-  const shown = showAll ? rows : rows.filter(r => r.status !== 'grey');
-  const hidden = rows.length - shown.length;
-  const open = rows.find(r => r.key === sp?.event);
+  const [, weeks, rangeLabel] = rangeOf(sp);
+  const rows = await readinessRows(user, tasks, { teacherView, weeks }).catch(e => { error ||= e.message; return []; });
+  // What needs attention first (anything with something due), then everything else month by month
+  const active = rows.filter(r => r.status !== 'grey');
+  const later = rows.filter(r => r.status === 'grey').sort((a, b) => a.date.localeCompare(b.date));
+  const months = [...new Set(later.map(r => r.date.slice(0, 7)))];
+  const shown = rows, hidden = 0;
+  // A session opened from elsewhere (search, a link) may sit beyond the range: look further for it
+  const open = rows.find(r => r.key === sp?.event)
+    || (sp?.event ? (await readinessRows(user, tasks, { teacherView, weeks: 104 }).catch(() => [])).find(r => r.key === sp.event) : null);
   // Enrolled = people carrying the event's Enrolled Tag in Kit (the biggest tag if there are several, so nobody counts twice). Staff only.
   const tagsOf = r => [...new Set(r.events.flatMap(e => e.enrolled_tags || []))];
   const counts = !teacherView && kitConfigured() ? await tagCounts(shown.flatMap(tagsOf)).catch(() => ({})) : {};
@@ -51,8 +60,15 @@ export default async function Events({ searchParams }) {
   const teamNames = allTeam.filter(m => String(m.type).toLowerCase() !== 'teacher').map(m => m.name);
 
   const editor = canEditEvents(user);
+  const fullCal = editor ? await loadCalendar().catch(() => []) : [];
+  // Earlier and current programs to start a new one from (Add program → Start from)
+  const pastPrograms = editor ? (() => {
+    const by = new Map();
+    for (const e of fullCal) if (e.series && e.track !== 'MM') { const p = by.get(e.series) || { series: e.series, name: e.program_name || e.title.split(':')[0].trim(), track: e.track, first: e.date, count: 0 }; p.count++; if (e.date < p.first) p.first = e.date; by.set(e.series, p); }
+    return [...by.values()].filter(p => p.count > 1).sort((a, b) => b.first.localeCompare(a.first)).map(p => ({ ...p, label: `${p.name} (${p.first.slice(0, 7)}, ${p.count} sessions)` }));
+  })() : [];
   const tracks = editor ? await readRange(process.env.CALENDAR_SHEET_ID, "'Track Defaults'!A1:A50").then(v => toObjects(v).map(r => String(r.track).toUpperCase()).filter(Boolean)).catch(() => []) : [];
-  const head = <Filters sp={sp} hidden={hidden} editor={editor} tracks={tracks} />;
+  const head = <Filters sp={sp} hidden={hidden} editor={editor} tracks={tracks} pastPrograms={pastPrograms} />;
 
   // Cancelled sessions from the last month on, to restore one
   if (sp?.show === 'cancelled' && editor) {
@@ -133,31 +149,46 @@ export default async function Events({ searchParams }) {
     links = { zoom, circle: inCircle(open.events[0]), registration: open.events[0].registration_url, emails: [...new Set(open.events.flatMap(emailsOf))] };
   }
 
+  const item = r => (
+        <li key={r.key} className={r.key === open?.key ? 'is-open' : ''}>
+          <a href={qs(sp, { event: r.key })}>
+            <span className={`st ${r.status}`}><span className={`dot ${r.status}`} aria-hidden="true" />{labelOf(r)}</span>
+            <span className="date">{short(r.date)}</span>
+            <span className="what">
+              <span><span className="ttl">{r.title}</span><span className="trk">{r.program ? `${r.track} · ${r.allSessions} sessions` : r.track}</span></span>
+              <span className="sub">{r.teachers || 'No teacher yet'}{r.late ? <> · <span className="miss">{r.late} task{r.late === 1 ? '' : 's'} late</span></> : ''}{(r.nextCheck || r.next) ? ' · ' : ''}
+                {r.nextCheck ? <span className={r.nextCheck.due < today ? 'miss' : ''}>Missing {r.nextCheck.label}{r.nextCheck.detail ? ` (${r.nextCheck.detail})` : ''}, {r.nextCheck.due < today ? 'was due' : 'due'} {short(r.nextCheck.due)}</span>
+                  : r.next ? `Next: ${r.next.name.split(' — ')[0]}${r.next.due ? ` (${short(r.next.due)})` : ''}` : ''}</span>
+            </span>
+            <span className="ready">
+              {r.checks.length > 0 && <span className="segs" aria-hidden="true">{r.checks.map((c, i) => <i key={i} className={c.ready ? 'ok' : c.due < today ? 'late' : ''} />)}</span>}
+              <small>{r.checks.length ? `${r.ready} of ${r.checks.length} ready` : '—'}{r.total ? ` · ${r.done}/${r.total} tasks` : ''}{enrolled(r) != null ? ` · ${enrolled(r)} enrolled` : ''}</small>
+            </span>
+          </a>
+        </li>
+  );
+
   return (
-    <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." eyebrow={`Next ${WEEKS} weeks${teacherView ? ', your events' : ''}`} title="Programming" head={head}>
+    <Shell user={user} current="events" desc="Is each offering ready? Readiness for every session on the calendar." eyebrow={`Next ${rangeLabel}${teacherView ? ', your events' : ''}`} title="Programming" head={head}>
       {error && <p className="ops-note">Couldn’t load everything right now ({error}).</p>}
-      {shown.length === 0 ? <p className="ops-empty" style={{ marginTop: 16 }}>No events in the next {WEEKS} weeks.</p> : (
-        <ul className="ops-events">
-          {shown.map(r => (
-            <li key={r.key} className={r.key === open?.key ? 'is-open' : ''}>
-              <a href={qs(sp, { event: r.key })}>
-                <span className={`st ${r.status}`}><span className={`dot ${r.status}`} aria-hidden="true" />{labelOf(r)}</span>
-                <span className="date">{short(r.date)}</span>
-                <span className="what">
-                  <span><span className="ttl">{r.title}</span><span className="trk">{r.program ? `${r.track} · ${r.allSessions} sessions` : r.track}</span></span>
-                  <span className="sub">{r.teachers || 'No teacher yet'}{r.late ? <> · <span className="miss">{r.late} task{r.late === 1 ? '' : 's'} late</span></> : ''}{(r.nextCheck || r.next) ? ' · ' : ''}
-                    {r.nextCheck ? <span className={r.nextCheck.due < today ? 'miss' : ''}>Missing {r.nextCheck.label}{r.nextCheck.detail ? ` (${r.nextCheck.detail})` : ''}, {r.nextCheck.due < today ? 'was due' : 'due'} {short(r.nextCheck.due)}</span>
-                      : r.next ? `Next: ${r.next.name.split(' — ')[0]}${r.next.due ? ` (${short(r.next.due)})` : ''}` : ''}</span>
-                </span>
-                <span className="ready">
-                  {r.checks.length > 0 && <span className="segs" aria-hidden="true">{r.checks.map((c, i) => <i key={i} className={c.ready ? 'ok' : c.due < today ? 'late' : ''} />)}</span>}
-                  <small>{r.checks.length ? `${r.ready} of ${r.checks.length} ready` : '—'}{r.total ? ` · ${r.done}/${r.total} tasks` : ''}{enrolled(r) != null ? ` · ${enrolled(r)} enrolled` : ''}</small>
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+      {editor && (() => {
+        const issues = sheetChecks(fullCal);
+        return issues.length > 0 && (
+          <details className="ops-sheetchecks">
+            <summary>{issues.length} thing{issues.length === 1 ? '' : 's'} on the Master Schedule look{issues.length === 1 ? 's' : ''} off</summary>
+            <ul>{issues.map((x, i) => <li key={i}><span className="trk">{x.kind}</span> {x.key ? <a href={qs(sp, { event: x.key, all: '1' })}>{x.text}</a> : x.text}</li>)}</ul>
+          </details>
+        );
+      })()}
+      {rows.length === 0 ? <p className="ops-empty" style={{ marginTop: 16 }}>No events in the next {rangeLabel}.</p> : (<>
+        {active.length > 0 && <ul className="ops-events">{active.map(item)}</ul>}
+        {months.map(m => (
+          <section key={m} className="ops-month">
+            <h2 className="ops-sub">{new Date(`${m}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })} <span>{later.filter(r => r.date.startsWith(m)).length} · nothing due yet</span></h2>
+            <ul className="ops-events">{later.filter(r => r.date.startsWith(m)).map(item)}</ul>
+          </section>
+        ))}
+      </>)}
 
       {open && (
         <aside className="ops-drawer" aria-label={open.title}>
@@ -166,7 +197,7 @@ export default async function Events({ searchParams }) {
           <h2>{open.title}</h2>
           <p className="when">{open.events.length > 1 ? open.events.map(e => short(e.date)).join(' · ') : `${longDate(open.date)}${open.end_date && open.end_date !== open.date ? ` – ${longDate(open.end_date)}` : ''}${open.events[0].time ? ` · ${open.events[0].time}` : ''}`}</p>
           {enrolled(open) != null && (<div className="ops-enrolled"><b>{enrolled(open)}</b> enrolled<span> in Kit: {tagsOf(open).map(t => `${t} ${counts[t.toLowerCase()] ?? '—'}`).join(', ')}</span></div>)}
-          {canEditEvents(user) && open.program && <ProgramEditor key={`p-${open.key}`} series={open.program} />}
+          {(canEditEvents(user) || teacherView) && open.program && <ProgramEditor key={`p-${open.key}`} series={open.program} />}
           {open.checks.length > 0 && (() => {
             // A program has a check list per session: show only what's missing (soonest first), the rest folded
             const list = open.program ? open.checks.filter(c => !c.ready).sort((a, b) => a.due.localeCompare(b.due)) : open.checks;
@@ -181,7 +212,7 @@ export default async function Events({ searchParams }) {
               <h3>Ready <span>{open.ready} of {open.checks.length}</span></h3>
               {open.program ? (list.length === 0 ? <p className="ops-empty">Everything due so far is in.</p> : (
                 <details className="ops-done" open={list.length <= 6}>
-                  <summary>{list.length} missing across the sessions in the next {WEEKS} weeks</summary>
+                  <summary>{list.length} missing across the sessions in the next {rangeLabel}</summary>
                   <ul className="ops-checks">{list.map(item)}</ul>
                 </details>
               )) : <ul className="ops-checks">{list.map(item)}</ul>}
@@ -224,18 +255,21 @@ export default async function Events({ searchParams }) {
   );
 }
 
-function Filters({ sp, hidden, editor, tracks, past = false }) {
+function Filters({ sp, hidden, editor, tracks, past = false, pastPrograms = [] }) {
   const done = sp?.show === 'done', cancelled = sp?.show === 'cancelled';
   return (<>
     <nav className="ops-filters" aria-label="Filter">
-      <a href={qs({ all: sp?.all })} aria-current={!done && !cancelled && !past ? 'page' : undefined}>Upcoming</a>
+      <a href={qs({ range: sp?.range })} aria-current={!done && !cancelled && !past ? 'page' : undefined}>Upcoming</a>
       <a href={qs({}, { show: 'done' })} aria-current={done ? 'page' : undefined}>Recently done</a>
       {editor && <a href={qs({}, { show: 'past' })} aria-current={past ? 'page' : undefined}>Past</a>}
       {editor && <a href={qs({}, { show: 'cancelled' })} aria-current={cancelled ? 'page' : undefined}>Cancelled</a>}
-      {!done && !cancelled && !past && (sp?.all === '1'
-        ? <a href={qs({})}>Hide events with nothing due</a>
-        : hidden > 0 ? <a href={qs({}, { all: '1' })}>Show {hidden} with nothing due yet</a> : null)}
     </nav>
-    {editor && !past && <div className="ops-add-wrap"><AddProgram tracks={tracks} /><AddEvent tracks={tracks} /></div>}
+    {!done && !cancelled && !past && (
+      <nav className="ops-filters ops-range" aria-label="How far ahead">
+        <span>Show the next</span>
+        {RANGES.map(([k, , label]) => <a key={k} href={qs({}, { range: k })} aria-current={rangeOf(sp)[0] === k ? 'page' : undefined}>{label}</a>)}
+      </nav>
+    )}
+    {editor && !past && <div className="ops-add-wrap"><AddProgram tracks={tracks} past={pastPrograms} /><AddEvent tracks={tracks} /></div>}
   </>);
 }

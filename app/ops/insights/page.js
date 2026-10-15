@@ -1,4 +1,6 @@
 import Shell, { opsUser } from '../Shell';
+import ToPay from './ToPay';
+import { payablesView } from '@/lib/ops/payables';
 import { loadMetrics, METRICS_URL } from '@/lib/ops/metrics';
 import { readTab } from '@/lib/sheet';
 import { todayET } from '@/lib/events';
@@ -22,7 +24,12 @@ export default async function Insights({ searchParams }) {
   const sp = await searchParams;
   let m, error = '';
   try { m = await loadMetrics(); } catch (e) { error = /403/.test(e.message) ? 'The Revenue & Metrics sheet isn’t shared with the website.' : 'Couldn’t read the Revenue & Metrics sheet right now.'; }
-  if (error) return <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"><p className="ops-note">{error}</p></Shell>;
+  // Contractor pay doesn't depend on the metrics sheet, so it shows even when that can't be read
+  const toPay = (<section className="ops-goal" id="to-pay">
+    <h2 className="ops-sub">To pay</h2>
+    <ToPay rows={await payablesView().catch(() => [])} />
+  </section>);
+  if (error) return <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"><p className="ops-note">{error}</p>{toPay}</Shell>;
 
   const period = PERIODS.some(([k]) => k === sp?.f) ? sp.f : '30';
   const funnel = await loadFunnel(Number(period)).catch(() => ({ steps: [], hidden: [], error: 'Couldn’t load the funnel.' }));
@@ -95,6 +102,8 @@ export default async function Insights({ searchParams }) {
         </ul>
         {notImported.length > 0 && <p className="ops-empty">{span(notImported)} {notImported.length === 1 ? 'has' : 'have'} no sales imported yet and count as $0 here. Add their Stripe and PayPal transactions to the sheet to make the year-to-date figures complete.</p>}
       </section>
+
+      {toPay}
 
       <section className="ops-goal">
         <h2 className="ops-sub">$1M after ads</h2>

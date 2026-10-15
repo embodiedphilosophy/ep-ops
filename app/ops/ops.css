@@ -695,3 +695,56 @@
 /* Finance: a figure that is off plan gets the same weight as one that is on target */
 .ops-shell .ops-kpis li.is-bad { box-shadow: inset 3px 0 0 var(--risk) }
 .ops-shell .ops-kpis li.is-bad .d.bad { color: var(--risk); font-weight: 600 }
+
+/* Faculty → Invitations */
+.ops-shell .ops-invites { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-in) }
+.ops-shell .ops-invites li { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ops-invites .what { min-width: 0; font-size: 14px }
+.ops-shell .ops-invites .what small { display: block; color: var(--ink-soft); font-size: 12.5px; margin-top: 2px }
+.ops-shell .ops-invites .acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center }
+.ops-shell .ops-invites .acts small { color: var(--ink-soft); font-size: 12px }
+.ops-shell .ops-invites .st { font-size: 13px; display: flex; align-items: center; gap: 6px }
+.ops-shell .ops-contract { white-space: pre-wrap; font-family: Georgia, serif; font-size: 13.5px; line-height: 1.5; max-height: 320px; overflow: auto; background: #fff; border: 1px solid var(--line-in); padding: 12px; margin: 0 }
+@media (max-width: 640px) { .ops-shell .ops-invites li { grid-template-columns: 1fr } .ops-shell .ops-invites .acts { justify-content: flex-start } }
+
+/* Finance → To pay */
+.ops-shell .ops-topay > ul { list-style: none; margin: 8px 0 12px; padding: 0; border-top: 1px solid var(--line-in) }
+.ops-shell .ops-topay > ul > li { padding: 12px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ops-topay .who { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.ops-shell .ops-topay .who span { font-family: var(--mono); font-size: 13px; margin-left: auto }
+.ops-shell .ops-topay li ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .ops-topay li ul li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0 }
+.ops-shell .ops-topay li ul span { font-family: var(--mono) }
+.ops-shell .ops-topay .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+
+/* Search */
+.ops-shell .ops-search { margin: 0 0 8px }
+.ops-shell .ops-search input { width: 100%; box-sizing: border-box; height: 36px; padding: 0 10px; border: 1px solid rgba(250, 245, 235, .25); background: rgba(250, 245, 235, .08); color: var(--ground); font: inherit; font-size: 14px }
+.ops-shell .ops-search input::placeholder { color: rgba(250, 245, 235, .6) }
+.ops-shell .ops-search-big { display: flex; gap: 8px; flex: 1; max-width: 520px }
+.ops-shell .ops-search-big input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); background: var(--card, #fff); font: inherit; font-size: 15px }
+.ops-shell .ops-results { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-in) }
+.ops-shell .ops-results a { display: block; padding: 10px 0; border-bottom: 1px solid var(--line-in); color: var(--ink); text-decoration: none }
+.ops-shell .ops-results a:hover b { text-decoration: underline }
+.ops-shell .ops-results small { display: block; color: var(--ink-soft); font-size: 12.5px; margin-top: 2px }
+@media (max-width: 900px) { .ops-shell .ops-search { display: none } }
+
+/* Programming → sheet checks */
+.ops-shell .ops-sheetchecks { margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--line); background: var(--card, #fff); font-size: 14px }
+.ops-shell .ops-sheetchecks summary { cursor: pointer; font-weight: 600 }
+.ops-shell .ops-sheetchecks ul { margin: 8px 0 0; padding: 0; list-style: none }
+.ops-shell .ops-sheetchecks li { padding: 4px 0; border-top: 1px solid var(--line-in) }
+.ops-shell .ops-sheetchecks a { color: var(--ink) }
+.ops-shell .ops-sheetchecks .trk { margin-right: 6px }
+.ops-shell .ops-invite-form .row { grid-template-columns: 1fr; gap: 3px }
+.ops-shell .ops-invite-form .row label { padding-top: 0; font-weight: 600 }
+.ops-shell .ops-invite-form .row .hint { grid-column: 1 }
+.ops-shell .ops-invite-form .bar { position: static }
+.ops-shell .ops-side form.ops-search input[name=q][placeholder] { background: rgba(250, 245, 235, .08); border-color: rgba(250, 245, 235, .25); color: var(--ground); min-height: 36px }
+.ops-shell .ops-side form.ops-search input[name=q][placeholder]::placeholder { color: rgba(250, 245, 235, .6) }
+
+/* Programming: how far ahead, and later months */
+.ops-shell .ops-range { margin-top: 6px; align-items: center }
+.ops-shell .ops-range > span { font-size: 13px; color: var(--ink-soft); margin-right: 4px }
+.ops-shell .ops-month { margin-top: 28px }
+.ops-shell .ops-month .ops-sub span { font-weight: 500; color: var(--ink-soft); letter-spacing: 0; text-transform: none; margin-left: 6px }

@@ -121,3 +121,27 @@ There are no unit tests. Pages need a signed-in user and live sheets. To check a
 - **Finance**: off-plan figures (YTD revenue behind plan, ad spend over budget, ad share over ceiling, low runway)
   get the terra edge and ▼, the same weight as the ROAS arrow.
 - Test kit: `scripts/ops-test/program.cjs` (program flow); mock gained the real SS teacher templates.
+
+## 9. Faculty, pay, search (Oct 15 2026, branch `ops-next`, on top of `ops-refine`)
+
+- **Faculty invitations** (`lib/ops/faculty.js`, `app/api/ops/faculty`, `app/ops/team/Invitations.js`, public `app/invite/[token]`,
+  `app/api/invite`): Faculty → Invitations sends a Yes/No email (Resend; without it the link is shown to copy). Yes → the
+  teacher reads and signs the agreement (typed name + consent); the director's countersignature is automatic. The exact
+  signed text, a SHA-256 fingerprint, time and IP are archived on the invitation row; `/invite/<token>/contract` (teacher)
+  and `/invite/staff/contract?id=F…` (editors) show it printable. Signing adds the teacher's name to Teachers and their
+  email to Teacher/Host Emails on every session of the offering (appended, never replacing). Tabs: `Faculty Invitations`,
+  `Contract Templates` (Settings → Contracts; placeholders listed there). Links are signed tokens (OPS_SECRET), 60 days.
+- **Contractor pay** (`lib/ops/payables.js`, `app/api/ops/payables`, Finance → To pay): faculty fees are owed per taught
+  session (or after the last one, flat fee); staff submit a month of hours on Hours (Team tab `hourly_rate`). Rows live on
+  the dashboard-owned `Contractor Payables` tab (the daily job writes new ones); "Mark paid" after paying in Gusto;
+  "Copy the list for Gusto". Not done: pushing payments into Gusto (needs a Gusto API app).
+- **Monday digest**: the daily job emails each staff member their "Needs you" list on Mondays. `?digest=preview` (with
+  the cron key) lists what would be sent, sending nothing. Fixed: the daily job called the removed `syncToMotion`.
+- **Programs**: "Start from" an earlier program copies its modules (and teachers/emails/host/time left blank). Teachers can
+  write the module title + description of the sessions they teach (program drawer); nothing else.
+- **Search** (`/ops/search`, box in the sidebar): sessions/programs, tasks, people, invitations, Zendesk tickets, by role.
+- **Sheet checks** (`lib/ops/sheetchecks.js`, top of Programming for editors): duplicate rows, one series on two tracks,
+  single-session series, emails without teachers, internal names on the website.
+- Tests: `scripts/ops-test/faculty.cjs` (invite → sign → sessions → To pay → teacher modules → copy program → search).
+- **Programming range** (Oct 15): `?range=8w|3m|6m|12m`, default 6 months. Rows with something due come first; the rest
+  are listed month by month (nothing is hidden any more). A session opened by link beyond the range is still found.

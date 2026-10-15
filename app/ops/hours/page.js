@@ -2,7 +2,7 @@ import { isStaff } from '@/lib/ops/nav';
 import { loadTeam } from '@/lib/ops/tasks';
 import { statusFor, teamHours, pendingRequests, clockAvailable, monthNow } from '@/lib/ops/hours';
 import Shell, { opsUser } from '../Shell';
-import { HoursDecide, FixShift } from './HoursActions';
+import { HoursDecide, FixShift, SubmitHours } from './HoursActions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Hours — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -57,6 +57,7 @@ export default async function Hours({ searchParams }) {
         {st.pace != null && <a href="#shifts" className={st.limit && st.pace > st.limit ? 'is-bad' : ''}><b>{st.pace} h</b> at this pace{st.limit && st.pace > st.limit ? ` (${st.pace - st.limit} over)` : ''}</a>}
         {st.perDay != null && <a href="#shifts"><b>{st.perDay} h</b> a day to stay under ({st.weekdaysLeft} weekdays left)</a>}
       </div>
+      <SubmitHours month={month} used={st.used} />
       <section className="ops-col" id="shifts">
         <h2>Shifts <span>{st.shifts.length}</span></h2>
         {st.shifts.length === 0 ? <p className="ops-empty">No shifts this month yet. Clock in from the sidebar.</p> : (

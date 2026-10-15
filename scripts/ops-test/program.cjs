@@ -27,7 +27,7 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   await p.fill('#pg-count', '4');
   await p.fill('#pg-teachers', 'Jacob Kyle');
   await p.fill('#pg-emails', 'jacob@embodiedphilosophy.com');
-  ok(/Nov 25/.test(await p.locator('.ops-program-add .hint').nth(2).innerText()), 'preview shows the last session date');
+  ok(/Nov 25/.test(await p.locator('.ops-program-add').innerText()), 'preview shows the last session date');
   await p.locator('button', { hasText: 'Add 4 sessions' }).click();
   await p.waitForURL(/event=P-spanda/, { timeout: 15000 });
   await p.waitForSelector('.ops-modules li', { timeout: 15000 });

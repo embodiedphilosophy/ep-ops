@@ -1,0 +1,22 @@
+.inv-root { min-height: 100vh; background: #FAF5EB; color: #1E1A14; font-family: var(--font-sans, Inter), system-ui, sans-serif }
+.inv-top { padding: 20px 16px; border-bottom: 1px solid #D8C9AE; text-align: center }
+.inv-top img { height: 28px; width: auto }
+.inv { max-width: 720px; margin: 0 auto; padding: 32px 16px 80px }
+.inv h1 { font-family: var(--font-serif, 'Cormorant Garamond'), Georgia, serif; font-size: 34px; line-height: 1.15; margin: 4px 0 12px }
+.inv .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #A5432A; font-weight: 700 }
+.inv .facts { margin: 16px 0 24px; padding: 16px; background: #fff; border: 1px solid #EADDC6; font-size: 15px; line-height: 1.6 }
+.inv .contract { white-space: pre-wrap; background: #fff; border: 1px solid #EADDC6; padding: 20px; font-family: Georgia, serif; font-size: 15.5px; line-height: 1.6; max-height: 60vh; overflow: auto }
+.inv .contract.full { max-height: none }
+.inv form { margin-top: 20px; display: flex; flex-direction: column; gap: 12px }
+.inv label { font-size: 14px; display: flex; gap: 10px; align-items: flex-start }
+.inv input[type=text] { font: inherit; font-size: 17px; padding: 10px 12px; border: 1px solid #D8C9AE; background: #fff; width: 100%; box-sizing: border-box }
+.inv .btn { all: unset; cursor: pointer; display: inline-block; padding: 12px 18px; background: #A5432A; color: #fff; font-weight: 600; text-align: center }
+.inv .btn.quiet { background: transparent; color: #1E1A14; border: 1px solid #D8C9AE }
+.inv .btn[aria-disabled=true] { opacity: .5; pointer-events: none }
+.inv .err { color: #A5432A; font-size: 14px }
+.inv .sig { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px }
+.inv .sig div { border-top: 1px solid #1E1A14; padding-top: 8px }
+.inv .sig b { font-family: Georgia, serif; font-size: 20px; font-style: italic; font-weight: 400; display: block }
+.inv .muted { color: #6E6658; font-size: 13px }
+@media (max-width: 560px) { .inv h1 { font-size: 28px } .inv .sig { grid-template-columns: 1fr } }
+@media print { .inv-top, .inv .noprint { display: none } .inv-root { background: #fff } .inv .contract { border: 0; padding: 0; max-height: none } }

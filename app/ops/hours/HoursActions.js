@@ -32,3 +32,18 @@ export function FixShift({ id, start, end }) {
     {err && <span className="hint err">{err}</span>}
   </form>);
 }
+
+// Staff contractors: send this month's hours to EP as your invoice (Finance → To pay)
+export function SubmitHours({ month, used }) {
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    if (!confirm(`Submit ${used} hours for ${month} as your invoice? You can submit again if you add more.`)) return;
+    setBusy(true);
+    const res = await fetch('/api/ops/payables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'submit-hours', month }) }).catch(() => null);
+    const j = await res?.json().catch(() => ({}));
+    setBusy(false);
+    setMsg(res?.ok ? `Submitted: ${j.what}${j.amount ? `, $${j.amount}` : ''}.` : j?.error || 'Couldn’t submit. Try again.');
+  };
+  return <p className="ops-more"><button className="chip primary" disabled={busy || !used} onClick={go}>{busy ? 'Submitting…' : `Submit ${used} h as my invoice`}</button>{msg && <span className="hint" style={{ marginLeft: 10 }}>{msg}</span>}</p>;
+}

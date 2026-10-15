@@ -13,10 +13,10 @@ const short = d => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { 
 // Programming → "+ Add program": a course, certificate or season of several sessions in one go.
 // Every session becomes its own row on the Schedule (so reminders, tasks, Circle and the website work as
 // they do today), tied together by one series name.
-export function AddProgram({ tracks }) {
+export function AddProgram({ tracks, past = [] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ name: '', track: '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '' });
+  const [f, setF] = useState({ name: '', track: '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '', copyFrom: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = k => e => setF(s => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
@@ -35,6 +35,11 @@ export function AddProgram({ tracks }) {
     <form className="ops-edit ops-add ops-program-add" onSubmit={save}>
       <p className="ops-edit-title">New program</p>
       <p className="hint">A course, certificate or season with several sessions. You’ll name each module next.</p>
+      {past.length > 0 && <div className="row"><label htmlFor="pg-from">Start from</label>
+        <select id="pg-from" value={f.copyFrom} onChange={e => { const p = past.find(x => x.series === e.target.value); setF(s => ({ ...s, copyFrom: e.target.value, ...(p ? { name: s.name || p.name, track: s.track || p.track, count: p.count } : {}) })); }}>
+          <option value="">A blank program</option>{past.map(p => <option key={p.series} value={p.series}>{p.label}</option>)}
+        </select>
+        <span className="hint">Copies its module titles and descriptions (and teachers, emails, host and time where you leave them blank). Give it new dates below.</span></div>}
       <div className="row"><label htmlFor="pg-name">Program name</label><input id="pg-name" value={f.name} onChange={set('name')} placeholder="e.g. The Heart of Recognition" required maxLength={100} /></div>
       <div className="row"><label htmlFor="pg-track">Track</label>
         <select id="pg-track" value={f.track} onChange={set('track')} required><option value="">Choose…</option>{tracks.map(t => <option key={t}>{t}</option>)}</select>
@@ -100,7 +105,8 @@ export function ProgramEditor({ series }) {
 
   if (!data) return <div className="ops-program"><h3>Modules</h3><p className="hint">{busy ? 'Loading…' : msg}</p></div>;
   const orig = id => { const s = data.sessions.find(x => x.id === id); return { module: s.values['Module Title'], summary: s.values.Summary, teachers: s.values['Teachers & Hosts'] }; };
-  const changedMods = Object.keys(mods).filter(id => ['module', 'summary', 'teachers'].some(k => String(mods[id][k] ?? '') !== String(orig(id)[k] ?? '')));
+  const teacher = !!data.teacher, mine = id => !teacher || (data.mine || []).includes(id);
+  const changedMods = Object.keys(mods).filter(id => mine(id) && ['module', 'summary', ...(teacher ? [] : ['teachers'])].some(k => String(mods[id][k] ?? '') !== String(orig(id)[k] ?? '')));
   const sharedOrig = { ...data.shared, 'Program Name': data.shared['Program Name'] || data.name };
   const changedShared = [...SHARED_FIELDS.map(([k]) => k), 'Website'].filter(k => String(shared[k] ?? '') !== String(sharedOrig[k] ?? ''));
   const setMod = (id, k) => e => setMods(m => ({ ...m, [id]: { ...m[id], [k]: e.target.value } }));
@@ -132,10 +138,10 @@ export function ProgramEditor({ series }) {
   return (
     <div className="ops-program">
       <h3>Program <span>{data.sessions.length} session{data.sessions.length === 1 ? '' : 's'} · {series}</span></h3>
-      <nav className="ops-filters" aria-label="Program">
+      {!teacher && <nav className="ops-filters" aria-label="Program">
         <a href="#modules" aria-current={tab === 'modules' ? 'page' : undefined} onClick={e => { e.preventDefault(); setTab('modules'); }}>Modules</a>
         <a href="#settings" aria-current={tab === 'settings' ? 'page' : undefined} onClick={e => { e.preventDefault(); setTab('settings'); }}>For every session</a>
-      </nav>
+      </nav>}
       {tab === 'modules' ? (<>
         <p className="hint">Each module’s title and description go on the website’s events list as “{shared['Program Name'] || 'Program'}: module title”.</p>
         <ol className="ops-modules">
@@ -143,9 +149,9 @@ export function ProgramEditor({ series }) {
             <li key={s.id} className={`${errors[s.id] ? 'bad' : ''}${changedMods.includes(s.id) ? ' changed' : ''}`}>
               <div className="when"><b>{i + 1}</b><span>{short(s.date)}</span></div>
               <div className="fields">
-                <input aria-label={`Session ${i + 1} module title`} placeholder="Module title" value={mods[s.id]?.module ?? ''} onChange={setMod(s.id, 'module')} disabled={busy} maxLength={120} />
-                <textarea aria-label={`Session ${i + 1} description`} placeholder="Two or three sentences for the website" rows={2} value={mods[s.id]?.summary ?? ''} onChange={setMod(s.id, 'summary')} disabled={busy} />
-                <input aria-label={`Session ${i + 1} teachers`} placeholder="Teachers (if different)" value={mods[s.id]?.teachers ?? ''} onChange={setMod(s.id, 'teachers')} disabled={busy} className="small" />
+                <input aria-label={`Session ${i + 1} module title`} placeholder={mine(s.id) ? 'Module title' : 'Taught by another teacher'} value={mods[s.id]?.module ?? ''} onChange={setMod(s.id, 'module')} disabled={busy || !mine(s.id)} maxLength={120} />
+                <textarea aria-label={`Session ${i + 1} description`} placeholder="Two or three sentences for the website" rows={2} value={mods[s.id]?.summary ?? ''} onChange={setMod(s.id, 'summary')} disabled={busy || !mine(s.id)} />
+                {teacher ? <small className="hint">{s.values['Teachers & Hosts'] || 'Teacher to be named'}</small> : <input aria-label={`Session ${i + 1} teachers`} placeholder="Teachers (if different)" value={mods[s.id]?.teachers ?? ''} onChange={setMod(s.id, 'teachers')} disabled={busy} className="small" />}
                 {errors[s.id] && <span className="hint">{errors[s.id]}</span>}
               </div>
             </li>
@@ -153,10 +159,10 @@ export function ProgramEditor({ series }) {
         </ol>
         <div className="bar">
           <button type="button" className="chip primary" disabled={busy || !changedMods.length} onClick={saveMods}>{busy ? 'Saving…' : changedMods.length ? `Save ${changedMods.length} module${changedMods.length === 1 ? '' : 's'}` : 'No changes'}</button>
-          <button type="button" className="chip" disabled={busy} onClick={addSession}>+ Add a session</button>
+          {!teacher && <button type="button" className="chip" disabled={busy} onClick={addSession}>+ Add a session</button>}
           {msg && <span className="hint">{msg}</span>}
         </div>
-        <p className="hint">To move or cancel one session, use “Edit one session” below.</p>
+        <p className="hint">{teacher ? 'Write the title and description of the sessions you teach. They show on the website’s events list within a minute of saving.' : 'To move or cancel one session, use “Edit one session” below.'}</p>
       </>) : (<>
         <p className="hint">Saved to every session of the program. Blank where sessions differ.</p>
         <div className="ops-edit">

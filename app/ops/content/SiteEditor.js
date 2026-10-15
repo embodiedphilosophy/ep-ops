@@ -136,6 +136,7 @@ function RowForm({ t, head, locked = [], row, values, canEdit = true, onDone }) 
     if (type === 'bool') return <select id={id} value={String(v).toUpperCase()} disabled={ro(h) || busy} onChange={e => set(e.target.value)}><option value="">{['website', 'teachers'].includes(h) ? 'No (blank)' : 'Yes (blank)'}</option><option value="TRUE">Yes</option><option value="FALSE">No</option></select>;
     if (SELECTS[type]) return <select id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)}>{[...new Set([...(type === 'rule' ? [] : ['']), ...SELECTS[type], v])].map(o => <option key={o} value={o}>{type === 'rule' ? RULE_LABEL[o] || o : o || '—'}</option>)}</select>;
     if (type === 'color') return <input id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} placeholder="#1E4772" style={{ borderLeft: /^#[0-9a-f]{6}$/i.test(v) ? `14px solid ${v}` : undefined }} />;
+    if (type === 'contract') return <textarea id={id} rows={18} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} style={{ fontFamily: 'Georgia, serif' }} />;
     if (type === 'long') return <textarea id={id} rows={Math.min(8, Math.max(3, Math.ceil(String(v).length / 70)))} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} />;
     return <input id={id} value={v} disabled={ro(h) || busy} type={type === 'date' ? 'date' : 'text'} inputMode={type === 'number' ? 'decimal' : undefined} onChange={e => set(e.target.value)} />;
   };

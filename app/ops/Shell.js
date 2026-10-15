@@ -41,6 +41,7 @@ export default async function Shell({ user, current, title, eyebrow, desc, head,
     <div className="ops-shell">
       <aside className="ops-side">
         <a href="/ops" className="ops-brand"><span className="w1">EP Ops</span><span className="w2">General Manager</span></a>
+        {items.length > 1 && <form action="/ops/search" className="ops-search" role="search"><input name="q" placeholder="Search" aria-label="Search the dashboard" /></form>}
         {items.length > 1 && <nav className="ops-nav" aria-label="Dashboard">{withHeads}</nav>}
         {more.length > 0 && <nav className="ops-nav more" aria-label="More">{more.map(link)}</nav>}
         {isStaff(user) && !user.director && clockAvailable() && <ClockWidget tags={user.roles || []} />}
