@@ -6,8 +6,6 @@ const todayNY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Americ
 const daysLate = d => { if (!d) return 0; const n = Math.round((Date.parse(todayNY()) - Date.parse(d)) / 864e5); return n > 0 ? n : 0; };
 const firstNames = list => list.map(n => n.split(' ')[0]).join(', ');
 // "[Marketing] Promo email #1" → role "Marketing", text "Promo email #1"
-// Automatic ticks can be undone for a week (matches UNDO_DAYS in lib/ops/autocomplete)
-const undoable = auto => !!auto && Date.now() - Date.parse(auto + 'T12:00:00Z') < 7 * 864e5;
 const splitRole = name => { const m = String(name).match(/^\[([^\]]+)\]\s*/); return m ? [m[1], name.slice(m[0].length)] : ['', name]; };
 
 async function post(body) {
@@ -102,9 +100,10 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
     const res = await fetch('/api/ops/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => null);
     setState(s => ({ ...s, [id]: res?.ok ? 'done' : 'error' }));
   };
-  const undo = async id => {
+  // Untick: reopen the task (on the open list it goes back to normal; on the done list it shows as reopened)
+  const reopen = async id => {
     setState(s => ({ ...s, [id]: 'saving' }));
-    try { await post({ id, action: 'undo' }); setState(s => ({ ...s, [id]: 'undone' })); }
+    try { await post({ id, action: 'reopen' }); setState(s => ({ ...s, [id]: done ? 'undone' : '' })); }
     catch { setState(s => ({ ...s, [id]: 'error' })); }
   };
   // The most common move after Done, one click from the row (the rest stay behind ⋯)
@@ -127,7 +126,7 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
           <li key={t.id} className={[st === 'done' ? 'is-done' : '', t.blockedOn ? 'is-blocked' : '', moved ? 'is-moved' : ''].join(' ')}>
             <div className="main">
               <label>
-                <input type="checkbox" checked={st === 'done' || (done && st !== 'undone')} disabled={done || st === 'saving' || st === 'done'} onChange={() => complete(t.id)} />
+                <input type="checkbox" checked={st === 'done'} disabled={st === 'saving'} onChange={() => (st === 'done' ? reopen(t.id) : complete(t.id))} />
                 <span className="n">{showRole && <span className="role">{role}</span>}{rest}{t.escalated && <span className="esc"> · {t.escalated}</span>}</span>
               </label>
               <span className="meta">
@@ -137,9 +136,6 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
                 {st === 'error' ? ' · couldn’t save, try again' : ''}
                 {done && t.auto && st !== 'undone' && <span className="auto"> · Done · auto</span>}
                 {done && st === 'undone' && ' · reopened'}
-                {done && undoable(t.auto) && st !== 'undone' && (
-                  <button className="more" disabled={st === 'saving'} onClick={() => undo(t.id)}>Undo</button>
-                )}
                 {!done && st !== 'done' && !t.blockedOn && (
                   <span className="quick"><button className="more" disabled={st === 'saving'} onClick={() => bump(t)}>+1 day</button></span>
                 )}
