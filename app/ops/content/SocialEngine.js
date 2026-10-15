@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { VIEWS, colType, PLAN_EDITABLE } from '@/lib/ops/socialengine';
+import { VIEWS, colType, PLAN_EDITABLE, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
 import Cropper, { shrink } from './Cropper';
 
-const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
 const time = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/); if (!m) return t || ''; const h = +m[1]; return `${h % 12 || 12}${m[2] === '00' ? '' : ':' + m[2]}${h >= 12 ? 'pm' : 'am'}`; };
-const isStory = p => /story/i.test(p.platforms) && !/feed/i.test(p.platforms);
+const isStory = p => !isFeed(p);
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const ago = d => { if (!d) return ''; const n = daysBetween(d, today()); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n < 14 ? `${n} days ago` : n < 60 ? `${Math.round(n / 7)} weeks ago` : `${Math.round(n / 30)} months ago`; };
 const api = async (body) => {
   const res = await fetch('/api/ops/social', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
   const j = await res?.json().catch(() => ({}));
@@ -40,14 +42,19 @@ function useView(view, q = '', offset = 0, extra = '') {
 }
 
 // ---------- Plan: the feed, and each post edited where it shows ----------
-const weekOf = p => p.week_of || p.publish_date?.slice(0, 7) || '';
+const weekOf = p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') ? mondayOf(p.publish_date) : p.week_of || '';
 function Plan() {
   const [data, reload] = useView('plan');
   const [open, setOpen] = useState(null); // a row number, or 'new'
   const [msg, setMsg] = useState('');
+  const [mode, setMode] = useState('list'); // list | grid
+  const [type, setType] = useState('');
   if (!data) return <p className="ops-empty">Loading the plan…</p>;
   if (data.error) return <p className="ops-empty">{data.error}</p>;
-  const posts = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const all = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const pastPosts = (data.past || []).map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const posts = type ? all.filter(p => (p.pillar || 'No type') === type) : all;
+  const typeNames = [...new Set([...POST_TYPES, ...Object.keys(data.types || {}), ...all.map(p => p.pillar).filter(Boolean)])];
   const proposed = posts.filter(p => p.status === 'Proposed');
   const weeks = [...new Set(posts.map(weekOf))];
   const approveAll = async () => {
@@ -56,18 +63,27 @@ function Plan() {
     setMsg(j.ok ? `${j.approved} approved.` : j.error); reload();
   };
   const count = s => posts.filter(p => p.status === s).length;
-  const i = posts.findIndex(p => p._row === open);
+  const pool = [...posts, ...pastPosts.filter(p => !posts.some(x => x._row === p._row))];
+  const i = pool.findIndex(p => p._row === open);
   return (
     <div className="ops-se-plan">
       <p className="ops-empty">Tap a post to read and edit it. Approved posts are published by Make at their date and time; rows still Proposed at the Sunday 6pm deadline aren’t posted.</p>
       <div className="ops-se-bar">
+        <span className="ops-se-mode" role="group" aria-label="How to look at the plan">
+          <button className={`chip${mode === 'list' ? ' on' : ''}`} aria-pressed={mode === 'list'} onClick={() => setMode('list')}>By week</button>
+          <button className={`chip${mode === 'grid' ? ' on' : ''}`} aria-pressed={mode === 'grid'} onClick={() => setMode('grid')}>Grid preview</button>
+        </span>
         <span className="pills">{['Proposed', 'Approved', 'Needs edit', 'Posted', 'Failed'].filter(count).map(s => <span key={s} className={`pill s-${s.replace(/\s/g, '')}`}>{count(s)} {s}</span>)}</span>
         {data.canEdit && <button className="chip" onClick={() => setOpen('new')}>New post</button>}
         {data.canEdit && proposed.length > 0 && <button className="chip primary" onClick={approveAll}>Approve all proposed ({proposed.length})</button>}
         {msg && <span className="hint">{msg}</span>}
       </div>
-      {!posts.length && <p className="ops-empty">Nothing planned from last week on.</p>}
-      {weeks.map(w => (
+      <TypeStrip names={typeNames} stats={data.types || {}} counts={all} type={type} setType={setType} />
+      {!posts.length && <p className="ops-empty">{type ? `Nothing planned as “${type}”.` : 'Nothing planned from last week on.'}</p>}
+      {mode === 'grid' && !type && <GridPreview posts={posts} past={pastPosts} canEdit={data.canEdit}
+        open={setOpen} reload={reload} setMsg={setMsg} />}
+      {mode === 'grid' && type && <p className="ops-empty">The grid preview shows every post, so it ignores the type filter. Clear the filter to see it.</p>}
+      {mode === 'list' && weeks.map(w => (
         <div key={w}>
           <h3 className="ops-se-h">{/^\d{4}-\d{2}-\d{2}$/.test(w) ? `Week of ${day(w)}` : w || 'Undated'}</h3>
           <ul className="ops-se-feed">
@@ -79,7 +95,7 @@ function Plan() {
                     <span className={`st s-${String(p.status || 'Proposed').replace(/\s/g, '')}`}>{p.status || 'Proposed'}</span>
                     {isStory(p) && <span className="kind">Story</span>}
                   </span>
-                  <span className="meta">{day(p.publish_date)} · {time(p.publish_time_ET)}</span>
+                  <span className="meta">{day(p.publish_date)} · {time(p.publish_time_ET)}{p.pillar && <span className="tag">{p.pillar}</span>}</span>
                   <span className="cap">{p.caption || <i>No caption yet</i>}</span>
                 </button>
               </li>
@@ -87,10 +103,77 @@ function Plan() {
           </ul>
         </div>
       ))}
-      {open === 'new' && <Composer key="new" p={blankPost()} events={data.events || []} canEdit={data.canEdit} onSaved={reload} close={() => setOpen(null)}
+      {open === 'new' && <Composer key="new" p={blankPost()} events={data.events || []} types={typeNames} canEdit={data.canEdit} onSaved={reload} close={() => setOpen(null)}
         onAdded={id => { setOpen(null); setMsg(`Added ${id}.`); }} />}
-      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} canEdit={data.canEdit} onSaved={reload}
-        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
+      {i >= 0 && <Composer key={pool[i]._row} p={pool[i]} events={data.events || []} types={typeNames} canEdit={data.canEdit} onSaved={reload}
+        prev={i > 0 ? () => setOpen(pool[i - 1]._row) : null} next={i < pool.length - 1 ? () => setOpen(pool[i + 1]._row) : null} close={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+// Every kind of post, with how long since the last one went out, so a gap ("no suggested reading in three weeks") is easy to see.
+// Tapping a type filters the plan to it.
+function TypeStrip({ names, stats, counts, type, setType }) {
+  return (
+    <div className="ops-se-types" role="group" aria-label="Types of post">
+      <button className={`chip${!type ? ' on' : ''}`} aria-pressed={!type} onClick={() => setType('')}>All types</button>
+      {names.map(n => {
+        const st = stats[n] || {}, c = counts.filter(p => p.pillar === n).length, gap = st.last ? daysBetween(st.last, today()) : null;
+        return (
+          <button key={n} className={`chip${type === n ? ' on' : ''}${!st.next && (gap == null || gap > 21) ? ' gap' : ''}`} aria-pressed={type === n} onClick={() => setType(type === n ? '' : n)}
+            title={st.next ? `Next planned ${day(st.next)}` : 'Nothing planned yet'}>
+            {n}<small>{st.last ? `last ${ago(st.last)}` : c ? '' : 'not yet'}{st.next ? `${st.last ? ' · ' : ''}next ${day(st.next)}` : ''}</small>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// The Instagram profile grid: three across, newest top left. Upcoming posts first (the week as it will look once posted), then what's
+// already out. Drag an upcoming post onto another to swap their times, or use its Earlier / Later buttons.
+function GridPreview({ posts, past, canEdit, open, reload, setMsg }) {
+  const [drag, setDrag] = useState(null);
+  const upcoming = posts.filter(p => isFeed(p) && !['Skip', 'Failed', 'Posted', 'Manual'].includes(p.status) && (p.publish_date || '') >= today())
+    .sort((a, b) => `${b.publish_date} ${timeKey(b.publish_time_ET)}`.localeCompare(`${a.publish_date} ${timeKey(a.publish_time_ET)}`));
+  const out = past.filter(p => !upcoming.some(u => u._row === p._row));
+  const swap = async (a, b) => {
+    if (!a || !b || a._row === b._row) return;
+    setMsg('Moving…');
+    const j = await api({ view: 'plan', swap: [{ row: a._row, before: a._raw }, { row: b._row, before: b._raw }] });
+    setMsg(j.ok ? 'Swapped their times.' : j.status === 409 ? `${j.error}. Reload to see their version.` : j.error || 'Couldn’t move it');
+    reload();
+  };
+  // later in time = earlier in this list (newest first)
+  const tile = (p, i) => (
+    <li key={p._row} draggable={canEdit} className={drag === p._row ? 'drag' : ''}
+      onDragStart={e => { setDrag(p._row); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => setDrag(null)}
+      onDragOver={e => { if (drag != null && drag !== p._row) e.preventDefault(); }}
+      onDrop={e => { e.preventDefault(); const a = upcoming.find(x => x._row === drag); setDrag(null); swap(a, p); }}>
+      <button onClick={() => open(p._row)} aria-label={`${day(p.publish_date)} ${time(p.publish_time_ET)}: ${String(p.caption || 'no caption').slice(0, 60)}`}>
+        {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
+        <span className={`st s-${String(p.status || 'Proposed').replace(/\s/g, '')}`}>{day(p.publish_date).replace(/^\w+, /, '')} · {time(p.publish_time_ET)}</span>
+      </button>
+      {canEdit && (
+        <span className="mv">
+          <button type="button" className="chip" disabled={i >= upcoming.length - 1} onClick={() => swap(p, upcoming[i + 1])} aria-label="Post earlier">← Earlier</button>
+          <button type="button" className="chip" disabled={i === 0} onClick={() => swap(p, upcoming[i - 1])} aria-label="Post later">Later →</button>
+        </span>
+      )}
+    </li>
+  );
+  return (
+    <div className="ops-se-gridprev">
+      <p className="ops-empty">This is how the profile will look: the newest post is top left. {canEdit ? 'Drag a post onto another to swap their times.' : ''}</p>
+      {!upcoming.length && <p className="ops-empty">No upcoming feed posts.</p>}
+      <ul className="g3">{upcoming.map(tile)}</ul>
+      {out.length > 0 && <>
+        <h3 className="ops-se-h">Already out</h3>
+        <ul className="g3 done">{out.map(p => (
+          <li key={p._row}><button onClick={() => open(p._row)} aria-label={`Posted ${day(p.publish_date)}`}>
+            {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
+            <span className="st s-Posted">{day(p.publish_date).replace(/^\w+, /, '')}</span></button></li>))}</ul>
+      </>}
     </div>
   );
 }
@@ -131,7 +214,7 @@ const blankPost = () => { const v = { publish_date: tomorrow(), publish_time_ET:
 
 // One post, laid out like it will appear: the picture on one side, its words and settings on the other.
 // Everything about the post is edited here; one Save writes all the changes.
-function Composer({ p, events = [], canEdit, onSaved, onAdded, prev, next, close }) {
+function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdded, prev, next, close }) {
   const [vals, setVals] = useState(p._raw);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
@@ -258,6 +341,7 @@ function Composer({ p, events = [], canEdit, onSaved, onAdded, prev, next, close
             </div>
             {inserting && <Inserter kind={inserting} onPick={t => { insert(t); setInserting(null); }} />}
             {field('hashtags', <textarea id="c-hashtags" rows={2} value={vals.hashtags || ''} disabled={dis} onChange={set('hashtags')} />)}
+            {hashtagCount(vals.hashtags) + hashtagCount(vals.caption) > MAX_HASHTAGS && <p className="hint warnline">That’s {hashtagCount(vals.hashtags) + hashtagCount(vals.caption)} hashtags. Instagram now allows {MAX_HASHTAGS} per post, so trim it before approving.</p>}
             <div className="two">
               {field('publish_date', <input id="c-publish_date" type="date" value={vals.publish_date || ''} disabled={dis} onChange={set('publish_date')} />, 'Date')}
               {field('publish_time_ET', <input id="c-publish_time_ET" value={vals.publish_time_ET || ''} disabled={dis} placeholder="11:00" onChange={set('publish_time_ET')} />)}
@@ -267,7 +351,8 @@ function Composer({ p, events = [], canEdit, onSaved, onAdded, prev, next, close
               {field('format', <input id="c-format" value={vals.format || ''} disabled={dis} onChange={set('format')} />)}
             </div>
             <div className="two">
-              {field('pillar', <input id="c-pillar" value={vals.pillar || ''} disabled={dis} onChange={set('pillar')} />)}
+              {field('pillar', <><input id="c-pillar" list="c-types" value={vals.pillar || ''} disabled={dis} placeholder="e.g. Suggested reading" onChange={set('pillar')} />
+                <datalist id="c-types">{types.map(t => <option key={t} value={t} />)}</datalist></>)}
               {field('link', <input id="c-link" value={vals.link || ''} disabled={dis} placeholder="https://" onChange={set('link')} />)}
             </div>
             {field('linked_event', <><input id="c-linked_event" list="c-events" value={vals.linked_event || ''} disabled={dis} placeholder="None" onChange={set('linked_event')} />
@@ -313,50 +398,65 @@ function Inserter({ kind, onPick }) {
         <ul>{rows.slice(0, 40).map(r => (
           <li key={r.row}><button type="button" onClick={() => onPick(text(r))}>
             <span className="t">{kind === 'captions' ? r.values.text : `“${r.values.quote}”`}</span>
-            <span className="s">{kind === 'captions' ? [r.values.type, r.values.program].filter(Boolean).join(' · ') : [r.values.author, r.values.work].filter(Boolean).join(', ')}</span>
+            <span className="s">{kind === 'captions' ? [r.values.type, r.values.program].filter(Boolean).join(' · ') : [r.values.author, r.values.work].filter(Boolean).join(', ')}{r.used ? <b className="used"> · used {ago(r.used)}</b> : ''}</span>
           </button></li>))}</ul>
       )}
     </div>
   );
 }
 
-// Every Art picture (no words on it) that may be reused, newest first, 60 at a time; the grid scrolls inside the editor
+// Every picture that may be reused, newest first, 60 at a time; the grid scrolls inside the editor
 function ImagePicker({ onPick }) {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState([]);
+  const [fresh, setFresh] = useState(false); // hide pictures used in the last 60 days
   const [data] = useView('art', q, offset, '&pick=1');
   useEffect(() => { setOffset(0); setRows([]); }, [q]);
   useEffect(() => { if (data?.rows) setRows(r => offset === 0 ? data.rows : [...r, ...data.rows.filter(x => !r.some(y => y.row === x.row))]); }, [data]);
+  const recent = r => r.used && daysBetween(r.used, today()) <= 60;
+  const shown = fresh ? rows.filter(r => !recent(r)) : rows;
   const more = data && !data.error && rows.length < data.total;
   return (
     <div className="ops-se-picker">
       <input placeholder="Search images by name, tag, category…" value={q} onChange={e => setQ(e.target.value)} autoFocus />
+      <label className="hint fresh"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> Hide pictures used in the last 2 months</label>
       {data?.error ? <p className="hint">{data.error}</p> : !rows.length && !data ? <p className="hint">Loading…</p> : !rows.length ? <p className="hint">No pictures match.</p> : (<>
-        <ul className="grid">{rows.map(r => (
-          <li key={r.row}><button type="button" onClick={() => onPick(r.values.image_id, r.thumb, r.values.drive_file_id)} title={r.values.file_name}>
+        <ul className="grid">{shown.map(r => (
+          <li key={r.row}><button type="button" onClick={() => onPick(r.values.image_id, r.thumb, r.values.drive_file_id)} title={r.used ? `${r.values.file_name} · used ${ago(r.used)}` : r.values.file_name}>
             {r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">{r.values.file_name}</span>}
+            {r.used && <span className={`usedtag${recent(r) ? ' recent' : ''}`}>Used {ago(r.used)}</span>}
           </button></li>))}
           {more && <li className="morecell"><button type="button" disabled={!data} onClick={() => setOffset(rows.length)}>{data ? 'Show more' : 'Loading…'}</button></li>}
         </ul>
-        <p className="hint">{data?.total != null ? `${rows.length} of ${data.total} pictures` : ''}</p>
+        <p className="hint">{data?.total != null ? `${fresh ? `${shown.length} unused lately, from ` : ''}${rows.length} of ${data.total} pictures` : ''}</p>
       </>)}
     </div>
   );
 }
 
-// ---------- Published ----------
+// ---------- Published: a grid like Instagram's, with each post's type and numbers ----------
 function History() {
   const [offset, setOffset] = useState(0);
   const [data] = useView('history', '', offset);
+  const [type, setType] = useState('');
   if (!data) return <p className="ops-empty">Loading…</p>;
   if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const types = [...new Set(data.rows.map(r => r.type).filter(Boolean))];
+  const rows = type ? data.rows.filter(r => r.type === type) : data.rows;
   return (
     <div>
-      <p className="ops-empty">What went out on Instagram, newest first ({data.total} posts).</p>
-      <ul className="ops-se-hist">{data.rows.map(r => { const v = r.values; return (
-        <li key={r.row}><span className="d">{day(String(v.posted_at).slice(0, 10))}</span><span className="c">{String(v.caption || '').slice(0, 160)}</span>
-          <span className="n">♥ {v.like_count || 0} · 💬 {v.comments_count || 0}</span>{v.permalink && <a href={v.permalink} target="_blank" rel="noopener">↗</a>}</li>); })}</ul>
+      <p className="ops-empty">What went out on Instagram, newest first ({data.total} posts). Tap a post to open it on Instagram.</p>
+      {types.length > 0 && <div className="ops-se-types" role="group" aria-label="Types of post">
+        <button className={`chip${!type ? ' on' : ''}`} aria-pressed={!type} onClick={() => setType('')}>All types</button>
+        {types.map(t => <button key={t} className={`chip${type === t ? ' on' : ''}`} aria-pressed={type === t} onClick={() => setType(type === t ? '' : t)}>{t}</button>)}
+      </div>}
+      <ul className="ops-se-pubgrid">{rows.map(r => { const v = r.values, inner = (<>
+        <span className="pic">{r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none txt">{String(v.caption || '').slice(0, 110)}</span>}
+          {r.type && <span className="kind">{r.type}</span>}</span>
+        <span className="meta">{day(String(v.posted_at).slice(0, 10))} · ♥ {v.like_count || 0} · 💬 {v.comments_count || 0}</span>
+        <span className="cap">{String(v.caption || '').slice(0, 120)}</span></>);
+        return <li key={r.row}>{v.permalink ? <a href={v.permalink} target="_blank" rel="noopener">{inner}</a> : <div>{inner}</div>}</li>; })}</ul>
       <Pager data={data} setOffset={setOffset} />
     </div>
   );

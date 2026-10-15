@@ -94,6 +94,11 @@ const weekly = [WP, ...Array.from({ length: 10 }, (_, i) => { const o = { post_i
   quote_id: i % 2 ? `Q${i}` : '', quote_text: i % 2 ? 'The Self is the light by which all is seen.' : '', quote_source: i % 2 ? 'Kṣemarāja' : '', image_id: `IMG${i % 4}`, image_url: '', caption: ['Nine nights of the Goddess begin on Sunday.\n\nJoin us live.', 'What is recognition?', 'A verse for tonight.', 'Meditation Mondays: join us at noon.'][i % 4],
   hashtags: '#tantra #yoga', link: 'https://embodiedphilosophy.com/events', status: ST[i], jake_notes: ST[i] === 'Needs edit' ? 'Shorter please' : '', quote_check: i % 2 ? 'Verbatim' : '', error: ST[i] === 'Failed' ? 'Instagram rejected the image size' : '', image_review: i % 3 ? 'Kept' : '' };
   return WP.map(h => o[h] ?? ''); })];
+// A week of upcoming feed posts, counted from today, so the grid preview has something to show (9am listed after 11am on purpose)
+const ahead = n => { const d = new Date(); d.setUTCDate(d.getUTCDate() + n); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
+['Suggested reading', 'Quote on an image', 'Teacher video', 'South Asian art', 'Sanskrit translation', 'Carousel: educational'].forEach((t, i) => weekly.push(WP.map(h => ({
+  post_id: `SP-UP-${i}`, publish_date: ahead(1 + Math.floor(i / 2)), publish_time_ET: i % 2 ? '9:00' : '11:00', platforms: 'IG Feed, FB', pillar: t, format: 'Single image', image_id: `IMG${i % 4}`,
+  caption: `Upcoming post ${i}: ${t}.`, hashtags: i === 0 ? '#a #b #c #d #e #f' : '#tantra', status: 'Proposed', image_review: 'Kept' })[h] ?? '')));
 const imgLib = [['image_id', 'file_name', 'drive_file_id', 'public_url', 'preview', 'folder', 'program', 'tags', 'type', 'drive_link', 'year', 'reuse_ok', 'times_used', 'last_used', 'source_file_id', 'has_text', 'category', 'hidden'],
   // 150 pictures so the picker's paging (60 at a time) is exercised; 5 can't be reused, 6 is hidden
   ...Array.from({ length: 150 }, (_, i) => [`IMG${i}`, `kali-${i}.jpg`, `DRIVEFILE${i}abcdefghijklmnopq`, `https://picsum.photos/seed/ep${i}/400/500`, '', 'Archive', 'Sadhana', 'deity, kali', 'Archive', '', '2024', i === 5 ? 'FALSE' : 'TRUE', '2', '2026-09-01', '', i % 5 === 0 ? 'TRUE' : 'FALSE', 'Deity art', i === 6 ? 'TRUE' : 'FALSE'])]; // every 5th has words on it (Promo Images)
