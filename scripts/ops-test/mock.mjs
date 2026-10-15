@@ -77,6 +77,8 @@ const templates = [
   ['WSML', 'Members email #1', 'Marketing', '-10', ''],
   ['LRL', 'Start ad ramp and open registration', 'Marketing', '-21', ''],
   ['MM', 'Upload replay to Vimeo', 'Media', '1', ''],
+  ['SS', 'Send readings for the session', 'Teacher', '-7', ''],
+  ['SS', 'Send slides as a PDF', 'Teacher', '1', ''],
   ['SS', 'Post recording and materials in Circle', 'Course Host', '1', ''],
   ['EVENT', 'Promo email #1', 'Marketing', '-35', ''],
 ];

@@ -109,7 +109,7 @@ export function SessionActions({ id, date }) {
         <span className="hint">{to && to === date ? `This session is already on ${nice(date)}. Pick a different date to move it.` : `Now on ${nice(date)}.`}</span>
       </div>
       <div className="row"><span />
-        <button type="button" className="chip danger" disabled={busy} onClick={() => run({ action: 'cancel', id }, 'Cancel this session? It comes off the website, reminders and the newsletter, and its open tasks are closed. You can restore it from Events → Cancelled.')}>Cancel this session</button>
+        <button type="button" className="chip danger" disabled={busy} onClick={() => run({ action: 'cancel', id }, 'Cancel this session? It comes off the website, reminders and the newsletter, and its open tasks are closed. You can restore it from Programming → Cancelled.')}>Cancel this session</button>
       </div>
       {msg && <p className="hint">{msg}</p>}
     </fieldset>

@@ -68,3 +68,9 @@
 .ops-shell .ops-sup-answer .hint { font-size: 12.5px }
 .ops-shell .ops-sup-answer .hint.ok { color: var(--ok-text) }
 .ops-shell .ops-sup-answer .hint.err { color: var(--risk) }
+
+/* Topic chips over Needs a reply */
+.ops-shell .ops-sup-topics { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 10px }
+.ops-shell .ops-sup-topics a { padding: 4px 10px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink); text-decoration: none; background: var(--card, #fff) }
+.ops-shell .ops-sup-topics a[aria-current=page] { background: var(--pine); border-color: var(--pine); color: #fff }
+.ops-shell .ops-sup-topics a span { font-family: var(--mono); font-size: 11px; opacity: .75; margin-left: 2px }

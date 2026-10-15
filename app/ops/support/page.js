@@ -1,6 +1,6 @@
 import Shell, { opsUser } from '../Shell';
 import { canSupport } from '@/lib/ops/nav';
-import { zendeskConfigured, zendeskTicketUrl, kbSheetUrl, listQueue, getTicket, loadEntries, suggest, loadGaps, loadAnswers, canApprove, ANSWER_FIELDS } from '@/lib/ops/support';
+import { zendeskConfigured, zendeskTicketUrl, kbSheetUrl, listQueue, getTicket, loadEntries, suggest, loadGaps, loadAnswers, canApprove, ANSWER_FIELDS, TOPICS } from '@/lib/ops/support';
 import AnswerEditor from './AnswerEditor';
 import SupportReply from './SupportReply';
 import './support.css';
@@ -37,12 +37,23 @@ export default async function Support({ searchParams }) {
     loadGaps().catch(() => []),
   ]);
   const counts = Object.fromEntries(TABS.map(t => [t.key, (queue || []).filter(t.test).length]));
-  const list = (queue || []).filter(tab.test).sort((a, b) => tab.key === 'reply' ? Date.parse(a.updated) - Date.parse(b.updated) : Date.parse(b.updated) - Date.parse(a.updated));
+  const sorted = (queue || []).filter(tab.test).sort((a, b) => tab.key === 'reply' ? Date.parse(a.updated) - Date.parse(b.updated) : Date.parse(b.updated) - Date.parse(a.updated));
+  // One row per person: their other open tickets are counted on the row (often the same question twice)
+  const byPerson = new Map();
+  for (const t of sorted) {
+    const k = String(t.requester?.email || t.id).toLowerCase();
+    if (byPerson.has(k)) byPerson.get(k).more.push(t.id); else byPerson.set(k, { ...t, more: [] });
+  }
+  const people = [...byPerson.values()];
+  // Topic chips on Needs a reply: answer alike questions together
+  const topic = TOPICS.some(x => x.key === sp?.topic) || sp?.topic === 'other' ? sp.topic : '';
+  const topicCounts = Object.fromEntries([...TOPICS.map(x => x.key), 'other'].map(k => [k, people.filter(t => t.topic === k).length]));
+  const list = topic ? people.filter(t => t.topic === topic) : people;
   const selectedId = Number(sp?.t) || null;
   const ticket = selectedId ? await getTicket(selectedId).catch(() => null) : null;
   const picks = ticket ? suggest(entries, ticket) : [];
   const drafts = entries.filter(e => String(e.status).toLowerCase() === 'draft').length;
-  const href = (k, t) => `/ops/support?tab=${k}${t ? `&t=${t}` : ''}`;
+  const href = (k, t) => `/ops/support?tab=${k}${topic ? `&topic=${topic}` : ''}${t ? `&t=${t}` : ''}`;
 
   return (
     <Shell user={user} current="support" eyebrow="Zendesk and the EP Support KB" title="Support"
@@ -53,13 +64,21 @@ export default async function Support({ searchParams }) {
 
       <div className={`ops-sup${ticket ? ' has-ticket' : ''}`}>
         <section className="ops-sup-list" aria-label={tab.label}>
+          {tab.key === 'reply' && people.length > 0 && (
+            <nav className="ops-sup-topics" aria-label="Topic">
+              <a href={`/ops/support?tab=reply`} aria-current={!topic ? 'page' : undefined}>All <span>{people.length}</span></a>
+              {[...TOPICS, { key: 'other', label: 'Other' }].filter(x => topicCounts[x.key]).map(x => (
+                <a key={x.key} href={`/ops/support?tab=reply&topic=${x.key}`} aria-current={topic === x.key ? 'page' : undefined}>{x.label} <span>{topicCounts[x.key]}</span></a>
+              ))}
+            </nav>
+          )}
           {list.length === 0 ? <p className="ops-empty">{tab.key === 'reply' ? 'Nothing waiting for a reply.' : 'Nothing here.'}</p> : (
             <ul>{list.map(t => (
               <li key={t.id} className={t.id === selectedId ? 'on' : ''}>
                 <a href={href(tab.key, t.id)}>
                   <b>{t.requester?.name || t.requester?.email || 'Unknown'}</b>
                   <span className="subj">{t.subject}</span>
-                  <small><i className={`dot ${t.status}`} aria-hidden="true" />{STATUS[t.status] || t.status} · {ago(t.updated)}{t.entry ? ` · Ether: ${t.entry}` : ''}</small>
+                  <small><i className={`dot ${t.status}`} aria-hidden="true" />{STATUS[t.status] || t.status} · {ago(t.updated)}{t.entry ? ` · Ether: ${t.entry}` : ''}{t.more.length ? ` · ${t.more.length + 1} tickets from them` : ''}</small>
                 </a>
               </li>
             ))}</ul>

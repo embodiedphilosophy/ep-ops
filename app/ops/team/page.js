@@ -19,7 +19,7 @@ export default async function Team() {
   const groups = [...new Set(links.map(r => r.group))];
 
   return (
-    <Shell user={user} current="team" desc="Who does what, and where everything lives." head={!teacher && <a className="chip" href="/ops/hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="Faculty & onboarding">
+    <Shell user={user} current="team" desc="Who does what, and where everything lives." head={!teacher && <a className="chip" href="/ops/hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="Faculty & team">
       <div className="ops-grid">
         <section className="ops-col">
           <h2>{teacher ? 'Your contacts at EP' : 'Staff'} <span>{staff.length}</span></h2>
@@ -46,7 +46,7 @@ export default async function Team() {
           </>) : null}
           {!teacher && canEditSite(user) && (<>
             <h2>Waiting for review</h2>
-            <p className="ops-empty">Teacher bios and course pages are reviewed in <a href="/ops/content?tab=review">Publish → Review</a>.</p>
+            <p className="ops-empty">Teacher bios and course pages are reviewed in <a href="/ops/content?tab=review">Content → Review</a>.</p>
           </>)}
           {user.director && (<>
             <h2>Teacher onboarding</h2>

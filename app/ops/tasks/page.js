@@ -77,6 +77,7 @@ export default async function Tasks({ searchParams }) {
   return (
     <Shell user={user} current="tasks" desc="The whole task list, who owns what and when it is due." eyebrow={!user.director ? 'Yours, and anything waiting on you' : who === 'all' ? 'Everyone' : who} title="Tasks" head={head}>
       {error && <p className="ops-note">Couldn’t load tasks right now ({error}).</p>}
+      {view === 'unowned' && shown.length > 0 && <p className="ops-meta">Assign each one here. “Name the teacher” tasks close themselves once a teacher is named in Programming (Edit details, or the program’s “For every session”).</p>}
       {shown.length === 0 ? <p className="ops-empty">{view === 'done' ? 'Nothing finished recently.' : view === 'open' ? 'No open tasks.' : 'None.'}</p> : groups.map(g => (
         <div className="ops-group" key={g.key || 'other'}>
           {g.title && <h3>{g.title} <span>{g.date ? `· ${short(g.date)} ` : ''}— {g.tasks.length}</span></h3>}

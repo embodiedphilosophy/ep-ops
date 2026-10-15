@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { listTasks } from '@/lib/ops/taskstore';
 import { loadCalendar } from '@/lib/calendar';
-import { bucket, meetingsFor, loadTeam, dedupe, needsOwner, forHome, groupByEvent, addDays, ESCALATE_DAYS } from '@/lib/ops/tasks';
+import { meetingsFor, loadTeam, dedupe, needsOwner, needsYouFor, groupByEvent, addDays, ESCALATE_DAYS } from '@/lib/ops/tasks';
 import { eventOptions, staffNames } from '@/lib/ops/pickers';
 import AddTask from './AddTask';
 import { teamHours, clockAvailable } from '@/lib/ops/hours';
@@ -13,7 +13,7 @@ import { upcomingSocial } from '@/lib/social';
 import { teamMeetingsFor } from '@/lib/ops/teamcal';
 import { getNote } from '@/lib/ops/note';
 import { isStaff, isTeacher } from '@/lib/ops/nav';
-import { readinessRows } from '@/lib/ops/readiness';
+import { readinessRows, atRisk } from '@/lib/ops/readiness';
 import Shell, { opsUser } from './Shell';
 import TaskList from './TaskList';
 import Note from './Note';
@@ -42,12 +42,9 @@ export default async function Home({ searchParams }) {
   let all = [], error = '';
   try { all = dedupe(await listTasks()); } catch (e) { error = e.message; }
   const triageOn = user.director && viewing === user;
-  // Directors: other people's 7+ day late tasks live in Triage below, not in Needs you
-  const mine = forHome(asUser, all).filter(t => !needsOwner(t) && !(triageOn && t.escalated));
-  const b = bucket(mine);
-  // Someone is waiting on this person: on their Home whatever the due date
-  const blocked = mine.filter(t => !t.completed && t.blockedOn && t.blockedOn === viewing.name && t.due > addDays(todayET(), 7));
-  const needsYou = [...b.pastDue, ...b.thisWeek, ...blocked];
+  // Needs you: the same list the sidebar badge counts. Nobody-owns-it and week-late work lives in Tasks
+  // (the counts at the top link there), so Today stays one list.
+  const { b, blocked, list: needsYou } = needsYouFor(asUser, all);
   const later = b.upcoming.filter(t => t.due <= addDays(todayET(), 35) && !blocked.includes(t)).length;
   const cal = await loadCalendar().catch(() => []);
   const groups = groupByEvent(needsYou, cal);
@@ -55,12 +52,8 @@ export default async function Home({ searchParams }) {
   const roleNames = {};
   for (const m of allTeam) for (const r of m.roles) (roleNames[r] ||= []).push(m.name);
   const teamNames = staffNames(allTeam);
-  // Triage (director): tasks with no owner, then owned tasks 7+ days late
-  const byDue = (a, b) => (a.due || '9').localeCompare(b.due || '9');
   const cutoff = addDays(todayET(), -ESCALATE_DAYS);
-  const unowned = triageOn ? all.filter(needsOwner).sort(byDue) : [];
-  const mineIds = new Set(mine.map(t => t.id));
-  const veryLate = triageOn ? all.filter(t => !t.completed && !needsOwner(t) && !mineIds.has(t.id) && t.due && t.due <= cutoff).sort(byDue) : [];
+  const veryLate = triageOn ? all.filter(t => !t.completed && !needsOwner(t) && t.due && t.due <= cutoff) : [];
   const listProps = { showWho: false, team: teamNames, roleNames, short: true };
 
   const [programming, meetings, note, social] = await Promise.all([
@@ -77,7 +70,7 @@ export default async function Home({ searchParams }) {
   if (user.director && viewing === user) {
     const rows = await readinessRows(user, all).catch(() => []);
     glance = {
-      atRisk: rows.filter(r => r.status === 'red').length,
+      atRisk: rows.filter(atRisk).length,
       unowned: all.filter(needsOwner).length,
     };
   }
@@ -110,7 +103,7 @@ export default async function Home({ searchParams }) {
       {glance && (
         <div className="ops-glance">
           <a href="/ops/events" className={glance.atRisk ? 'is-bad' : ''}><b>{glance.atRisk}</b> event{glance.atRisk === 1 ? '' : 's'} at risk</a>
-          <a href="#triage" className={glance.unowned ? 'is-bad' : ''}><b>{glance.unowned}</b> unowned task{glance.unowned === 1 ? '' : 's'}</a>
+          <a href="/ops/tasks?show=unowned" className={glance.unowned ? 'is-bad' : ''}><b>{glance.unowned}</b> task{glance.unowned === 1 ? '' : 's'} need{glance.unowned === 1 ? 's' : ''} an owner</a>
           <a href="/ops/tasks?show=late" className={veryLate.length ? 'is-bad' : ''}><b>{veryLate.length}</b> task{veryLate.length === 1 ? '' : 's'} a week+ late</a>
         </div>
       )}
@@ -136,18 +129,6 @@ export default async function Home({ searchParams }) {
         {later > 0 && <p className="ops-more"><a href={viewing === user ? '/ops/tasks' : `/ops/tasks?who=${encodeURIComponent(viewing.name)}`}>{later} more in the next 4 weeks →</a></p>}
         {socialLine && <p className="ops-more"><a href="/ops/content?tab=social">{socialLine} →</a></p>}
 
-        {triageOn && (<div id="triage">
-          <h2 className={unowned.length || veryLate.length ? 'late' : ''}>Triage <span>{unowned.length + veryLate.length}</span></h2>
-          {unowned.length + veryLate.length === 0 && <p className="ops-empty">Every open task has an owner, and nothing is a week late.</p>}
-          {unowned.length > 0 && (<div className="ops-group">
-            <h3>Needs an owner <span>— assign here, or name the teacher or host on the Master Schedule</span></h3>
-            <TaskList tasks={unowned} showWho team={teamNames} roleNames={roleNames} assign empty="" />
-          </div>)}
-          {veryLate.length > 0 && (<div className="ops-group">
-            <h3>{ESCALATE_DAYS}+ days late <span>— owners were emailed at 3 days</span></h3>
-            <TaskList tasks={veryLate} showWho team={teamNames} roleNames={roleNames} empty="" />
-          </div>)}
-        </div>)}
       </section>
 
       <aside className="ops-col">

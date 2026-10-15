@@ -97,3 +97,27 @@ There are no unit tests. Pages need a signed-in user and live sheets. To check a
 - Staff see only their own tasks (plus anything waiting on them); directors see all.
 - Personal/Oxford tasks stay in Jacob's own Motion; they are never imported.
 - Circle cancellation handling (remove + Kit win-back tag): later, needs a source.
+
+## 8. Refinement pass (Oct 15 2026, branch `ops-refine`)
+
+- **Programs** (`lib/ops/programs.js`, `app/api/ops/program/route.js`, `app/ops/events/ProgramEditor.js`): "+ Add program" on
+  Programming makes N sessions at once (Schedule + Event Details rows sharing one Series). The program drawer edits
+  each session's module title + description (Event Details `Module Title`; fills `Public Title` = "Program: Module" and
+  `Summary`, which the website already reads) and the fields every session shares, and adds sessions. Two new
+  dashboard-only Event Details columns, added on first save: `Program Name`, `Module Title`. Readiness groups any
+  non-MM series into one row (`P-<series>`). Bulk sheet writes: `updateRows` / `nextIds` / `readRows` in `store.js`.
+- **Task generator**: no teacher named → one "Name the teacher" task per session (one per series) instead of a
+  "Teacher (unassigned)" copy of every teacher template. The daily sync closes sync-made tasks (`created_by = ''`)
+  whose template is gone, that "Name the teacher" replaced, or "Name the teacher" once a teacher is named
+  (`orphans()` in `tasks.js`). Hand-added and Motion-imported tasks are never closed. Bio tasks are skipped (and
+  auto-closed) for teachers with a website bio or who are staff, matching the readiness check.
+- **Readiness labels**: a row whose first session has passed says Running / Running, behind / Wrapping up /
+  Follow-up late; "At risk" is only for things not started. Checks due before a session that already happened drop off.
+- **Today**: one list. Badge = exactly "Needs you". Triage moved to Tasks → No owner (Today's tiles link there).
+- **Sidebar** in sections (Programs, People, Publishing, Students, Business; CE credits + Settings under the divider).
+  "Social" is now "Content"; "Faculty & onboarding" is "Faculty".
+- **Support**: Kit/Zoom/Vimeo/Google senders and bracket-code spam go to Pitches & automated; one row per person
+  (their other tickets counted); topic chips (Recordings & slides, Access & sign-in, Orders & billing, Other).
+- **Finance**: off-plan figures (YTD revenue behind plan, ad spend over budget, ad share over ceiling, low runway)
+  get the terra edge and ▼, the same weight as the ROAS arrow.
+- Test kit: `scripts/ops-test/program.cjs` (program flow); mock gained the real SS teacher templates.

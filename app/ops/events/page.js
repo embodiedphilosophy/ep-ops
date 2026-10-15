@@ -4,12 +4,13 @@ import { loadCalendar } from '@/lib/calendar';
 import { emailsOf, todayET } from '@/lib/events';
 import { longDate } from '@/lib/dates';
 import { joinUrlFor, seriesLinksOf, upcomingMeetings, inCircle } from '@/lib/ops/joinurl';
-import { readinessRows, WEEKS } from '@/lib/ops/readiness';
+import { readinessRows, labelOf, WEEKS } from '@/lib/ops/readiness';
 import { kitConfigured, tagCounts } from '@/lib/kit';
 import { isTeacher, canEditEvents } from '@/lib/ops/nav';
 import EventEditor from './EventEditor';
 import CirclePanel from './CirclePanel';
 import { AddEvent, AddPastEvent, Restore } from './EventActions';
+import { AddProgram, ProgramEditor } from './ProgramEditor';
 import { readRange, toObjects } from '@/lib/google';
 import Shell, { opsUser } from '../Shell';
 import TaskList from '../TaskList';
@@ -18,7 +19,6 @@ import { SITE } from '@/lib/siteurl';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Events — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const LABEL = { red: 'At risk', amber: 'Due soon', green: 'On track', grey: 'Nothing due yet' };
 const short = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
 const qs = (sp, extra) => {
   const p = new URLSearchParams();
@@ -141,11 +141,11 @@ export default async function Events({ searchParams }) {
           {shown.map(r => (
             <li key={r.key} className={r.key === open?.key ? 'is-open' : ''}>
               <a href={qs(sp, { event: r.key })}>
-                <span className={`st ${r.status}`}><span className={`dot ${r.status}`} aria-hidden="true" />{LABEL[r.status]}</span>
+                <span className={`st ${r.status}`}><span className={`dot ${r.status}`} aria-hidden="true" />{labelOf(r)}</span>
                 <span className="date">{short(r.date)}</span>
                 <span className="what">
-                  <span><span className="ttl">{r.title}</span><span className="trk">{r.track}</span></span>
-                  <span className="sub">{r.teachers || 'No teacher yet'}{(r.nextCheck || r.next) ? ' · ' : ''}
+                  <span><span className="ttl">{r.title}</span><span className="trk">{r.program ? `${r.track} · ${r.allSessions} sessions` : r.track}</span></span>
+                  <span className="sub">{r.teachers || 'No teacher yet'}{r.late ? <> · <span className="miss">{r.late} task{r.late === 1 ? '' : 's'} late</span></> : ''}{(r.nextCheck || r.next) ? ' · ' : ''}
                     {r.nextCheck ? <span className={r.nextCheck.due < today ? 'miss' : ''}>Missing {r.nextCheck.label}{r.nextCheck.detail ? ` (${r.nextCheck.detail})` : ''}, {r.nextCheck.due < today ? 'was due' : 'due'} {short(r.nextCheck.due)}</span>
                       : r.next ? `Next: ${r.next.name.split(' — ')[0]}${r.next.due ? ` (${short(r.next.due)})` : ''}` : ''}</span>
                 </span>
@@ -162,24 +162,33 @@ export default async function Events({ searchParams }) {
       {open && (
         <aside className="ops-drawer" aria-label={open.title}>
           <a className="close" href={qs(sp)} aria-label="Close">×</a>
-          <span className={`pill ${open.status}`}>{LABEL[open.status]}</span>
+          <span className={`pill ${open.status}`}>{labelOf(open)}</span>
           <h2>{open.title}</h2>
           <p className="when">{open.events.length > 1 ? open.events.map(e => short(e.date)).join(' · ') : `${longDate(open.date)}${open.end_date && open.end_date !== open.date ? ` – ${longDate(open.end_date)}` : ''}${open.events[0].time ? ` · ${open.events[0].time}` : ''}`}</p>
           {enrolled(open) != null && (<div className="ops-enrolled"><b>{enrolled(open)}</b> enrolled<span> in Kit: {tagsOf(open).map(t => `${t} ${counts[t.toLowerCase()] ?? '—'}`).join(', ')}</span></div>)}
-          {open.checks.length > 0 && (<>
-            <h3>Ready <span>{open.ready} of {open.checks.length}</span></h3>
-            <ul className="ops-checks">
-              {open.checks.map((c, i) => (
-                <li key={i} className={c.ready ? 'ok' : c.due < today ? 'late' : 'todo'}>
-                  <span className="mk" aria-hidden="true">{c.ready ? '✓' : ''}</span>
-                  <span>{c.label}{open.events.length > 1 && <span className="sub"> · {short(c.event.date)}</span>}
-                    {!c.ready && <span className="sub"> · {c.detail ? `${c.detail}, ` : ''}due {short(c.due)}{c.field && canEditEvents(user) ? ` · fix in Edit details` : ''}</span>}</span>
-                </li>
-              ))}
-            </ul>
-          </>)}
+          {canEditEvents(user) && open.program && <ProgramEditor key={`p-${open.key}`} series={open.program} />}
+          {open.checks.length > 0 && (() => {
+            // A program has a check list per session: show only what's missing (soonest first), the rest folded
+            const list = open.program ? open.checks.filter(c => !c.ready).sort((a, b) => a.due.localeCompare(b.due)) : open.checks;
+            const item = (c, i) => (
+              <li key={i} className={c.ready ? 'ok' : c.due < today ? 'late' : 'todo'}>
+                <span className="mk" aria-hidden="true">{c.ready ? '✓' : ''}</span>
+                <span>{c.label}{open.events.length > 1 && <span className="sub"> · {short(c.event.date)}</span>}
+                  {!c.ready && <span className="sub"> · {c.detail ? `${c.detail}, ` : ''}due {short(c.due)}{c.field && canEditEvents(user) ? ` · fix in ${open.program ? 'For every session or Edit one session' : 'Edit details'}` : ''}</span>}</span>
+              </li>
+            );
+            return (<>
+              <h3>Ready <span>{open.ready} of {open.checks.length}</span></h3>
+              {open.program ? (list.length === 0 ? <p className="ops-empty">Everything due so far is in.</p> : (
+                <details className="ops-done" open={list.length <= 6}>
+                  <summary>{list.length} missing across the sessions in the next {WEEKS} weeks</summary>
+                  <ul className="ops-checks">{list.map(item)}</ul>
+                </details>
+              )) : <ul className="ops-checks">{list.map(item)}</ul>}
+            </>);
+          })()}
           {canEditEvents(user) && (
-            <EventEditor key={open.key} sessions={open.events.filter(e => e.sched_id).map(e => ({ id: e.sched_id, date: e.date, track: e.track, label: `${short(e.date)} · ${e.title}` }))} />
+            <EventEditor key={open.key} label={open.program ? 'Edit one session' : undefined} sessions={open.events.filter(e => e.sched_id).map(e => ({ id: e.sched_id, date: e.date, track: e.track, label: `${short(e.date)} · ${e.title}` }))} />
           )}
           {canEditEvents(user) && open.events.some(e => e.sched_id && inCircle(e)) && (
             <CirclePanel key={`c-${open.key}`} ids={open.events.filter(e => e.sched_id && inCircle(e)).map(e => e.sched_id)} />
@@ -227,6 +236,6 @@ function Filters({ sp, hidden, editor, tracks, past = false }) {
         ? <a href={qs({})}>Hide events with nothing due</a>
         : hidden > 0 ? <a href={qs({}, { all: '1' })}>Show {hidden} with nothing due yet</a> : null)}
     </nav>
-    {editor && !past && <div className="ops-add-wrap"><AddEvent tracks={tracks} /></div>}
+    {editor && !past && <div className="ops-add-wrap"><AddProgram tracks={tracks} /><AddEvent tracks={tracks} /></div>}
   </>);
 }

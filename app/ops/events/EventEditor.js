@@ -11,7 +11,7 @@ const PAST_GROUPS = ['After', 'Website', 'People'];
 
 // Edit one session's details (Schedule + Event Details) from the event drawer.
 // sessions: [{ id: 'E028', date, label, track }] — more than one for a weekly series or multi-session course
-export default function EventEditor({ sessions, past = false }) {
+export default function EventEditor({ sessions, past = false, label = 'Edit details' }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [sid, setSid] = useState(sessions[0]?.id || '');
@@ -50,7 +50,7 @@ export default function EventEditor({ sessions, past = false }) {
     setErrors(j?.errors || {}); setMsg(j?.error || 'Couldn’t save. Try again.');
   };
 
-  if (!open) return <p className="ops-edit-open"><button className="chip" onClick={start}>Edit details</button></p>;
+  if (!open) return <p className="ops-edit-open"><button className="chip" onClick={start}>{label}</button></p>;
   const set = (k, v) => setVals(s => ({ ...s, [k]: v }));
   const input = f => {
     const v = vals[f.key] ?? '', dis = busy || locked.includes(f.key), id = `f-${f.key.replace(/\W+/g, '-')}`;

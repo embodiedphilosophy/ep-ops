@@ -65,13 +65,13 @@ export default async function Insights({ searchParams }) {
 
       <ul className="ops-kpis">
         <li><span className="l">Revenue</span><span className="v">{usd(cur.gross || 0)}</span><span className="d">{vsPlan(cur.gross || 0, cur.plan || 0)}</span></li>
-        <li><span className="l">Meta ad spend</span><span className="v">{usd(cur.ads || 0)}</span>
-          <span className={`d${adShare > m.adCeiling ? ' bad' : ''}`}>{cur.gross ? `${adShare.toFixed(0)}% of revenue (ceiling ${m.adCeiling}%)` : vsPlan(cur.ads || 0, cur.planAds || 0)}</span></li>
+        <li className={cur.gross && adShare > m.adCeiling ? 'is-bad' : ''}><span className="l">Meta ad spend</span><span className="v">{usd(cur.ads || 0)}</span>
+          <span className={`d${adShare > m.adCeiling ? ' bad' : ''}`}>{cur.gross && adShare > m.adCeiling ? <b aria-hidden="true">▼ </b> : null}{cur.gross ? `${adShare.toFixed(0)}% of revenue (ceiling ${m.adCeiling}%)` : vsPlan(cur.ads || 0, cur.planAds || 0)}</span></li>
         <li><span className="l">Return on ad spend</span><span className="v">{cur.ads ? `${cur.roas.toFixed(2)}×` : '—'}</span>
           {cur.ads > 0 && <span className={`d status ${roasOk ? 'good' : 'critical'}`}><b aria-hidden="true">{roasOk ? '▲' : '▼'}</b> {roasOk ? 'At or above' : 'Below'} the {m.roasTarget}× target</span>}</li>
         <li><span className="l">Revenue after ads</span><span className="v">{usd(cur.afterAds || 0)}</span><span className="d">Net revenue minus Meta</span></li>
         <li><span className="l">Operating profit</span><span className="v">{cur.opex ? usd(cur.profit) : '—'}</span><span className="d">{cur.opex ? `After ${usd(cur.opex)} of expenses` : 'Bank expenses are imported monthly'}</span></li>
-        <li><span className="l">Cash</span><span className="v">{usd(m.cash)}</span><span className={`d${m.runway < 2 ? ' bad' : ''}`}>{m.runway ? `${m.runway} months of runway` : ''}{m.cashAsOf ? ` · as of ${m.cashAsOf}` : ''}</span></li>
+        <li className={m.runway && m.runway < 2 ? 'is-bad' : ''}><span className="l">Cash</span><span className="v">{usd(m.cash)}</span><span className={`d${m.runway < 2 ? ' bad' : ''}`}>{m.runway ? `${m.runway} months of runway` : ''}{m.cashAsOf ? ` · as of ${m.cashAsOf}` : ''}</span></li>
       </ul>
 
       <section className="ops-ytd">
@@ -85,9 +85,10 @@ export default async function Insights({ searchParams }) {
           {' '}The plan through {short(month)} was {usd(ytd.plan)}: <b className={gap < 0 ? 'behind' : 'ahead'}>{usd(Math.abs(gap))} {gap < 0 ? 'behind' : 'ahead'}</b>.
         </p>
         <ul className="ops-kpis">
-          <li><span className="l">Revenue, year to date</span><span className="v">{usd(ytd.gross)}</span><span className="d">{vsPlan(ytd.gross, ytd.plan).replace('plan', 'plan to date')}</span></li>
-          <li><span className="l">Meta ad spend, year to date</span><span className="v">{usd(ytd.ads)}</span>
-            <span className={`d${ytd.ads > ytd.planAds ? ' bad' : ''}`}>{ytd.planAds ? `${Math.round((ytd.ads / ytd.planAds) * 100)}% of the ${usd(ytd.planAds)} budgeted` : 'No ad budget'}</span></li>
+          <li className={ytd.plan && gap < 0 ? 'is-bad' : ''}><span className="l">Revenue, year to date</span><span className="v">{usd(ytd.gross)}</span>
+            <span className={`d${ytd.plan && gap < 0 ? ' bad' : ''}`}>{ytd.plan && gap < 0 ? <b aria-hidden="true">▼ </b> : null}{vsPlan(ytd.gross, ytd.plan).replace('plan', 'plan to date')}</span></li>
+          <li className={ytd.planAds && ytd.ads > ytd.planAds ? 'is-bad' : ''}><span className="l">Meta ad spend, year to date</span><span className="v">{usd(ytd.ads)}</span>
+            <span className={`d${ytd.ads > ytd.planAds ? ' bad' : ''}`}>{ytd.planAds && ytd.ads > ytd.planAds ? <b aria-hidden="true">▼ Over budget: </b> : null}{ytd.planAds ? `${Math.round((ytd.ads / ytd.planAds) * 100)}% of the ${usd(ytd.planAds)} budgeted` : 'No ad budget'}</span></li>
           <li><span className="l">Return on ad spend, year to date</span><span className="v">{ytd.ads ? `${ytd.roas.toFixed(2)}×` : '—'}</span>
             {ytd.ads > 0 && <span className={`d status ${ytd.roas >= m.roasTarget ? 'good' : 'critical'}`}><b aria-hidden="true">{ytd.roas >= m.roasTarget ? '▲' : '▼'}</b> Target {m.roasTarget}×</span>}</li>
           <li><span className="l">Revenue after ads, year to date</span><span className="v">{usd(ytd.afterAds)}</span><span className="d">Plan to date {usd(ytd.planAfterAds)} (revenue minus ad budget)</span></li>
