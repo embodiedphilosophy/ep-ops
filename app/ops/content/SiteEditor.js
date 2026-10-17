@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
+import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, LIBRARY_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
 
 const SELECTS = { rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
 const RULE_LABEL = { '': 'Worked out from the wording', bio: 'Bio and headshot are in', title: 'Public title and summary are in', blurbs: 'Promo blurbs are in', readings: 'Readings shared up front', video_id: 'Replay link (or Vimeo ID) is in', manual: 'Only by hand' };
@@ -13,7 +13,7 @@ const yes = v => String(v).toUpperCase() !== 'FALSE';
 // base: the page's own address, for the tab links.
 // scope 'settings' (Settings): the operations tables (directors) and the website tables, in two groups.
 export default function SiteEditor({ initial = 'links', scope = 'site', base = '/ops/settings?', director = false }) {
-  const GROUPS = scope === 'settings' ? [...(director ? [['Operations', ADMIN_TABLES]] : []), ['Website', SITE_TABLES], ['Sahṛdaya Upāya', MENTEE_TABLES]] : null;
+  const GROUPS = scope === 'settings' ? [...(director ? [['Operations', ADMIN_TABLES]] : []), ['Website', SITE_TABLES], ['Sahṛdaya Upāya', MENTEE_TABLES], ['Library', LIBRARY_TABLES]] : null;
   const TABLES = GROUPS ? GROUPS.flatMap(g => g[1]) : scope === 'admin' ? ADMIN_TABLES : scope === 'email' ? [SCAFFOLDING] : SITE_TABLES;
   const [tab, setTab] = useState(initial);
   const [data, setData] = useState(null);     // { head, rows, locked, canEdit } | { error }
