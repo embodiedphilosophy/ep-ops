@@ -145,3 +145,11 @@ There are no unit tests. Pages need a signed-in user and live sheets. To check a
 - Tests: `scripts/ops-test/faculty.cjs` (invite → sign → sessions → To pay → teacher modules → copy program → search).
 - **Programming range** (Oct 15): `?range=8w|3m|6m|12m`, default 6 months. Rows with something due come first; the rest
   are listed month by month (nothing is hidden any more). A session opened by link beyond the range is still found.
+
+## 8. Sahṛdaya Upāya "This week" (Oct 2026)
+
+The mentees' "This week" page is built in **ep-website** (`/school/sahrdaya-upaya/this-week`, drawn inside a Secret Circle space; see ep-website `docs/mentee-this-week.md`). Ops only holds what staff write for it: Settings → **Sahṛdaya Upāya** has four tables (tabs on the calendar sheet, made from the editor the first time): **Weekly reading**, **Assignments**, **Teaching feedback** (private to each mentee) and **Coming soon**. Defined in `lib/ops/sitetables.js` (`MENTEE_TABLES`). Formation hours stay where they are (the website's `member_formation`, credited by Circle admins); the monthly one-to-one stays on Calendly. Tested against the mock only (create tab, add row, validation, Change Log).
+
+## 9. Library by department (Oct 2026)
+
+Settings → **Library** → **Library items** is where staff enter the member Library shown in Circle at `/c/library` (ep-website, `public/circle/library.js`; see ep-website `docs/library-departments.md`). One row per item: department, level (Foundations / Deepening / Advanced), label, title, teachers, link, access, publish. Defined in `lib/ops/sitetables.js` (`LIBRARY_TABLES`); the `Library Items` tab is made from the editor on first use. Tested against the mock (create tab, add row, validation, Change Log).
