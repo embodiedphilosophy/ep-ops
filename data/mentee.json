@@ -1,0 +1,100 @@
+{
+  "season": "fall-2026",
+  "programme": "sadhana-school",
+  "mentorship_sessions_space_id": 2896671,
+  "mentorship_circle_space_id": 2896670,
+  "mentorship_circle_url": "https://ss.embodiedphilosophy.com/c/mentorship-circle",
+  "chat_url": "https://ss.embodiedphilosophy.com/c/sah-daya-upaya-messages",
+  "chat_space_id": null,
+  "workbook_url": "https://ss.embodiedphilosophy.com/c/apprentice-workbook",
+  "message_url": "mailto:jacob@embodiedphilosophy.com",
+  "booking_url": "https://calendly.com/embodied-philosophy/sah-daya-upaya-monthly-1-1-mentorship",
+  "pinned": [],
+  "windows": [
+    {
+      "from": "2026-10-26",
+      "to": "2026-10-30"
+    },
+    {
+      "from": "2026-11-23",
+      "to": "2026-11-27"
+    },
+    {
+      "from": "2026-12-21",
+      "to": "2026-12-23"
+    },
+    {
+      "from": "2027-01-25",
+      "to": "2027-01-29"
+    },
+    {
+      "from": "2027-02-22",
+      "to": "2027-02-26"
+    },
+    {
+      "from": "2027-03-22",
+      "to": "2027-03-26"
+    },
+    {
+      "from": "2027-04-26",
+      "to": "2027-04-30"
+    },
+    {
+      "from": "2027-05-24",
+      "to": "2027-05-28"
+    }
+  ],
+  "immersions": [
+    {
+      "n": 1,
+      "title": "Beneath the Pose",
+      "sat": "2026-11-14",
+      "sun": "2026-11-15"
+    },
+    {
+      "n": 2,
+      "title": "Tasting the Real",
+      "sat": "2026-12-05",
+      "sun": "2026-12-06"
+    },
+    {
+      "n": 3,
+      "title": "Two Tongues",
+      "sat": "2027-02-06",
+      "sun": "2027-02-07"
+    },
+    {
+      "n": 4,
+      "title": "Shadow Speech",
+      "sat": "2027-02-20",
+      "sun": "2027-02-21"
+    },
+    {
+      "n": 5,
+      "title": "Dying Before Death",
+      "sat": "2027-03-13",
+      "sun": "2027-03-14"
+    },
+    {
+      "n": 6,
+      "title": "Grace and Initiation",
+      "sat": "2027-04-10",
+      "sun": "2027-04-11"
+    },
+    {
+      "n": 7,
+      "title": "Cult or Community?",
+      "sat": "2027-05-08",
+      "sun": "2027-05-09"
+    },
+    {
+      "n": 8,
+      "title": "The Spectre of Authenticity",
+      "sat": "2027-05-29",
+      "sun": "2027-05-30"
+    }
+  ],
+  "calendly_event_type": "d1488024-05b7-4573-bd2f-24fe13a83e43",
+  "chat_room_uuid": "df53fdc0-302b-405a-9261-f0a83adbe4fb",
+  "workbook_space_id": 2900305
+}

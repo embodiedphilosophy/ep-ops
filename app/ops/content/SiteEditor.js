@@ -2,10 +2,14 @@
 import { useEffect, useState } from 'react';
 import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, LIBRARY_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
 
-const SELECTS = { rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
+const SELECTS = { bookkind: ['required', 'suggested'], rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
 const RULE_LABEL = { '': 'Worked out from the wording', bio: 'Bio and headshot are in', title: 'Public title and summary are in', blurbs: 'Promo blurbs are in', readings: 'Readings shared up front', video_id: 'Replay link (or Vimeo ID) is in', manual: 'Only by hand' };
 
-const label = h => h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+// Plainer names for a few columns of the Today tabs (Settings → Today: teaching / sacred days)
+const NICE = { week_start: 'Week starts (Monday)', sanskrit_iast: 'Sanskrit', translation: 'Translation', source: 'Source',
+  prompt_mon: 'Question for Monday', prompt_tue: 'Question for Tuesday', prompt_wed: 'Question for Wednesday', prompt_thu: 'Question for Thursday',
+  prompt_fri: 'Question for Friday', prompt_sat: 'Question for Saturday', prompt_sun: 'Question for Sunday' };
+const label = h => NICE[h] || h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const yes = v => String(v).toUpperCase() !== 'FALSE';
 
 // Content → Website (scope 'site'), Content → Email (scope 'email': the Weekly Scaffolding) and
@@ -133,12 +137,12 @@ function RowForm({ t, head, locked = [], row, values, canEdit = true, onDone }) 
   };
   const input = h => {
     const v = vals[h] ?? '', type = typeOf(t.key, h, vals), id = `s-${h.replace(/\W+/g, '-')}`, set = x => setVals(s => ({ ...s, [h]: x }));
-    if (type === 'bool') return <select id={id} value={String(v).toUpperCase()} disabled={ro(h) || busy} onChange={e => set(e.target.value)}><option value="">{['website', 'teachers'].includes(h) ? 'No (blank)' : 'Yes (blank)'}</option><option value="TRUE">Yes</option><option value="FALSE">No</option></select>;
+    if (type === 'bool') return <select id={id} value={String(v).toUpperCase()} disabled={ro(h) || busy} onChange={e => set(e.target.value)}><option value="">{['website', 'teachers', 'final'].includes(h) ? 'No (blank)' : 'Yes (blank)'}</option><option value="TRUE">Yes</option><option value="FALSE">No</option></select>;
     if (SELECTS[type]) return <select id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)}>{[...new Set([...(type === 'rule' ? [] : ['']), ...SELECTS[type], v])].map(o => <option key={o} value={o}>{type === 'rule' ? RULE_LABEL[o] || o : o || '—'}</option>)}</select>;
     if (type === 'color') return <input id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} placeholder="#1E4772" style={{ borderLeft: /^#[0-9a-f]{6}$/i.test(v) ? `14px solid ${v}` : undefined }} />;
     if (type === 'contract') return <textarea id={id} rows={18} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} style={{ fontFamily: 'Georgia, serif' }} />;
     if (type === 'long') return <textarea id={id} rows={Math.min(8, Math.max(3, Math.ceil(String(v).length / 70)))} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} />;
-    return <input id={id} value={v} disabled={ro(h) || busy} type={type === 'date' ? 'date' : 'text'} inputMode={type === 'number' ? 'decimal' : undefined} onChange={e => set(e.target.value)} />;
+    return <input id={id} value={v} disabled={ro(h) || busy} type={type === 'date' ? 'date' : 'text'} placeholder={type === 'slot' ? '2026-10-24 10:00 ET' : undefined} inputMode={type === 'number' ? 'decimal' : undefined} onChange={e => set(e.target.value)} />;
   };
   return (
     <form className="ops-edit" onSubmit={e => { e.preventDefault(); save(); }}>
