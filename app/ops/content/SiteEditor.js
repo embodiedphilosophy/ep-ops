@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, LIBRARY_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
+import { upload } from '@vercel/blob/client';
+import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, SS_TABLES, LIBRARY_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
 
-const SELECTS = { bookkind: ['required', 'suggested'], rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
+const SELECTS = { readkind: ['session', 'core', 'suggested', 'need', 'intro', 'footer'], bookkind: ['required', 'suggested'], rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
 const RULE_LABEL = { '': 'Worked out from the wording', bio: 'Bio and headshot are in', title: 'Public title and summary are in', blurbs: 'Promo blurbs are in', readings: 'Readings shared up front', video_id: 'Replay link (or Vimeo ID) is in', manual: 'Only by hand' };
 
 // Plainer names for a few columns of the Today tabs (Settings → Today: teaching / sacred days)
-const NICE = { week_start: 'Week starts (Monday)', sanskrit_iast: 'Sanskrit', translation: 'Translation', source: 'Source',
+const NICE = { file_url: 'File to download', link_url: 'Link to open', week_start: 'Week starts (Monday)', sanskrit_iast: 'Sanskrit', translation: 'Translation', source: 'Source',
   prompt_mon: 'Question for Monday', prompt_tue: 'Question for Tuesday', prompt_wed: 'Question for Wednesday', prompt_thu: 'Question for Thursday',
   prompt_fri: 'Question for Friday', prompt_sat: 'Question for Saturday', prompt_sun: 'Question for Sunday' };
 const label = h => NICE[h] || h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -17,7 +18,7 @@ const yes = v => String(v).toUpperCase() !== 'FALSE';
 // base: the page's own address, for the tab links.
 // scope 'settings' (Settings): the operations tables (directors) and the website tables, in two groups.
 export default function SiteEditor({ initial = 'links', scope = 'site', base = '/ops/settings?', director = false }) {
-  const GROUPS = scope === 'settings' ? [...(director ? [['Operations', ADMIN_TABLES]] : []), ['Website', SITE_TABLES], ['Sahṛdaya Upāya', MENTEE_TABLES], ['Library', LIBRARY_TABLES]] : null;
+  const GROUPS = scope === 'settings' ? [...(director ? [['Operations', ADMIN_TABLES]] : []), ['Website', SITE_TABLES], ['Sādhana School', SS_TABLES], ['Sahṛdaya Upāya', MENTEE_TABLES], ['Library', LIBRARY_TABLES]] : null;
   const TABLES = GROUPS ? GROUPS.flatMap(g => g[1]) : scope === 'admin' ? ADMIN_TABLES : scope === 'email' ? [SCAFFOLDING] : SITE_TABLES;
   const [tab, setTab] = useState(initial);
   const [data, setData] = useState(null);     // { head, rows, locked, canEdit } | { error }
@@ -141,6 +142,7 @@ function RowForm({ t, head, locked = [], row, values, canEdit = true, onDone }) 
     if (SELECTS[type]) return <select id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)}>{[...new Set([...(type === 'rule' ? [] : ['']), ...SELECTS[type], v])].map(o => <option key={o} value={o}>{type === 'rule' ? RULE_LABEL[o] || o : o || '—'}</option>)}</select>;
     if (type === 'color') return <input id={id} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} placeholder="#1E4772" style={{ borderLeft: /^#[0-9a-f]{6}$/i.test(v) ? `14px solid ${v}` : undefined }} />;
     if (type === 'contract') return <textarea id={id} rows={18} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} style={{ fontFamily: 'Georgia, serif' }} />;
+    if (type === 'file') return <FileField id={id} value={v} disabled={ro(h) || busy} folder={vals.season || 'season'} onChange={set} />;
     if (type === 'long') return <textarea id={id} rows={Math.min(8, Math.max(3, Math.ceil(String(v).length / 70)))} value={v} disabled={ro(h) || busy} onChange={e => set(e.target.value)} />;
     return <input id={id} value={v} disabled={ro(h) || busy} type={type === 'date' ? 'date' : 'text'} placeholder={type === 'slot' ? '2026-10-24 10:00 ET' : undefined} inputMode={type === 'number' ? 'decimal' : undefined} onChange={e => set(e.target.value)} />;
   };
@@ -166,5 +168,29 @@ function RowForm({ t, head, locked = [], row, values, canEdit = true, onDone }) 
         {msg && <span className="hint">{msg}</span>}
       </div>
     </form>
+  );
+}
+
+// A link, or a file uploaded to the ep-media Blob store (readings/…) whose public address fills the field
+function FileField({ id, value, disabled, folder, onChange }) {
+  const [state, setState] = useState('');
+  const pick = async e => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setState('Uploading…');
+    try {
+      const safe = file.name.replace(/[^\w.\- ]+/g, '').replace(/\s+/g, '-') || 'reading';
+      const blob = await upload(`readings/${String(folder).replace(/[^a-z0-9-]+/gi, '-')}/${safe}`, file, { access: 'public', handleUploadUrl: '/api/teach/upload' });
+      onChange(blob.url); setState('Uploaded. Save to publish it.');
+    } catch (err) { setState(err?.message ? `Couldn’t upload: ${err.message}` : 'Couldn’t upload. Try again.'); }
+  };
+  return (
+    <span className="ops-file">
+      <input id={id} value={value} disabled={disabled} type="text" placeholder="Upload a file, or paste a link" onChange={e => onChange(e.target.value)} />
+      {!disabled && <label className="chip">{state === 'Uploading…' ? 'Uploading…' : value ? 'Replace file' : 'Upload a file'}<input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp3,.m4a" disabled={state === 'Uploading…'} onChange={pick} /></label>}
+      {value && <a className="chip" href={value} target="_blank" rel="noopener">View ↗</a>}
+      {state && state !== 'Uploading…' && <span className="hint">{state}</span>}
+    </span>
   );
 }

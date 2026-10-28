@@ -50,7 +50,8 @@ export async function POST(req) {
   }
   if (create) {
     if (!t.create) return NextResponse.json({ error: 'This tab can’t be created here' }, { status: 400 });
-    try { await createTab(t.title, t.columns); return NextResponse.json({ ok: true }); }
+    // A tab with a starting set (Season Readings: Fall 2026) is filled in at the moment a person asks for it to be made
+    try { await createTab(t.title, t.columns, t.seed || [], { who: user.name || user.email }); refreshSite(); return NextResponse.json({ ok: true }); }
     catch (e) { return NextResponse.json({ error: e.message }, { status: 502 }); }
   }
   if (row == null && !t.add) return NextResponse.json({ error: 'Rows can’t be added to this tab' }, { status: 400 });

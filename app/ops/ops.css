@@ -748,3 +748,4 @@
 .ops-shell .ops-range > span { font-size: 13px; color: var(--ink-soft); margin-right: 4px }
 .ops-shell .ops-month { margin-top: 28px }
 .ops-shell .ops-month .ops-sub span { font-weight: 500; color: var(--ink-soft); letter-spacing: 0; text-transform: none; margin-left: 6px }
+.ops-file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center } .ops-file input[type=text] { flex: 1 1 260px; min-width: 0 } .ops-file label.chip { cursor: pointer }
