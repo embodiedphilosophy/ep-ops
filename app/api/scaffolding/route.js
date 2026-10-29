@@ -9,6 +9,8 @@ import { jobsHere, SKIPPED } from '@/lib/crongate';
 // Re-running for the same Sunday overwrites that draft (if it is still an unsent draft), so make text
 // changes in the dashboard (Content → Email), then rebuild there. Edits made inside Kit are lost on a rebuild.
 // The building itself is lib/ops/scaffoldrun.js, shared with the dashboard's Build / Preview buttons.
+// The draft goes to Kit as editable editor blocks (lib/scaffoldtree.js); if Kit refuses them it falls back to one
+// HTML block (lib/scaffolding.js). SCAFFOLDING_FORMAT=html forces HTML.
 //
 // Modes (all need ?key=CRON_SECRET or the cron's Authorization header):
 //   (none)                 the cron: the coming Sunday
