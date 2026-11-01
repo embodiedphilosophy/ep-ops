@@ -40,4 +40,7 @@ assert.deepEqual(r2.items.map(i => [i.title, i.state, i.url]), [['Orientation', 
 assert.deepEqual(R.recordingsFrom({ events: [], posts: [], config: cfg2, now: Date.parse('2026-10-31T22:00:00Z') }).items, [], 'not before the day');
 r2 = R.recordingsFrom({ events: [], posts: [], config: cfg2, now: Date.parse('2026-11-05T22:00:00Z') });
 assert.deepEqual([r2.items.length, r2.missing.map(m => m.title)], [0, ['Orientation']]);
+// once the Make scenario posts the recording (slug recording-2026-11-01-143023), the orientation is found with no address filled in
+r2 = R.recordingsFrom({ events: [], posts: [post(20, 'recording-2026-11-01-143023', 'Sah\u1e5bdaya Up\u0101ya: Mentorship Orientation', { duration: 7100 })], config: cfg2, now: Date.parse('2026-11-02T10:00:00Z') });
+assert.deepEqual(r2.items.map(i => [i.state, i.url, i.duration]), [['ready', 'https://ss/recording-2026-11-01-143023', 7100]]); assert.deepEqual(r2.missing, []);
 console.log('recordings (orientation): ok');
