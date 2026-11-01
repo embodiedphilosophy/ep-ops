@@ -15,15 +15,15 @@ assert.equal(P.linkFrom({ url: 'https://ss.example/chat/1' }), 'https://ss.examp
 assert.equal(P.linkFrom({ uuid: 'abc' }, 'https://ss.example/c/messages/{uuid}'), 'https://ss.example/c/messages/abc'); assert.equal(P.linkFrom({ uuid: 'abc' }, ''), ''); assert.equal(P.linkFrom({ url: 'http://insecure' }, ''), '');
 
 const ids = { 'jacob@embodiedphilosophy.com': 1, 'a@x.com': 11, 'b@x.com': 12, 'c@x.com': 13, 'f@x.com': 16, 'g@x.com': 17 };
-const made = [], saved = [];
-const deps = { readRows: async () => rows, memberId: async e => ids[e], makeChat: async (by, o) => { made.push([by, o]); return { uuid: 'u' + made.length }; }, save: async (r, link) => saved.push([r, link]) };
+const made = [], saved = [], said = [];
+const deps = { readRows: async () => rows, memberId: async e => ids[e], makeChat: async (by, o) => { made.push([by, o]); return { uuid: 'u' + made.length }; }, save: async (r, link) => saved.push([r, link]), sendMessage: async (by, uuid, text) => said.push([by, uuid, text]) };
 process.env.PAIR_CHAT_LINK = 'https://ss.example/c/messages/{uuid}';
 assert.deepEqual(await P.runPairChats({ today: '2026-11-02', mode: '', ...deps }), { mode: '', groups: [] }, 'off by default');
 let r = await P.runPairChats({ today: '2026-11-02', mode: 'dry', ...deps }); assert.equal(made.length, 0); assert.deepEqual(r.groups.map(x => x.status), ['would create', 'has a chat already', 'would create']);
 r = await P.runPairChats({ today: '2026-11-02', mode: 'on', ...deps });
 assert.deepEqual(r.groups.map(x => x.status), ['created', 'has a chat already', 'created']); assert.equal(made.length, 2, 'the hand-pasted group is left alone');
 assert.deepEqual(made[0][1].memberIds, [1, 11, 12, 13], 'the mentor is in every chat'); assert.match(made[0][1].name, /Rotation 1 · a & b & c/);
-assert.deepEqual(saved.map(x => x[0]), [2, 3, 4, 6], 'every row of a group gets the link'); assert.equal(saved[0][1], saved[2][1]);
+assert.deepEqual(said.map(x => x[2]), ['Your articulation chat for rotation 1.', 'Your articulation chat for rotation 1.'], 'one opening line per new chat, so Circle makes the chat'); assert.deepEqual(saved.map(x => x[0]), [2, 3, 4, 6], 'every row of a group gets the link'); assert.equal(saved[0][1], saved[2][1]);
 // a failure (someone not in Circle) leaves that group for tomorrow and does not stop the others
 saved.length = 0; made.length = 0; ids['g@x.com'] = undefined;
 r = await P.runPairChats({ today: '2026-11-02', mode: 'on', ...deps }); assert.deepEqual(r.groups.map(x => x.status), ['created', 'has a chat already', 'failed']); assert.match(r.groups[2].error, /No Circle member for g@x.com/); assert.deepEqual(saved.map(x => x[0]), [2, 3, 4]);
@@ -35,5 +35,5 @@ r = await P.runPairChats({ today: '2026-09-20', mode: 'on', ...deps }); assert.d
 // test mode: ONE chat with only the mentor, nothing saved, Circle's reply shown
 made.length = 0; saved.length = 0;
 r = await P.runPairChats({ today: '2026-11-02', mode: 'test', ...deps, makeChat: async (by, o) => { made.push(o); return { uuid: 'zzz', extra: 1 }; } });
-assert.deepEqual(made[0].memberIds, [1]); assert.equal(saved.length, 0); assert.deepEqual(r.test.keys, ['uuid', 'extra']); assert.match(r.test.link, /PAIR_CHAT_LINK/);
+assert.deepEqual(made[0].memberIds, [1]); assert.equal(saved.length, 0); assert.match(r.test.message, /test line was sent/); assert.deepEqual(r.test.keys, ['uuid', 'extra']); assert.match(r.test.link, /PAIR_CHAT_LINK/);
 console.log('pair chats: ok');
