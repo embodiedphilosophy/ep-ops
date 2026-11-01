@@ -57,11 +57,7 @@ export default async function MenteeYear({ searchParams }) {
             </li>))}</ul>}
           {year.overdue.length > 0 && <p className="ops-note" role="status">Overdue: {year.overdue.length} {year.overdue.length === 1 ? 'step' : 'steps'} ({[...new Set(year.overdue.map(o => o.name))].slice(0, 4).join(', ')}{new Set(year.overdue.map(o => o.name)).size > 4 ? ', …' : ''})</p>}
           <p className="ops-more"><a href={href('projects')}>All dated steps →</a></p>
-          {year.review && (<div className="ops-my-review">
-            <h2>{year.review.name} review <span>{year.review.opens ? `opens ${new Date(`${year.review.opensOn}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : `${year.review.progress.filter(x => x.state === 'ready').length} of ${year.review.progress.length} ready`}</span></h2>
-            <ul className="ops-my-grid">{year.review.progress.map(x => <li key={x.email}><span>{x.name}</span><b className={`st ${x.state}`}>{x.state === 'ready' ? 'Ready' : x.state === 'progress' ? `In progress · ${x.ticked} of ${x.total}` : x.state === 'risk' ? `Not finished · ${x.ticked} of ${x.total}` : `Not started · 0 of ${x.total}`}</b></li>)}</ul>
-            <p className="ops-more">The checks: {year.review.checks.map(c => c.text).join(' · ')}</p>
-          </div>)}
+          {/* The quarterly review ticks are off: the review happens in the one-to-one, so there is nothing to show here. */}
         </section>
         {month && (<section className="ops-my-card current">
           <h2>This month <span>{month.title}</span></h2>

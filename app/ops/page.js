@@ -173,7 +173,7 @@ export default async function Home({ searchParams }) {
           const d3 = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '');
           const dot = c => c.count === c.of && c.of ? 'ok' : c.count && c.step.date < year.today ? 'risk' : 'none';
           const names = list => list.slice(0, 2).map(x => x.name).join(', ') + (list.length > 2 ? `, +${list.length - 2}` : '');
-          const od = year.overdue, ns = year.noSummary, rv = year.review;
+          const od = year.overdue, ns = year.noSummary;
           return (<div className="ops-week stacked" style={{ marginTop: 28 }}><section className="ops-today-card">
             <h2>Mentee year <a className="ops-my-open" href="/ops/mentee-year">Open</a></h2>
             {year.month && <p className="ops-empty">{year.month.title.split(' ')[0]} · {year.month.theme}</p>}
@@ -184,7 +184,6 @@ export default async function Home({ searchParams }) {
             <ul className="ops-my-wait">
               <li><i className={od.length ? 'risk' : 'none'} /><span>Steps overdue</span><b>{od.length ? `${od.length} · ${names(od)}` : 'None'}</b></li>
               {year.configured && <li><i className={ns.length ? 'soon' : 'none'} /><span>One-to-ones without a summary</span><b>{ns.length ? `${ns.length} · next on ${d3(new Date(ns[0].start).toISOString().slice(0, 10))}` : 'None'}</b></li>}
-              {rv && <li><i className={rv.opens ? 'none' : 'soon'} /><span>{rv.name} review</span><b>{rv.opens ? `Opens ${new Date(`${rv.opensOn}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : `${rv.progress.filter(x => x.state === 'ready').length} of ${rv.progress.length} ready`}</b></li>}
             </ul>
           </section></div>);
         })()}
