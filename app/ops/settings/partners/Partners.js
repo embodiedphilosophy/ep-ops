@@ -24,7 +24,7 @@ export default function Partners() {
     const j = await res?.json().catch(() => ({}));
     if (!res?.ok) { setData({ error: j?.error || 'Couldn’t load the partners. Try again.' }); return; }
     setData(j); setMonth(j.month); setGroups(j.groups.map(g => [...g])); setSeed(1); setChats(j.chats || {});
-    setPlaces(Object.fromEntries((j.profiles || []).map(x => [x.email, { city: x.city, tz: x.tz }])));
+    setPlaces(Object.fromEntries((j.profiles || []).map(x => [x.email, { city: x.city, tz: x.tz, start: x.start || '' }])));
   };
   useEffect(() => { load(''); }, []);
 
@@ -98,12 +98,13 @@ export default function Partners() {
             <span style={{ minWidth: 150 }}>{c.name}</span>
             <input aria-label={`City for ${c.name}`} placeholder="City" value={places[c.email]?.city || ''} onChange={e => setPlaces(p => ({ ...p, [c.email]: { ...p[c.email], city: e.target.value } }))} />
             <input aria-label={`Time zone for ${c.name}`} list="ops-zones" placeholder="Time zone" value={places[c.email]?.tz || ''} onChange={e => setPlaces(p => ({ ...p, [c.email]: { ...p[c.email], tz: e.target.value } }))} />
+            <input type="month" aria-label={`Start month for ${c.name} (leave blank for the cohort's first month)`} title="The month they began. Leave blank for the cohort's first month." value={places[c.email]?.start || ''} onChange={e => setPlaces(p => ({ ...p, [c.email]: { ...p[c.email], start: e.target.value } }))} />
           </li>
         ))}
       </ul>
       <button type="button" className="chip primary" disabled={busy} onClick={async () => {
         setBusy(true); setPmsg(null);
-        const res = await fetch('/api/ops/partners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profiles: data.cohort.map(c => ({ email: c.email, city: places[c.email]?.city || '', tz: places[c.email]?.tz || '' })) }) }).catch(() => null);
+        const res = await fetch('/api/ops/partners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profiles: data.cohort.map(c => ({ email: c.email, city: places[c.email]?.city || '', tz: places[c.email]?.tz || '', start: places[c.email]?.start || '' })) }) }).catch(() => null);
         const j = await res?.json().catch(() => ({}));
         setBusy(false);
         if (!res?.ok) { setPmsg({ error: j?.error || 'Couldn’t save. Try again.' }); return; }

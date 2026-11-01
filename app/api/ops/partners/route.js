@@ -29,7 +29,7 @@ async function state(month) {
   const groups = groupsFrom(here.filter(r => !r.hidden));
   for (const e of groups.flat()) if (!people.has(e)) people.set(e, e); // someone paired by hand who is no longer in the Kit list is still shown
   const rotation = rotationMonths(config.rotations, month);
-  const profiles = prof.rows.map(x => ({ email: String(x.values.email || '').toLowerCase(), city: String(x.values.city || ''), tz: String(x.values.tz || '') })).filter(x => x.email);
+  const profiles = prof.rows.map(x => ({ email: String(x.values.email || '').toLowerCase(), city: String(x.values.city || ''), tz: String(x.values.tz || ''), start: String(x.values.start || '') })).filter(x => x.email);
   return { month, season, rotation, chats: chatsFrom(here, groups), profiles, months: monthsFrom(todayET()), cohort: [...people].map(([email, name]) => ({ email, name })).sort((a, b) => a.name.localeCompare(b.name)), groups, history: [...others], missingTab: tab.missing, kitOk: cohort.length > 0 };
 }
 
@@ -44,7 +44,7 @@ export async function GET(req) {
 
 // POST { month: '2026-11', groups: [['a@x.com', 'b@x.com'], ['c@x.com', 'd@x.com', 'e@x.com']], chats: { 'a@x.com|b@x.com': 'https://…' }, both: true }:
 // the month (or, with both, every month of its two-month rotation) holds exactly these groups, each with its pair-chat link.
-// POST { profiles: [{ email, city, tz }] }: where mentees live (the window that suits a pair is worked out from it).
+// POST { profiles: [{ email, city, tz, start }] } (start = the month the mentee began, YYYY-MM, blank = the cohort's first immersion month): where mentees live (the window that suits a pair is worked out from it).
 export async function POST(req) {
   const user = await currentUser(), no = deny(user);
   if (no) return no;
@@ -94,10 +94,11 @@ export async function POST(req) {
 async function saveProfiles(list, user) {
   const clean = [];
   for (const p of list) {
-    const email = String(p?.email || '').trim().toLowerCase(), city = String(p?.city || '').replace(/\s+/g, ' ').trim().slice(0, 60), tz = String(p?.tz || '').trim();
+    const email = String(p?.email || '').trim().toLowerCase(), city = String(p?.city || '').replace(/\s+/g, ' ').trim().slice(0, 60), tz = String(p?.tz || '').trim(), start = String(p?.start || '').trim();
+    if (start && !/^\d{4}-(0[1-9]|1[0-2])$/.test(start)) return NextResponse.json({ error: 'The start month should look like 2026-11.' }, { status: 400 });
     if (!/^[^@\s]+@[^@\s]+$/.test(email)) continue;
     if (tz && !validZone(tz)) return NextResponse.json({ error: `“${tz}” isn’t a time zone we know. Use a name like Europe/Rome or America/Costa_Rica.` }, { status: 400 });
-    clean.push({ email, city, tz });
+    clean.push({ email, city, tz, start });
   }
   try {
     const cohort = await mentees();
@@ -110,9 +111,9 @@ async function saveProfiles(list, user) {
       const row = byEmail.get(p.email);
       if (row) {
         const changes = {}, before = {};
-        for (const k of ['city', 'tz']) if (String(row.values[k] || '') !== p[k]) { changes[k] = p[k]; before[k] = String(row.values[k] || ''); }
+        for (const k of ['city', 'tz', 'start']) if (String(row.values[k] || '') !== p[k]) { changes[k] = p[k]; before[k] = String(row.values[k] || ''); }
         if (Object.keys(changes).length) await updatePlain(PROFILE_TAB, row.row, changes, { before, who });
-      } else if (p.city || p.tz) await addPlain(PROFILE_TAB, { email: p.email, name: names.get(p.email) || '', city: p.city, tz: p.tz }, { who });
+      } else if (p.city || p.tz || p.start) await addPlain(PROFILE_TAB, { email: p.email, name: names.get(p.email) || '', city: p.city, tz: p.tz, start: p.start }, { who });
     }
     refreshSite();
     return NextResponse.json({ ok: true });
