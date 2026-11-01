@@ -7,6 +7,7 @@ import AddTask from './AddTask';
 import { teamHours, clockAvailable } from '@/lib/ops/hours';
 import { HoursDecide } from './hours/HoursActions';
 import { waitingOnYou } from '@/lib/ops/waiting';
+import { oneToOnes } from '@/lib/ops/onetoones';
 import { todayET } from '@/lib/events';
 import { onboardingState } from '@/lib/teach';
 import { upcomingSocial } from '@/lib/social';
@@ -19,6 +20,8 @@ import TaskList from './TaskList';
 import Note from './Note';
 import Meetings from './Meetings';
 import { flagOf } from './SocialGrid';
+import { PROJECTS } from '@/lib/ops/menteeyear';
+import { loadOpsYear } from '@/lib/ops/menteeyearops';
 
 const dayLong = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).replace(',', '');
 const shortDate = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -47,6 +50,8 @@ export default async function Home({ searchParams }) {
   const { b, blocked, list: needsYou } = needsYouFor(asUser, all);
   const later = b.upcoming.filter(t => t.due <= addDays(todayET(), 35) && !blocked.includes(t)).length;
   const cal = await loadCalendar().catch(() => []);
+  const year = isStaff(user) && viewing === user ? await loadOpsYear({ today: todayET() }).catch(e => { console.error('mentee year card', e.message); return null; }) : null;
+  const o2o = triageOn ? await oneToOnes({ days: 21 }).catch(() => ({ configured: false, items: [] })) : { configured: false, items: [] };
   const groups = groupByEvent(needsYou, cal);
 
   const roleNames = {};
@@ -143,7 +148,35 @@ export default async function Home({ searchParams }) {
           ))}</ul>
           <p className="ops-more"><a href="/ops/hours">All hours →</a></p>
         </section></div>)}
+        {triageOn && o2o.configured && (<div className="ops-week stacked" style={{ marginBottom: 28 }}><section>
+          <h2>One-to-ones <span>{o2o.items.length}</span></h2>
+          {o2o.items.length === 0 ? <p className="ops-empty">Nothing booked in the next three weeks.</p> : (<ul className="ops-o2o">{o2o.items.slice(0, 4).map(x => (
+            <li key={x.uuid} className={x.summary.length ? '' : 'none'}>
+              <div className="h"><b>{x.name || x.email}</b><span>{new Date(x.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
+              <p>{x.summary.length ? (x.summary[0].a.length > 140 ? `${x.summary[0].a.slice(0, 140)}…` : x.summary[0].a) : 'No summary yet'}</p>
+            </li>))}</ul>)}
+          <p className="ops-more"><a href="/ops/one-to-ones">All one-to-ones →</a></p>
+        </section></div>)}
         <Meetings programming={programming} team={meetings} director={user.director} stacked />
+        {isStaff(user) && viewing === user && year && (() => {
+          const d3 = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '');
+          const dot = c => c.count === c.of && c.of ? 'ok' : c.count && c.step.date < year.today ? 'risk' : 'none';
+          const names = list => list.slice(0, 2).map(x => x.name).join(', ') + (list.length > 2 ? `, +${list.length - 2}` : '');
+          const od = year.overdue, ns = year.noSummary, rv = year.review;
+          return (<div className="ops-week stacked" style={{ marginTop: 28 }}><section className="ops-today-card">
+            <h2>Mentee year <a className="ops-my-open" href="/ops/mentee-year">Open</a></h2>
+            {year.month && <p className="ops-empty">{year.month.title.split(' ')[0]} · {year.month.theme}</p>}
+            {year.upcoming.length > 0 && <><h3 className="ops-my-h">Next three project steps</h3><ul className="ops-my-steps compact">{year.upcoming.map(c => (
+              <li key={c.step.id} className="ops-my-step"><span className="when"><b>{d3(c.step.date)}</b></span><span className="what"><span className={`ops-my-proj ${c.step.project}`}><i />{PROJECTS[c.step.project]}</span><b>{c.step.title}</b></span><span className={`ops-my-count ${dot(c)}`}><i />{c.count} of {c.of}</span></li>
+            ))}</ul></>}
+            <h3 className="ops-my-h">Waiting on mentees</h3>
+            <ul className="ops-my-wait">
+              <li><i className={od.length ? 'risk' : 'none'} /><span>Steps overdue</span><b>{od.length ? `${od.length} · ${names(od)}` : 'None'}</b></li>
+              {year.configured && <li><i className={ns.length ? 'soon' : 'none'} /><span>One-to-ones without a summary</span><b>{ns.length ? `${ns.length} · next on ${d3(new Date(ns[0].start).toISOString().slice(0, 10))}` : 'None'}</b></li>}
+              {rv && <li><i className={rv.opens ? 'none' : 'soon'} /><span>{rv.name} review</span><b>{rv.opens ? `Opens ${new Date(`${rv.opensOn}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : `${rv.progress.filter(x => x.state === 'ready').length} of ${rv.progress.length} ready`}</b></li>}
+            </ul>
+          </section></div>);
+        })()}
         {isTeacher(user) && <p className="ops-more"><a href="/ops/team">Contacts and your teacher guide →</a></p>}
       </aside>
       </div>

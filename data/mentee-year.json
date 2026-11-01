@@ -1,0 +1,640 @@
+{
+ "lede": "What to do each day, each week, each month and each quarter from October to July, with dated steps so both final pieces (the 60-minute specialized talk and the three-session Sahṛdaya offering) are built gradually instead of in July.",
+ "rhythm": [
+  {
+   "level": "Daily",
+   "note": "non-negotiable",
+   "items": [
+    "**Sit with the ajapā-haṃsa** for the length you set at your practice baseline. Add attention, not effort.",
+    "**Log it** in your practice log: date, length, and one line on what you noticed. Your mentor reviews the log in every one-to-one.",
+    "**Read a little** of the month's required book. About 30 minutes on most days finishes a book a month.",
+    "**Notice task language** in your own teaching: any phrase that asks a student to produce what they already have."
+   ]
+  },
+  {
+   "level": "Weekly",
+   "note": "about 2–3 hours",
+   "items": [
+    "**Reading**: roughly a quarter of the month's book, with notes for your reflection.",
+    "**Project notebook**: ten minutes on one line for the talk and one for the offering (more below).",
+    "**Field hours**: alternate weeks between observing a senior teacher (with notes against the six competencies) and practice-teaching. About 30 minutes a week of each keeps you on pace for ten hours of each.",
+    "**Book Club**: join or propose one when the cohort is reading the same chapters. Any mentee can propose a session."
+   ]
+  },
+  {
+   "level": "Monthly",
+   "note": "fixed points",
+   "items": [
+    "**Immersion weekend** (October to May): Open Session and Practicum, 2.5 hours each, both halves live. Attendance must stay at 80% or above.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes, with a booking summary sent ahead.",
+    "**Articulation session** with your partner, about an hour: each of you explains one teaching from the month through an analogy or image a new student could hold. Log the image you used.",
+    "**Written reflection** on the required book (about 30 minutes), posted to the cohort group by the last day of the month.",
+    "**That month's project steps**, listed on each month card below."
+   ]
+  },
+  {
+   "level": "Quarterly",
+   "note": "review and reset",
+   "items": [
+    "**End of November (Q1)**: read back through your practice log; rate yourself on the six competencies; check field hours (aim for about 3 of observation and 3 of practice-teaching); bring your talk longlist and Session 1 angles.",
+    "**End of March (mid-year)**: same review, plus attendance check. Aim for about 6 and 6 hours. Talk topic agreed, Session 1 written, ST 7.59 memorised.",
+    "**End of June (readiness)**: observation and practice-teaching complete at 10 and 10. Talk recorded in full, upadeśa led for peers, delivery dates booked, final report outlined."
+   ]
+  },
+  {
+   "level": "Culmination",
+   "note": "July 2027",
+   "items": [
+    "**Retreat practicum**, in person or the facilitated online version.",
+    "**The 60-minute specialized talk**, live and recorded, assessed by a mentor. One revision is allowed.",
+    "**The three-session offering** to a real group, recorded, with you leading the haṃsa-upadeśa in Session 2 and your mentor assessing it.",
+    "**Final report** (positionality, lineage, how SLBT moved into your teaching) and the **competency check** (open book, terminology and framework)."
+   ]
+  }
+ ],
+ "week": [
+  {
+   "title": "Week 1 · Open",
+   "items": [
+    "Start the new book.",
+    "Book your one-to-one and send your summary.",
+    "Fix a date with your articulation partner (new partner in Oct, Dec, Feb, Apr, Jun).",
+    "Check this month's project steps."
+   ]
+  },
+  {
+   "title": "Week 2 · Practise",
+   "items": [
+    "Reading, second quarter.",
+    "Observation hour, with notes against the competencies.",
+    "Articulation session: one teaching, one image each."
+   ]
+  },
+  {
+   "title": "Week 3 · Teach",
+   "items": [
+    "Reading, third quarter.",
+    "Practice-teaching hour. Record it if you can; you'll need student reports in May.",
+    "Work on this month's project step.",
+    "Propose or join a Book Club."
+   ]
+  },
+  {
+   "title": "Week 4 · Gather",
+   "items": [
+    "Finish the book.",
+    "Write and post your reflection.",
+    "Your one-to-one (last week of the month).",
+    "Log hours: observation, practice-teaching, articulation.",
+    "Notebook: one line for the talk, one for the offering."
+   ]
+  }
+ ],
+ "months": [
+  {
+   "id": "2026-10",
+   "title": "October 2026",
+   "theme": "The Condition",
+   "tag": "",
+   "focus": "Set up the year: practice baseline, practice log, project notebook. Meet your first articulation partner.",
+   "items": [
+    "**No immersion.** Use the weekend for project work and to finish your hours.",
+    "**Read** Anthony Kronman, _Education's End_ Reflection due ^Sat 31 Oct^.",
+    "**Articulation:** rotation 1 (Oct–Nov) starts 1 Oct, so contact your new partner in week 1.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": []
+  },
+  {
+   "id": "2026-11",
+   "title": "November 2026",
+   "theme": "The Same Condition, Closer to Home",
+   "tag": "Q1 review this month",
+   "focus": "Settle the weekly rhythm. Start your project notebook in earnest: one line after every immersion, reading and observation. First quarterly review.",
+   "items": [
+    "**Immersion 1 · Beneath the Pose** ~(Subtle attunement)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Daniel Simpson, _The Truth of Yoga_. ~Suggested: Mark Singleton, _Yoga Body_.~ Reflection due ^Mon 30 Nov^.",
+    "**Articulation:** rotation 1 (Oct–Nov), same partner as last month.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2026-11-30",
+     "project": "both",
+     "text": "Start your project notebook"
+    }
+   ]
+  },
+  {
+   "id": "2026-12",
+   "title": "December 2026",
+   "theme": "The Pivot: Formation as the Older Paradigm",
+   "tag": "",
+   "focus": "New partner. Practise saying the haṃsa without Sanskrit.",
+   "items": [
+    "**Immersion 2 · Tasting the Real** ~(Rasa and wonder)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Pierre Hadot, _What Is Ancient Philosophy?_ Reflection due ^Thu 31 Dec^.",
+    "**Articulation:** rotation 2 (Dec–Jan) starts 1 Dec, so contact your new partner in week 1.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2026-12-31",
+     "project": "talk",
+     "text": "Longlist three possible talk topics"
+    },
+    {
+     "date": "2026-12-31",
+     "project": "offering",
+     "text": "Note two or three Session 1 angles you could speak to"
+    }
+   ]
+  },
+  {
+   "id": "2027-01",
+   "title": "January 2027",
+   "theme": "The Alternative, Alive and Working",
+   "tag": "",
+   "focus": "Decide who your real group for the three-session offering will be, and where you'll meet them.",
+   "items": [
+    "**No immersion.** Use the weekend for project work and to finish your hours.",
+    "**Read** Georges Dreyfus, _The Sound of Two Hands Clapping_. ~Suggested: Ivan Illich, _In the Vineyard of the Text_.~ Reflection due ^Sun 31 Jan^.",
+    "**Articulation:** rotation 2 (Dec–Jan), same partner as last month.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-01-31",
+     "project": "offering",
+     "text": "Name your real group and venue"
+    }
+   ]
+  },
+  {
+   "id": "2027-02",
+   "title": "February 2027",
+   "theme": "What a Teacher Actually Does",
+   "tag": "",
+   "focus": "New partner. Choose your Session 1 angle. Bring a talk topic proposal to your one-to-one.",
+   "items": [
+    "**Immersion 3 · Two Tongues** ~(Secular rooms)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Immersion 4 · Shadow Speech** ~(Ferocity and discernment)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Jacques Rancière, _The Ignorant Schoolmaster_ Reflection due ^Sun 28 Feb^.",
+    "**Articulation:** rotation 3 (Feb–Mar) starts 1 Feb, so contact your new partner in week 1.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-02-28",
+     "project": "talk",
+     "text": "Bring a talk topic proposal to your one-to-one"
+    },
+    {
+     "date": "2027-02-28",
+     "project": "offering",
+     "text": "Choose your Session 1 angle"
+    }
+   ]
+  },
+  {
+   "id": "2027-03",
+   "title": "March 2027",
+   "theme": "Authority and Belonging After the Guru",
+   "tag": "Mid-year review this month",
+   "focus": "The upadeśa immersion. Memorise ST 7.59, write the Session 1 talk. Mid-year review.",
+   "items": [
+    "**Immersion 5 · Dying Before Death** ~(Holding intensity)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Theodora Wildcroft, _Post-Lineage Yoga_. ~Suggested: Matthew Remski, _Practice and All Is Coming_ (contested: read with care).~ Reflection due ^Wed 31 Mar^.",
+    "**Articulation:** rotation 3 (Feb–Mar), same partner as last month.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-03-15",
+     "project": "offering",
+     "text": "Memorise ST 7.59 in Sanskrit and English"
+    },
+    {
+     "date": "2027-03-31",
+     "project": "offering",
+     "text": "Write the Session 1 talk"
+    }
+   ]
+  },
+  {
+   "id": "2027-04",
+   "title": "April 2027",
+   "theme": "What Knowing Is, and Therefore What Transmits",
+   "tag": "",
+   "focus": "New partner. Rehearse Session 2. Book your dates and venue, and open sign-ups for your group.",
+   "items": [
+    "**Immersion 6 · Grace and Initiation** ~(Timing of transmission)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Parker Palmer, _To Know as We Are Known_ Reflection due ^Fri 30 Apr^.",
+    "**Articulation:** rotation 4 (Apr–May) starts 1 Apr, so contact your new partner in week 1.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-04-15",
+     "project": "offering",
+     "text": "Rehearse the Session 2 talk with your partner"
+    },
+    {
+     "date": "2027-04-30",
+     "project": "offering",
+     "text": "Book your three dates and open sign-ups"
+    },
+    {
+     "date": "2027-04-30",
+     "project": "talk",
+     "text": "Try a 10-minute seed version on your partner"
+    }
+   ]
+  },
+  {
+   "id": "2027-05",
+   "title": "May 2027",
+   "theme": "Why It Passes Only Between Persons",
+   "tag": "",
+   "focus": "The 60-minute talk is designed at this immersion. Lead the upadeśa for peers under supervision.",
+   "items": [
+    "**Immersion 7 · Cult or Community?** ~(Consent and belonging)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Immersion 8 · The Spectre of Authenticity** ~(Lineage and voice)~. Open Session and Practicum, 2.5 hours each, both live.",
+    "**Read** Michael Polanyi, _The Tacit Dimension_. ~Suggested: Jean Lave and Etienne Wenger, _Situated Learning_.~ Reflection due ^Mon 31 May^.",
+    "**Articulation:** rotation 4 (Apr–May), same partner as last month.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-05-15",
+     "project": "offering",
+     "text": "Practise paryavasāna responses on five recorded reports"
+    },
+    {
+     "date": "2027-05-31",
+     "project": "offering",
+     "text": "Lead the full upadeśa for peers, under supervision"
+    },
+    {
+     "date": "2027-05-31",
+     "project": "talk",
+     "text": "Bring the immersion 8 design to a full outline"
+    }
+   ]
+  },
+  {
+   "id": "2027-06",
+   "title": "June 2027",
+   "theme": "Back to Attention",
+   "tag": "Q3 readiness review this month",
+   "focus": "No immersion. Finish your observation and practice-teaching hours, record a full talk run-through, and start delivering the offering.",
+   "items": [
+    "**No immersion.** Use the weekend for project work and to finish your hours.",
+    "**Read** Simone Weil, _Waiting for God_: the essay on the right use of school studies. ~Suggested: Josef Pieper, _Leisure: The Basis of Culture_ (optional).~ Reflection due ^Wed 30 Jun^.",
+    "**Articulation:** rotation 5 (Jun–Jul) starts 1 Jun, so contact your new partner in week 1.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-06-15",
+     "project": "talk",
+     "text": "Record a full 60-minute run-through"
+    },
+    {
+     "date": "2027-06-15",
+     "project": "offering",
+     "text": "Write the follow-on cohort plan"
+    },
+    {
+     "date": "2027-06-30",
+     "project": "talk",
+     "text": "Mentor feedback on the run-through; book your delivery slot"
+    },
+    {
+     "date": "2027-06-30",
+     "project": "both",
+     "text": "Draft the final report outline"
+    }
+   ]
+  },
+  {
+   "id": "2027-07",
+   "title": "July 2027",
+   "theme": "Culmination",
+   "tag": "Culmination",
+   "focus": "Retreat practicum. Deliver the talk and complete the offering. Final report and competency check.",
+   "items": [
+    "**Retreat practicum**, in person or the facilitated online version. ~Dates to be confirmed.~",
+    "**No new book.** Your reflection this month is on the retreat and your two deliveries.",
+    "**Articulation:** rotation 5 (Jun–Jul), same partner as last month.",
+    "**One-to-one** with Jacob or Nataraj Chaitanya, 45 minutes. Submit your booking summary when you book."
+   ],
+   "steps": [
+    {
+     "date": "2027-07-15",
+     "project": "talk",
+     "text": "Deliver the 60-minute talk, live and recorded"
+    },
+    {
+     "date": "2027-07-26",
+     "project": "offering",
+     "text": "Complete all three sessions with your group"
+    },
+    {
+     "date": "2027-07-31",
+     "project": "talk",
+     "text": "Revised talk, if you're revising"
+    },
+    {
+     "date": "2027-07-31",
+     "project": "both",
+     "text": "Submit the final report and sit the competency check"
+    }
+   ]
+  }
+ ],
+ "steps": [
+  {
+   "date": "2026-11-30",
+   "project": "both",
+   "title": "Start your project notebook",
+   "detail": "One page per month. After each immersion, reading and observation, note one possible talk theme and one possible Session 1 angle.",
+   "evidence": "Notebook started (show it at your December one-to-one)"
+  },
+  {
+   "date": "2026-12-31",
+   "project": "talk",
+   "title": "Longlist three possible talk topics",
+   "detail": "Three candidate topics for the 60-minute specialized talk, one sentence each, drawn from your notebook.",
+   "evidence": "Longlist brought to the Q1 review"
+  },
+  {
+   "date": "2026-12-31",
+   "project": "offering",
+   "title": "Note two or three Session 1 angles you could speak to",
+   "detail": "The angles come from the monthly books. Mark the ones you can speak to from your own life.",
+   "evidence": "Shortlist in notebook"
+  },
+  {
+   "date": "2027-01-31",
+   "project": "offering",
+   "title": "Name your real group and venue",
+   "detail": "Who will you offer the three sessions to (your students, a studio, a community group), and where? Talk to the host now.",
+   "evidence": "Group and venue named in your January one-to-one"
+  },
+  {
+   "date": "2027-02-28",
+   "project": "talk",
+   "title": "Bring a talk topic proposal to your one-to-one",
+   "detail": "One paragraph: the topic, who it's for, and why you are the person to give it. Mentors confirm or redirect.",
+   "evidence": "Proposal in the one-to-one booking summary"
+  },
+  {
+   "date": "2027-02-28",
+   "project": "offering",
+   "title": "Choose your Session 1 angle",
+   "detail": "Pick one angle and its book. If you haven't read the book yet, schedule it.",
+   "evidence": "Angle chosen"
+  },
+  {
+   "date": "2027-03-15",
+   "project": "offering",
+   "title": "Memorise ST 7.59 in Sanskrit and English",
+   "detail": "\"There is none who utters it, and none is found who checks it: the Haṃsa utters itself, abiding in the breast of living beings.\"",
+   "evidence": "Recited in your March one-to-one"
+  },
+  {
+   "date": "2027-03-31",
+   "project": "offering",
+   "title": "Write the Session 1 talk",
+   "detail": "The whole talk, landing included, in under 1,500 words.",
+   "evidence": "Draft shared with your mentor"
+  },
+  {
+   "date": "2027-04-15",
+   "project": "offering",
+   "title": "Rehearse the Session 2 talk with your partner",
+   "detail": "Check every instruction against the use-and-avoid table in Part III of the manual. Rewrite any line that tasks a student with producing what they already have.",
+   "evidence": "Rehearsal noted in articulation log"
+  },
+  {
+   "date": "2027-04-30",
+   "project": "offering",
+   "title": "Book your three dates and open sign-ups",
+   "detail": "Session 1, then Session 2 a week later, then Session 3 at least two weeks after Session 2. Latest possible start is Mon 5 Jul. Tell your mentor which Session 2 date they are assessing.",
+   "evidence": "Dates confirmed with venue and mentor"
+  },
+  {
+   "date": "2027-04-30",
+   "project": "talk",
+   "title": "Try a 10-minute seed version on your partner",
+   "detail": "Just the opening and the central image. You are testing whether the topic holds, not polishing.",
+   "evidence": "Partner feedback noted"
+  },
+  {
+   "date": "2027-05-15",
+   "project": "offering",
+   "title": "Practise paryavasāna responses on five recorded reports",
+   "detail": "Use five recorded student reports (from your practice-teaching, or provided by mentors). Carry each to its own conclusion without affirming, correcting or psychologising.",
+   "evidence": "Five responses written or recorded"
+  },
+  {
+   "date": "2027-05-31",
+   "project": "offering",
+   "title": "Lead the full upadeśa for peers, under supervision",
+   "detail": "Arrange with your mentor. This comes before you offer it publicly.",
+   "evidence": "Mentor sign-off"
+  },
+  {
+   "date": "2027-05-31",
+   "project": "talk",
+   "title": "Bring the immersion 8 design to a full outline",
+   "detail": "The talk is designed at immersion 8. Turn that design into a full outline with sources, timings and the one practice you'll guide.",
+   "evidence": "Outline sent to your mentor"
+  },
+  {
+   "date": "2027-06-15",
+   "project": "talk",
+   "title": "Record a full 60-minute run-through",
+   "detail": "Deliver it to your partner or a small group, recorded. Watch it once before your one-to-one.",
+   "evidence": "Recording shared"
+  },
+  {
+   "date": "2027-06-15",
+   "project": "offering",
+   "title": "Write the follow-on cohort plan",
+   "detail": "The 12 to 18 month practice cohort your new students join after Session 3: meeting rhythm, place, how people join.",
+   "evidence": "Plan shared with your mentor"
+  },
+  {
+   "date": "2027-06-30",
+   "project": "talk",
+   "title": "Mentor feedback on the run-through; book your delivery slot",
+   "detail": "Use your June one-to-one for the recording. Book a live delivery date in the first half of July.",
+   "evidence": "Delivery date booked"
+  },
+  {
+   "date": "2027-06-30",
+   "project": "both",
+   "title": "Draft the final report outline",
+   "detail": "Positionality, lineage, and how SLBT principles moved into your teaching.",
+   "evidence": "Outline in notebook"
+  },
+  {
+   "date": "2027-07-15",
+   "project": "talk",
+   "title": "Deliver the 60-minute talk, live and recorded",
+   "detail": "Assessed by a mentor. It may be revised once, which is why it lands mid-month.",
+   "evidence": "Recording submitted"
+  },
+  {
+   "date": "2027-07-26",
+   "project": "offering",
+   "title": "Complete all three sessions with your group",
+   "detail": "Latest Session 3 date if you started on 5 Jul. Your mentor assesses the haṃsa-upadeśa you lead in Session 2.",
+   "evidence": "Recordings of all three sessions submitted"
+  },
+  {
+   "date": "2027-07-31",
+   "project": "talk",
+   "title": "Revised talk, if you're revising",
+   "detail": "The one permitted revision, delivered and recorded.",
+   "evidence": "Revision submitted"
+  },
+  {
+   "date": "2027-07-31",
+   "project": "both",
+   "title": "Submit the final report and sit the competency check",
+   "detail": "The competency check is an open-book examination on terminology and framework.",
+   "evidence": "Both submitted"
+  }
+ ],
+ "lanes": {
+  "months": [
+   "Nov",
+   "Dec",
+   "Jan",
+   "Feb",
+   "Mar",
+   "Apr",
+   "May",
+   "Jun",
+   "Jul"
+  ],
+  "talk": [
+   {
+    "from": 0,
+    "to": 2,
+    "label": "Collect ideas"
+   },
+   {
+    "from": 2,
+    "to": 4,
+    "label": "Choose topic"
+   },
+   {
+    "from": 5,
+    "to": 6,
+    "label": "Seed test"
+   },
+   {
+    "from": 6,
+    "to": 7,
+    "label": "Design & outline"
+   },
+   {
+    "from": 7,
+    "to": 8,
+    "label": "Run-through"
+   },
+   {
+    "from": 8,
+    "to": 9,
+    "label": "Deliver"
+   }
+  ],
+  "offering": [
+   {
+    "from": 0,
+    "to": 3,
+    "label": "Angles & group"
+   },
+   {
+    "from": 3,
+    "to": 5,
+    "label": "Write S1 · memorise"
+   },
+   {
+    "from": 5,
+    "to": 6,
+    "label": "Rehearse · book dates"
+   },
+   {
+    "from": 6,
+    "to": 7,
+    "label": "Peer upadeśa"
+   },
+   {
+    "from": 7,
+    "to": 9,
+    "label": "Deliver"
+   }
+  ]
+ },
+ "spacing": "Spacing rule for the offering: Session 2 comes one week after Session 1, and Session 3 at least two weeks after Session 2, so students arrive with real practice. Starting on Mon 5 Jul is the latest that finishes by the end of July; starting in June gives room for a missed week.",
+ "oneToOne": {
+  "howTo": [
+   "Book early in the month, with Jacob or Nataraj Chaitanya. Sessions run in the last week of the month.",
+   "When you book, send a short summary of what you want to work on. Send it at least two days before the session so your mentor can prepare.",
+   "Attach anything you want looked at: a draft, a recording, a page of your notebook.",
+   "Bring your practice log. It is reviewed every time."
+  ],
+  "template": [
+   "What I want to work on:",
+   "One thing from my practice log:",
+   "Where I am on the talk:",
+   "Where I am on the offering:",
+   "Attached (optional):"
+  ],
+  "note": "Five lines is enough. Your mentor reads it before you meet."
+ },
+ "footer": "Drawn from the Sahṛdaya Upāya Training Manual (draft) and the 2026–27 articulation partner rotation. Pacing suggestions (reading time, weekly field hours, quarterly targets) are this schedule's own and can be adjusted.",
+ "reviews": [
+  {
+   "month": "2026-11",
+   "title": "End of November · Q1 review",
+   "checks": [
+    "Read back through your practice log",
+    "Rate yourself on the six competencies",
+    "Check field hours: aim for about 3 of observation and 3 of practice-teaching",
+    "Bring your talk longlist (three possible topics)",
+    "Bring two or three Session 1 angles"
+   ]
+  },
+  {
+   "month": "2027-03",
+   "title": "End of March · Mid-year review",
+   "checks": [
+    "Read back through your practice log",
+    "Rate yourself on the six competencies",
+    "Attendance check: certifying needs 80% of the immersion halves",
+    "Check field hours: aim for about 6 of observation and 6 of practice-teaching",
+    "Talk topic agreed",
+    "Session 1 written",
+    "ST 7.59 memorised"
+   ]
+  },
+  {
+   "month": "2027-06",
+   "title": "End of June · Readiness review",
+   "checks": [
+    "Observation hours complete (10 of 10)",
+    "Practice-teaching hours complete (10 of 10)",
+    "Talk recorded in full",
+    "Upadeśa led for peers",
+    "Delivery dates booked",
+    "Final report outlined"
+   ]
+  }
+ ]
+}

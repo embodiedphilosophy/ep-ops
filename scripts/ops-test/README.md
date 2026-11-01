@@ -7,7 +7,7 @@ before merging.
 ## Files
 | File | What it does |
 |---|---|
-| `mock.mjs` | One local server (port 4555) standing in for Google (token, Sheets incl. writes, Calendar), Kit (read only), Make's image webhook, and a GET-only proxy to Motion. Every write is applied to in-memory data and logged; anything else outbound is refused and logged. Synthetic EP-Programming-Calendar, Social Engine and Team data live at the top of the file. Options: `MOCK_READONLY=1` refuses sheet writes; `MOCK_AUTO=1` marks two Motion tasks auto-completed. |
+| `mock.mjs` | One local server (port 4555) standing in for Google (token, Sheets incl. writes, Calendar), Kit (read only), Calendly (read only: one-to-one bookings and what each mentee wrote), Make's image webhook, and a GET-only proxy to Motion. Every write is applied to in-memory data and logged; anything else outbound is refused and logged. Synthetic EP-Programming-Calendar, Social Engine and Team data live at the top of the file. Options: `MOCK_READONLY=1` refuses sheet writes; `MOCK_AUTO=1` marks two Motion tasks auto-completed. |
 | `env.sh` | `source` it: points the app at the mock, makes a throwaway `OPS_SECRET` in `out/`. |
 | `run.sh` | Starts the mock, builds and starts the app on :3100, mints a sign-in cookie for jacob@ (`out/cookie.txt`, via `cookie.mjs`; pass another email to test as someone else), makes `out/upload-test.png`. `--no-build` skips the build. |
 | `shoot.cjs` | Screenshots every /ops page (list in `pages.json`) at desktop and phone width; reports HTTP status, horizontal overflow and page errors. POSTs are blocked. `node scripts/ops-test/shoot.cjs scripts/ops-test/out label` |
