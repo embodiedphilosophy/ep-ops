@@ -3,7 +3,7 @@
 import assert from 'assert/strict';
 const R = await import('../../lib/mentee/recordings.js');
 const config = { mentorship_sessions_space_id: 7, immersions: [{ n: 1, title: 'Beneath the Pose', sat: '2026-11-14', sun: '2026-11-15' }, { n: 2, title: 'Tasting the Real', sat: '2026-12-05', sun: '2026-12-06' }],
-  orientation: { title: 'Orientation', date: '2026-10-18', sub: 'Sādhana School 2026–27 · how the school works', url: 'https://ss/o' } };
+  orientation: { title: 'Orientation', date: '2026-10-18', sub: 'Sahṛdaya Upāya · how the year works', url: 'https://ss/o' } };
 const ev = (id, name, start, end, extra = {}) => ({ id, name, starts_at: start, ends_at: end, space_id: 7, ...extra });
 const post = (id, slug, name, extra = {}) => ({ id, slug, name, url: `https://ss/${slug}`, ...extra });
 const events = [
@@ -33,3 +33,11 @@ assert.deepEqual(r.items.map(i => i.title), ['Orientation']); assert.equal(r.aft
 r = R.recordingsFrom({ events, posts: [post(12, 'recording-2026-10-18-orientation', 'Orientation')], config, now: Date.parse('2026-11-01T12:00:00Z') });
 assert.equal(r.items.length, 1);
 console.log('recordings: ok');
+// the orientation with no recording address yet: "on its way" for 72 hours, nothing before the day, then the digest
+const cfg2 = { ...config, orientation: { ...config.orientation, date: '2026-11-01', url: '' } };
+let r2 = R.recordingsFrom({ events: [], posts: [], config: cfg2, now: Date.parse('2026-11-01T22:00:00Z') });
+assert.deepEqual(r2.items.map(i => [i.title, i.state, i.url]), [['Orientation', 'wait', '']]);
+assert.deepEqual(R.recordingsFrom({ events: [], posts: [], config: cfg2, now: Date.parse('2026-10-31T22:00:00Z') }).items, [], 'not before the day');
+r2 = R.recordingsFrom({ events: [], posts: [], config: cfg2, now: Date.parse('2026-11-05T22:00:00Z') });
+assert.deepEqual([r2.items.length, r2.missing.map(m => m.title)], [0, ['Orientation']]);
+console.log('recordings (orientation): ok');
