@@ -13,7 +13,8 @@ import { onboardingState } from '@/lib/teach';
 import { upcomingSocial } from '@/lib/social';
 import { teamMeetingsFor } from '@/lib/ops/teamcal';
 import { getNote } from '@/lib/ops/note';
-import { isStaff, isTeacher } from '@/lib/ops/nav';
+import { isStaff, isTeacher, canEditSite } from '@/lib/ops/nav';
+import { podsWaiting } from '@/lib/ops/podswaiting';
 import { readinessRows, atRisk } from '@/lib/ops/readiness';
 import Shell, { opsUser } from './Shell';
 import TaskList from './TaskList';
@@ -50,6 +51,7 @@ export default async function Home({ searchParams }) {
   const { b, blocked, list: needsYou } = needsYouFor(asUser, all);
   const later = b.upcoming.filter(t => t.due <= addDays(todayET(), 35) && !blocked.includes(t)).length;
   const cal = await loadCalendar().catch(() => []);
+  const pods = canEditSite(user) && viewing === user ? await podsWaiting().catch(e => { console.error('study pods card', e.message); return null; }) : null;
   const year = isStaff(user) && viewing === user ? await loadOpsYear({ today: todayET() }).catch(e => { console.error('mentee year card', e.message); return null; }) : null;
   const o2o = triageOn ? await oneToOnes({ days: 21 }).catch(() => ({ configured: false, items: [] })) : { configured: false, items: [] };
   const groups = groupByEvent(needsYou, cal);
@@ -147,6 +149,15 @@ export default async function Home({ searchParams }) {
             </li>
           ))}</ul>
           <p className="ops-more"><a href="/ops/hours">All hours →</a></p>
+        </section></div>)}
+        {pods && (<div className="ops-week stacked" style={{ marginBottom: 28 }}><section className="ops-today-card">
+          <h2>Study pods {pods.requests.length + pods.needChat.length > 0 && <span>{pods.requests.length + pods.needChat.length} waiting</span>}</h2>
+          {pods.requests.length === 0 && pods.needChat.length === 0 && <p className="ops-empty">Nothing waiting. {pods.open ? `${pods.open} ${pods.open === 1 ? 'pod is' : 'pods are'} open for members.` : 'No pods are open yet.'}</p>}
+          {pods.requests.length > 0 && (<><h3 className="ops-my-h">Asked to lead a pod</h3><ul className="ops-my-wait">{pods.requests.slice(0, 5).map(r => (
+            <li key={r.uid}><i className="soon" /><span><b>{r.name}</b>{r.note ? ` · ${r.note.length > 90 ? `${r.note.slice(0, 90)}…` : r.note}` : ''}</span></li>))}</ul></>)}
+          {pods.needChat.length > 0 && (<><h3 className="ops-my-h">Running, needs a chat link</h3><ul className="ops-my-wait">{pods.needChat.slice(0, 5).map(p => (
+            <li key={p.id}><i className="soon" /><span><b>{p.topic}</b> · {p.leader} · {p.count} {p.count === 1 ? 'member' : 'members'}</span></li>))}</ul></>)}
+          <p className="ops-more"><a href="/ops/settings/pods">{pods.requests.length ? 'Approve or decline →' : 'Study pods →'}</a></p>
         </section></div>)}
         {triageOn && o2o.configured && (<div className="ops-week stacked" style={{ marginBottom: 28 }}><section>
           <h2>One-to-ones <span>{o2o.items.length}</span></h2>
