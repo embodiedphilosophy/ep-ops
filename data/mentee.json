@@ -96,5 +96,46 @@
   ],
   "calendly_event_type": "d1488024-05b7-4573-bd2f-24fe13a83e43",
   "chat_room_uuid": "df53fdc0-302b-405a-9261-f0a83adbe4fb",
-  "workbook_space_id": 2900305
+  "workbook_space_id": 2900305,
+  "questions_space_id": null,
+  "reflections_url": "https://ss.embodiedphilosophy.com/c/reflections",
+  "articulation_target": 2,
+  "rotations": [
+    {
+      "n": 1,
+      "from": "2026-10-01",
+      "to": "2026-11-30",
+      "label": "Oct–Nov"
+    },
+    {
+      "n": 2,
+      "from": "2026-12-01",
+      "to": "2027-01-31",
+      "label": "Dec–Jan"
+    },
+    {
+      "n": 3,
+      "from": "2027-02-01",
+      "to": "2027-03-31",
+      "label": "Feb–Mar"
+    },
+    {
+      "n": 4,
+      "from": "2027-04-01",
+      "to": "2027-05-31",
+      "label": "Apr–May"
+    },
+    {
+      "n": 5,
+      "from": "2027-06-01",
+      "to": "2027-07-31",
+      "label": "Jun–Jul"
+    }
+  ],
+  "questions_space_url": "https://ss.embodiedphilosophy.com/c/mentee-questions",
+  "questions_space_slug": "mentee-questions",
+  "reflections_space_id": 2896660,
+  "mentor_emails": [
+    "jacob@embodiedphilosophy.com"
+  ]
 }
