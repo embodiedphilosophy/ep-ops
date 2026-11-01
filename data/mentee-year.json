@@ -16,7 +16,7 @@
    "note": "about 2–3 hours",
    "items": [
     "**Reading**: roughly a quarter of the month's book, with notes for your reflection.",
-    "**Project notebook**: ten minutes on one line for the talk and one for the offering (more below).",
+    "**Your final projects**: a little time on the talk and the offering, so they don't pile up for summer (more below).",
     "**Field hours**: alternate weeks between observing a senior teacher (with notes against the six competencies) and practice-teaching. About 30 minutes a week of each keeps you on pace for ten hours of each.",
     "**Book Club**: join or propose one when the cohort is reading the same chapters. Any mentee can propose a session."
    ]
@@ -37,7 +37,7 @@
    "note": "review and reset",
    "items": [
     "**End of November (Q1)**: read back through your practice log; rate yourself on the six competencies; check field hours (aim for about 3 of observation and 3 of practice-teaching); bring your talk longlist and Session 1 angles.",
-    "**End of March (mid-year)**: same review, plus attendance check. Aim for about 6 and 6 hours. Talk topic agreed, Session 1 written, ST 7.59 memorised.",
+    "**End of March (mid-year)**: same review, plus attendance check. Aim for about 6 and 6 hours. Talk topic agreed, Session 1 written, ST 7.59 memorized.",
     "**End of June (readiness)**: observation and practice-teaching complete at 10 and 10. Talk recorded in full, upadeśa led for peers, delivery dates booked, final report outlined."
    ]
   },
@@ -63,7 +63,7 @@
    ]
   },
   {
-   "title": "Week 2 · Practise",
+   "title": "Week 2 · Practice",
    "items": [
     "Reading, second quarter.",
     "Observation hour, with notes against the competencies.",
@@ -86,7 +86,7 @@
     "Write and post your reflection.",
     "Your one-to-one (last week of the month).",
     "Log hours: observation, practice-teaching, articulation.",
-    "Notebook: one line for the talk, one for the offering."
+    "Final projects: a little time on the talk and the offering."
    ]
   }
  ],
@@ -96,7 +96,7 @@
    "title": "October 2026",
    "theme": "The Condition",
    "tag": "",
-   "focus": "Set up the year: practice baseline, practice log, project notebook. Meet your first articulation partner.",
+   "focus": "Set up the year: practice baseline and practice log. Meet your first articulation partner.",
    "items": [
     "**No immersion.** Use the weekend for project work and to finish your hours.",
     "**Read** Anthony Kronman, _Education's End_ Reflection due ^Sat 31 Oct^.",
@@ -110,7 +110,7 @@
    "title": "November 2026",
    "theme": "The Condition of Education & Modern Yoga",
    "tag": "Q1 review this month",
-   "focus": "Settle the weekly rhythm. Start your project notebook in earnest: one line after every immersion, reading and observation. First quarterly review.",
+   "focus": "Settle the weekly rhythm, and start gathering ideas for your two final projects.",
    "items": [
     "**Immersion 1 · Beneath the Pose** ~(Subtle attunement)~. Open Session and Practicum, 2.5 hours each, both live.",
     "**Read** Daniel Simpson, _The Truth of Yoga_. ~Suggested: Mark Singleton, _Yoga Body_.~ Reflection due ^Mon 30 Nov^.",
@@ -121,7 +121,7 @@
     {
      "date": "2026-11-30",
      "project": "both",
-     "text": "Start your project notebook"
+     "text": "Gather first ideas for both projects"
     }
    ]
   },
@@ -130,7 +130,7 @@
    "title": "December 2026",
    "theme": "The Pivot: Formation as the Older Paradigm",
    "tag": "",
-   "focus": "New partner. Practise saying the haṃsa without Sanskrit.",
+   "focus": "New partner. Practice saying the haṃsa without Sanskrit.",
    "items": [
     "**Immersion 2 · Tasting the Real** ~(Rasa and wonder)~. Open Session and Practicum, 2.5 hours each, both live.",
     "**Read** Pierre Hadot, _What Is Ancient Philosophy?_ Reflection due ^Thu 31 Dec^.",
@@ -201,7 +201,7 @@
    "title": "March 2027",
    "theme": "Authority and Belonging After the Guru",
    "tag": "Mid-year review this month",
-   "focus": "The upadeśa immersion. Memorise ST 7.59, write the Session 1 talk. Mid-year review.",
+   "focus": "The upadeśa immersion. Memorize ST 7.59, write the Session 1 talk. Mid-year review.",
    "items": [
     "**Immersion 5 · Dying Before Death** ~(Holding intensity)~. Open Session and Practicum, 2.5 hours each, both live.",
     "**Read** Theodora Wildcroft, _Post-Lineage Yoga_. ~Suggested: Matthew Remski, _Practice and All Is Coming_ (contested: read with care).~ Reflection due ^Wed 31 Mar^.",
@@ -212,7 +212,7 @@
     {
      "date": "2027-03-15",
      "project": "offering",
-     "text": "Memorise ST 7.59 in Sanskrit and English"
+     "text": "Memorize ST 7.59 in Sanskrit and English"
     },
     {
      "date": "2027-03-31",
@@ -268,7 +268,7 @@
     {
      "date": "2027-05-15",
      "project": "offering",
-     "text": "Practise paryavasāna responses on five recorded reports"
+     "text": "Practice paryavasāna responses on five recorded reports"
     },
     {
      "date": "2027-05-31",
@@ -355,27 +355,31 @@
  ],
  "steps": [
   {
+   "id": "s-2026-11-start-your-project-notebook",
    "date": "2026-11-30",
    "project": "both",
-   "title": "Start your project notebook",
-   "detail": "One page per month. After each immersion, reading and observation, note one possible talk theme and one possible Session 1 angle.",
-   "evidence": "Notebook started (show it at your December one-to-one)"
+   "title": "Gather first ideas for both projects",
+   "detail": "Keep both projects in mind as you read and practice: what could your talk be about, and what could you speak to in Session 1?",
+   "evidence": "Talk them through at your December one-to-one"
   },
   {
+   "id": "s-2026-12-longlist-three-possible-talk-topics",
    "date": "2026-12-31",
    "project": "talk",
    "title": "Longlist three possible talk topics",
-   "detail": "Three candidate topics for the 60-minute specialized talk, one sentence each, drawn from your notebook.",
+   "detail": "Three candidate topics for the 60-minute specialized talk, one sentence each, drawn from what has caught your interest so far.",
    "evidence": "Longlist brought to the Q1 review"
   },
   {
+   "id": "s-2026-12-note-two-or-three-session-1-angles-you-c",
    "date": "2026-12-31",
    "project": "offering",
    "title": "Note two or three Session 1 angles you could speak to",
    "detail": "The angles come from the monthly books. Mark the ones you can speak to from your own life.",
-   "evidence": "Shortlist in notebook"
+   "evidence": "Shortlist brought to your one-to-one"
   },
   {
+   "id": "s-2027-01-name-your-real-group-and-venue",
    "date": "2027-01-31",
    "project": "offering",
    "title": "Name your real group and venue",
@@ -383,6 +387,7 @@
    "evidence": "Group and venue named in your January one-to-one"
   },
   {
+   "id": "s-2027-02-bring-a-talk-topic-proposal-to-your-one-",
    "date": "2027-02-28",
    "project": "talk",
    "title": "Bring a talk topic proposal to your one-to-one",
@@ -390,6 +395,7 @@
    "evidence": "Proposal in the one-to-one booking summary"
   },
   {
+   "id": "s-2027-02-choose-your-session-1-angle",
    "date": "2027-02-28",
    "project": "offering",
    "title": "Choose your Session 1 angle",
@@ -397,13 +403,15 @@
    "evidence": "Angle chosen"
   },
   {
+   "id": "s-2027-03-memorise-st-7-59-in-sanskrit-and-english",
    "date": "2027-03-15",
    "project": "offering",
-   "title": "Memorise ST 7.59 in Sanskrit and English",
+   "title": "Memorize ST 7.59 in Sanskrit and English",
    "detail": "\"There is none who utters it, and none is found who checks it: the Haṃsa utters itself, abiding in the breast of living beings.\"",
    "evidence": "Recited in your March one-to-one"
   },
   {
+   "id": "s-2027-03-write-the-session-1-talk",
    "date": "2027-03-31",
    "project": "offering",
    "title": "Write the Session 1 talk",
@@ -411,6 +419,7 @@
    "evidence": "Draft shared with your mentor"
   },
   {
+   "id": "s-2027-04-rehearse-the-session-2-talk-with-your-pa",
    "date": "2027-04-15",
    "project": "offering",
    "title": "Rehearse the Session 2 talk with your partner",
@@ -418,6 +427,7 @@
    "evidence": "Rehearsal noted in articulation log"
   },
   {
+   "id": "s-2027-04-book-your-three-dates-and-open-sign-ups",
    "date": "2027-04-30",
    "project": "offering",
    "title": "Book your three dates and open sign-ups",
@@ -425,6 +435,7 @@
    "evidence": "Dates confirmed with venue and mentor"
   },
   {
+   "id": "s-2027-04-try-a-10-minute-seed-version-on-your-par",
    "date": "2027-04-30",
    "project": "talk",
    "title": "Try a 10-minute seed version on your partner",
@@ -432,13 +443,15 @@
    "evidence": "Partner feedback noted"
   },
   {
+   "id": "s-2027-05-practise-paryavasana-responses-on-five-r",
    "date": "2027-05-15",
    "project": "offering",
-   "title": "Practise paryavasāna responses on five recorded reports",
+   "title": "Practice paryavasāna responses on five recorded reports",
    "detail": "Use five recorded student reports (from your practice-teaching, or provided by mentors). Carry each to its own conclusion without affirming, correcting or psychologising.",
    "evidence": "Five responses written or recorded"
   },
   {
+   "id": "s-2027-05-lead-the-full-upadesa-for-peers-under-su",
    "date": "2027-05-31",
    "project": "offering",
    "title": "Lead the full upadeśa for peers, under supervision",
@@ -446,6 +459,7 @@
    "evidence": "Mentor sign-off"
   },
   {
+   "id": "s-2027-05-bring-the-immersion-8-design-to-a-full-o",
    "date": "2027-05-31",
    "project": "talk",
    "title": "Bring the immersion 8 design to a full outline",
@@ -453,6 +467,7 @@
    "evidence": "Outline sent to your mentor"
   },
   {
+   "id": "s-2027-06-record-a-full-60-minute-run-through",
    "date": "2027-06-15",
    "project": "talk",
    "title": "Record a full 60-minute run-through",
@@ -460,6 +475,7 @@
    "evidence": "Recording shared"
   },
   {
+   "id": "s-2027-06-write-the-follow-on-cohort-plan",
    "date": "2027-06-15",
    "project": "offering",
    "title": "Write the follow-on cohort plan",
@@ -467,6 +483,7 @@
    "evidence": "Plan shared with your mentor"
   },
   {
+   "id": "s-2027-06-mentor-feedback-on-the-run-through-book-",
    "date": "2027-06-30",
    "project": "talk",
    "title": "Mentor feedback on the run-through; book your delivery slot",
@@ -474,13 +491,15 @@
    "evidence": "Delivery date booked"
   },
   {
+   "id": "s-2027-06-draft-the-final-report-outline",
    "date": "2027-06-30",
    "project": "both",
    "title": "Draft the final report outline",
    "detail": "Positionality, lineage, and how SLBT principles moved into your teaching.",
-   "evidence": "Outline in notebook"
+   "evidence": "Outline brought to your one-to-one"
   },
   {
+   "id": "s-2027-07-deliver-the-60-minute-talk-live-and-reco",
    "date": "2027-07-15",
    "project": "talk",
    "title": "Deliver the 60-minute talk, live and recorded",
@@ -488,6 +507,7 @@
    "evidence": "Recording submitted"
   },
   {
+   "id": "s-2027-07-complete-all-three-sessions-with-your-gr",
    "date": "2027-07-26",
    "project": "offering",
    "title": "Complete all three sessions with your group",
@@ -495,6 +515,7 @@
    "evidence": "Recordings of all three sessions submitted"
   },
   {
+   "id": "s-2027-07-revised-talk-if-you-re-revising",
    "date": "2027-07-31",
    "project": "talk",
    "title": "Revised talk, if you're revising",
@@ -502,6 +523,7 @@
    "evidence": "Revision submitted"
   },
   {
+   "id": "s-2027-07-submit-the-final-report-and-sit-the-comp",
    "date": "2027-07-31",
    "project": "both",
    "title": "Submit the final report and sit the competency check",
@@ -562,7 +584,7 @@
    {
     "from": 3,
     "to": 5,
-    "label": "Write S1 · memorise"
+    "label": "Write S1 · memorize"
    },
    {
     "from": 5,
@@ -586,7 +608,7 @@
   "howTo": [
    "Book early in the month, with Jacob or Nataraj Chaitanya. Sessions run in the last week of the month.",
    "When you book, send a short summary of what you want to work on. Send it at least two days before the session so your mentor can prepare.",
-   "Attach anything you want looked at: a draft, a recording, a page of your notebook.",
+   "Attach anything you want looked at: a draft, a recording, or your notes.",
    "Bring your practice log. It is reviewed every time."
   ],
   "template": [
@@ -621,7 +643,7 @@
     "Check field hours: aim for about 6 of observation and 6 of practice-teaching",
     "Talk topic agreed",
     "Session 1 written",
-    "ST 7.59 memorised"
+    "ST 7.59 memorized"
    ]
   },
   {

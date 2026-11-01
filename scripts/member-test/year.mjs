@@ -8,6 +8,35 @@ const seed = Y.seedRows();
 assert.equal(seed.filter(r => r.kind === 'step').length, 22); assert.equal(seed.filter(r => r.kind === 'review_check').length, 18);
 assert.deepEqual(['q1', 'mid', 'readiness'].map(k => seed.filter(r => r.review === k).length), [5, 7, 6]);
 assert.equal(new Set(seed.map(r => r.step_id)).size, seed.length); assert.ok(seed.every(r => /^(s-\d{4}-\d{2}-|r-(q1|mid|readiness)-\d)/.test(r.step_id)));
+// step ids are frozen: Mentee Step Status rows point at them, so rewording a title must never move one. These are the ids origin/main (3e797c9) derived from the old titles.
+const FROZEN = [
+ "s-2026-11-start-your-project-notebook",
+ "s-2026-12-longlist-three-possible-talk-topics",
+ "s-2026-12-note-two-or-three-session-1-angles-you-c",
+ "s-2027-01-name-your-real-group-and-venue",
+ "s-2027-02-bring-a-talk-topic-proposal-to-your-one-",
+ "s-2027-02-choose-your-session-1-angle",
+ "s-2027-03-memorise-st-7-59-in-sanskrit-and-english",
+ "s-2027-03-write-the-session-1-talk",
+ "s-2027-04-rehearse-the-session-2-talk-with-your-pa",
+ "s-2027-04-book-your-three-dates-and-open-sign-ups",
+ "s-2027-04-try-a-10-minute-seed-version-on-your-par",
+ "s-2027-05-practise-paryavasana-responses-on-five-r",
+ "s-2027-05-lead-the-full-upadesa-for-peers-under-su",
+ "s-2027-05-bring-the-immersion-8-design-to-a-full-o",
+ "s-2027-06-record-a-full-60-minute-run-through",
+ "s-2027-06-write-the-follow-on-cohort-plan",
+ "s-2027-06-mentor-feedback-on-the-run-through-book-",
+ "s-2027-06-draft-the-final-report-outline",
+ "s-2027-07-deliver-the-60-minute-talk-live-and-reco",
+ "s-2027-07-complete-all-three-sessions-with-your-gr",
+ "s-2027-07-revised-talk-if-you-re-revising",
+ "s-2027-07-submit-the-final-report-and-sit-the-comp"
+];
+assert.deepEqual(seed.filter(r => r.kind === 'step').map(r => r.step_id), FROZEN, 'every step keeps its id');
+const data = (await import('../../data/mentee-year.json', { with: { type: 'json' } })).default;
+assert.deepEqual(data.steps.map(x => x.id), FROZEN, 'the id is written in the data, so the title can change');
+assert.equal(Y.seedRows({ ...data, steps: [...data.steps, { date: '2026-12-01', project: 'talk', title: 'A new step', detail: '', evidence: '' }] }).filter(r => r.kind === 'step').pop().step_id, 's-2026-12-a-new-step', 'a step without an id still gets one from its title');
 // a missing tab falls back to the seed
 const sch = Y.scheduleFrom([]); assert.equal(sch.steps.length, 22); assert.equal(sch.fromSheet, false); assert.deepEqual(sch.reviews.map(r => r.checks.length), [5, 7, 6]);
 // a real tab is used instead, and an unpublished row is left out
@@ -15,7 +44,7 @@ const live = Y.scheduleFrom([{ step_id: 's-x', date: '2026-12-01', project: 'tal
 assert.deepEqual(live.steps.map(s => s.id), ['s-x']); assert.equal(live.fromSheet, true);
 
 // nextFor: not-done only, overdue first, then by date
-const steps = sch.steps, id0 = steps[0].id; // 30 Nov notebook (both)
+const steps = sch.steps, id0 = steps[0].id; // 30 Nov, gather first ideas (both)
 let n = Y.nextFor(steps, new Set(), '2026-12-02', 3); assert.deepEqual(n.map(s => [s.id === id0, s.overdue]), [[true, true], [false, false], [false, false]]); assert.equal(n[0].daysTo, -2);
 n = Y.nextFor(steps, new Set([id0]), '2026-12-02', 3); assert.ok(n.every(s => !s.overdue) && n[0].date === '2026-12-31');
 assert.equal(Y.nextFor(steps, new Set(steps.map(s => s.id)), '2026-12-02').length, 0);
@@ -64,20 +93,19 @@ assert.deepEqual([Y.summaryStatus(at(30), true, now).key, Y.summaryStatus(at(30)
 // nudges: due by the rules, respect the switch, never twice
 const m2 = [{ name: 'Maya Rao', email: 'maya@x.com' }, { name: 'Sam Lee', email: 'sam@x.com' }];
 let nu = Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], today: '2026-11-25' });
-assert.deepEqual(nu.filter(x => x.email === 'sam@x.com').map(x => x.kind), ['soon', 'review'], 'the 30 Nov step is 5 days away; the review is open past the 15th'); assert.match(nu[0].subject, /Your next project step: Start your project notebook/);
-assert.equal(nu.length, 4);
+assert.deepEqual(nu.filter(x => x.email === 'sam@x.com').map(x => x.kind), ['soon'], 'the 30 Nov step is 5 days away; there is no review reminder (the review is covered in the one-to-one)'); assert.match(nu[0].subject, /Your next project step: Gather first ideas for both projects/);
+assert.equal(nu.length, 2);
 assert.equal(Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], today: '2026-11-10' }).length, 0, 'more than 7 days before: nothing');
 nu = Y.dueNudges({ schedule: [], mentees: m2, statusRows: [{ email: 'sam@x.com', step_id: id0, status: 'done' }], today: '2026-12-03' }); assert.deepEqual(nu.map(x => [x.email, x.kind]), [['maya@x.com', 'overdue']], 'three days after, if not ticked');
 nu = Y.dueNudges({ schedule: [], mentees: m2, statusRows: [{ email: 'maya@x.com', step_id: `nudge:overdue:${id0}`, status: 'sent' }, { email: 'sam@x.com', step_id: 'prefs:reminders', status: 'off' }], today: '2026-12-03' }); assert.deepEqual(nu, [], 'sent once; reminders off respected');
-nu = Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], today: '2026-11-16' }); assert.ok(nu.some(x => x.kind === 'review' && /Q1 review is open/.test(x.subject)));
-assert.ok(!Y.dueNudges({ schedule: [], mentees: m2, statusRows: ids('q1').slice(0, 1).map(i => ({ email: 'maya@x.com', step_id: i, status: 'done' })), today: '2026-11-16' }).some(x => x.kind === 'review' && x.email === 'maya@x.com'));
+for (const day of ['2026-11-16', '2026-11-25', '2027-02-20', '2027-06-20']) assert.ok(!Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], today: day }).some(x => x.kind === 'review'), 'no review reminder on ' + day);
 nu = Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], bookings: [{ email: 'maya@x.com', start: '2026-11-24T19:00:00Z', summary: false }, { email: 'sam@x.com', start: '2026-11-24T20:00:00Z', summary: true }], today: '2026-11-22' });
 assert.deepEqual(nu.filter(x => x.kind === 'summary').map(x => x.email), ['maya@x.com']); assert.equal(Y.dueNudges({ schedule: [], mentees: m2, statusRows: [], today: '2026-10-20' }).length, 0, 'not before the year');
 
 // digest: lines left out when zero
 let dl = Y.digestLines({ schedule: [], mentees: m2, statusRows: [], today: '2026-10-10' }); assert.deepEqual(dl, [], 'nothing overdue, nothing due, no booking: no lines');
 dl = Y.digestLines({ schedule: [], mentees: m2, statusRows: [{ email: 'sam@x.com', step_id: id0, status: 'done' }], bookings: [{ email: 'maya@x.com', start: '2026-12-08T19:00:00Z', summary: false }], today: '2026-12-07' });
-assert.ok(dl.some(l => /^Steps overdue: 1 \(Maya Rao · Start your project notebook\)/.test(l))); assert.ok(!dl.some(l => /^Q1 review/.test(l)), 'the review line only while its month is open'); assert.ok(Y.digestLines({ schedule: [], mentees: m2, statusRows: [], today: '2026-11-30' }).some(l => /^Q1 review: 0 of 2 ready · 0 in progress · 2 not started/.test(l))); assert.ok(dl.some(l => /without a summary: 1 \(Maya Rao, Tue/.test(l)));
+assert.ok(dl.some(l => /^Steps overdue: 1 \(Maya Rao · Gather first ideas for both projects\)/.test(l))); assert.ok(!dl.some(l => /review/i.test(l)), 'no review line'); assert.ok(!Y.digestLines({ schedule: [], mentees: m2, statusRows: [], today: '2026-11-30' }).some(l => /review/i.test(l)), 'no review line while the review month is open either'); assert.ok(dl.some(l => /without a summary: 1 \(Maya Rao, Tue/.test(l)));
 assert.ok(dl.some(l => /^Due this week, not yet ticked: 'Longlist three possible talk topics': 0 of 2/.test(l)) === false, '31 Dec is more than a week away');
 dl = Y.digestLines({ schedule: [], mentees: m2, statusRows: [], bookings: [], today: '2026-12-16' }); assert.ok(dl.some(l => /^Not booked for December yet: 2/.test(l)));
 console.log('year: ok');
