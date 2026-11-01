@@ -23,7 +23,7 @@ export default function PodsAdmin() {
     const j = await res?.json().catch(() => ({}));
     setBusy('');
     if (!res?.ok) { setMsg({ error: j?.error || 'Couldn’t save. Try again.' }); return; }
-    setData(j); setMsg({ ok });
+    setData(j); setMsg({ ok: typeof ok === 'function' ? ok(j) : ok });
   };
 
   if (!data) return <p className="ops-empty">Loading…</p>;
@@ -45,7 +45,7 @@ export default function PodsAdmin() {
           <li key={l.uid} style={{ padding: '10px 0' }}>
             <strong>{l.name}</strong> <span className="ops-empty">{l.email} · asked {day(l.at)}</span>
             <div style={{ whiteSpace: 'pre-wrap', margin: '4px 0 8px' }}>{l.note}</div>
-            <button className="chip primary" disabled={!!busy} onClick={() => act('a' + l.uid, { action: 'approve', uid: l.uid }, `${l.name} can now start pods.`)}>Approve</button>{' '}
+            <button className="chip primary" disabled={!!busy} onClick={() => act('a' + l.uid, { action: 'approve', uid: l.uid }, j => `${l.name} can now start pods.${j.notified === true ? ' We have emailed them.' : j.notified === false ? ' We could not email them, so please let them know.' : ''}`)}>Approve</button>{' '}
             <button className="chip" disabled={!!busy} onClick={() => confirm(`Decline ${l.name}’s request? They can ask again later.`) && act('d' + l.uid, { action: 'decline', uid: l.uid }, 'Declined.')}>Decline</button>
           </li>
         ))}

@@ -25,3 +25,6 @@ What the dashboard side of the Sahṛdaya Upāya work does. The mentee pages the
 
 ## Study pods on the front page
 Today shows a **Study pods** card (Jacob, Irene, Floss): students who asked to lead a pod (with their note) and running pods that still need a chat link, linking to Settings → Study pods. `lib/ops/podswaiting.js`; test `scripts/ops-test/pods-waiting.mjs` (PGlite). The card stays away when there is no database. Students can only ask while `STUDY_PODS=on` is set on the **website** project.
+
+## Study pods: minimum 4, live rooms, email on approval
+`data/pods.json` `min` is 4 and `lib/pods/*` match ep-website (a live room link per pod, `pods.room_url`). **Approving a leader now emails them** ("You can lead a study pod", with a button to the Study pods tab); if the email can't be sent the approval still stands and the page says so. The students' side (the card on the Sahṛdaya Upāya page and Circle Today, the live-room button) is in ep-website, `docs/study-pods.md`.
