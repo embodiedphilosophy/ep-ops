@@ -36,4 +36,15 @@ assert.equal(reviewFor(rs, '2026-11-10').month, '2026-11', 'this month’s revie
 // the lanes sit in the right columns
 assert.deepEqual(laneStyle({ from: 0, to: 2 }), { gridColumn: '2 / 4' });
 assert.ok([...data.lanes.talk, ...data.lanes.offering].every(b => b.from >= 0 && b.to <= 9 && b.to > b.from));
+
+// edits kept in the Mentee Year Content tab: a row replaces one piece of text; blank, unknown or non-editable paths are ignored; the original is never changed
+const { applyOverrides, isEditablePath, pathValue } = await import('../../lib/mentee/yearcontent.js');
+const ov = applyOverrides(data, [
+  { path: 'lede', value: '  A new introduction.  ' }, { path: 'months.1.items.0', value: 'Immersion 1 moved.' }, { path: 'oneToOne.howTo.1', value: '' },
+  { path: 'months.99.items.0', value: 'nowhere' }, { path: 'steps.0.title', value: 'not editable here' }, { path: 'months.1.id', value: 'sneaky' }, { path: '__proto__.x', value: 'no' },
+]);
+assert.equal(ov.lede, 'A new introduction.'); assert.equal(ov.months[1].items[0], 'Immersion 1 moved.'); assert.equal(ov.oneToOne.howTo[1], data.oneToOne.howTo[1], 'blank = original');
+assert.equal(ov.months[1].id, data.months[1].id); assert.notEqual(data.lede, ov.lede, 'the data file object is not changed');
+assert.ok(isEditablePath('rhythm.0.items.2') && isEditablePath('footer') && !isEditablePath('months.1.steps.0.text') && !isEditablePath('lanes.months.0'));
+assert.equal(pathValue(data, 'months.1.theme'), data.months[1].theme); assert.equal(pathValue(data, 'months.1.items'), undefined);
 console.log('mentee year: ok');
