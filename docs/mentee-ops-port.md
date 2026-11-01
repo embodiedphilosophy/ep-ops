@@ -22,3 +22,6 @@ What the dashboard side of the Sahṛdaya Upāya work does. The mentee pages the
 
 ## Tests
 `scripts/member-test/year.mjs`, `scripts/ops-test/mentee-year.mjs`, `scripts/ops-test/pair-chats.mjs` (run with `node --import ./scripts/ce-test/register.mjs …`); the Ops pages against `scripts/ops-test/mock.mjs` (now has Mentee Step Status, Calendly and Kit tag data).
+
+## Study pods on the front page
+Today shows a **Study pods** card (Jacob, Irene, Floss): students who asked to lead a pod (with their note) and running pods that still need a chat link, linking to Settings → Study pods. `lib/ops/podswaiting.js`; test `scripts/ops-test/pods-waiting.mjs` (PGlite). The card stays away when there is no database. Students can only ask while `STUDY_PODS=on` is set on the **website** project.
