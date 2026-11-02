@@ -21,22 +21,29 @@ const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return new Dat
 // One month's list: exactly what mentees see under "This month" on their page in Circle (and on /school/mentee-year), each row editable
 const KIND = { immersion: 'Immersion', note: 'Note', book: 'Book', suggested: 'Suggested book', buddy: 'Buddy', 'one-to-one': 'One-to-one', reflection: 'Reflection', handin: 'Hand-in', task: 'Task' };
 const span = (a, b) => (b && b !== a ? `${dayFmt(a)} – ${dayFmt(b)}` : dayFmt(a));
+const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+function MonthRow({ r, ym, canEdit, counts, mentees }) {
+  return (<li className={`ops-my-step${r.hidden ? ' off' : ''}`}>
+    <span className="when"><b>{r.date ? span(r.date, r.end) : r.when || ''}</b><small>{KIND[r.kind]}</small></span>
+    <span className="what"><b><Rich text={r.title} /></b>{r.line && <span className="det"><Rich text={r.line} /></span>}
+      {r.link && <span className="ev"><a href={r.link} target="_blank" rel="noopener noreferrer">{r.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
+      {r.hidden && <span className="ev">Taken off the mentee page</span>}
+      {r.hint && <span className="ev">{r.hint}</span>}
+      {r.kind === 'buddy' && <span className="ev">Who is paired with whom: <a href="/ops/settings/partners">Settings → Peer partners</a></span>}
+      {r.kind === 'task' && mentees > 0 && <span className="ev">{counts[r.key] || 0} of {mentees} ticked</span>}
+      {canEdit && (r.kind === 'task' ? <EditItem kind="task" item={r.task} /> : r.edit === 'settings' ? <a className="chip ops-my-editbtn" href="/ops/settings?t=massignments">Edit in Settings</a> : <RowEdit month={ym} row={r} />)}</span>
+  </li>);
+}
+// One month's list: the mentee page's "This month" in Circle, row for row and in the same order (lib/mentee/monthlist.js), each row editable
 function MonthList({ ym, rows, canEdit, today, counts, mentees }) {
-  const nextStart = rows.find(r => r.kind === 'book')?.book?.starts || `${ym}-01`;
+  const inCircle = rows.filter(r => r.circle), only = rows.filter(r => !r.circle), n = inCircle.filter(r => !r.hidden).length;
+  const bookStart = rows.find(r => r.kind === 'book' && r.date)?.date || `${ym}-01`;
   return (<div className="ops-my-tasks">
-    <h4>On the mentee page this month <small>· the “This month” list in Circle, and this month on the Your Year page</small></h4>
-    <ul className="ops-my-steps compact ops-my-mlist">{rows.map(r => (
-      <li key={r.key} className={`ops-my-step${r.hidden ? ' off' : ''}`}>
-        <span className="when"><b>{r.date ? span(r.date, r.end) : ''}</b><small>{KIND[r.kind]}</small></span>
-        <span className="what"><b><Rich text={r.title} /></b>{r.line && <span className="det"><Rich text={r.line} /></span>}
-          {r.link && <span className="ev"><a href={r.link} target="_blank" rel="noopener noreferrer">{r.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
-          {r.hidden && <span className="ev">Taken off the mentee page</span>}
-          {(r.kind === 'note' || r.kind === 'suggested') && <span className="ev">Shown on the Your Year page{r.kind === 'note' ? '' : ' and the reading list'}, not as a row in Circle{r.hint ? ` · ${r.hint}` : ''}</span>}
-          {r.kind === 'buddy' && <span className="ev">Who is paired with whom: <a href="/ops/settings/partners">Settings → Peer partners</a></span>}
-          {r.kind === 'task' && mentees > 0 && <span className="ev">{counts[r.key] || 0} of {mentees} ticked</span>}
-          {canEdit && (r.kind === 'task' ? <EditItem kind="task" item={r.task} /> : r.edit === 'settings' ? <a className="chip ops-my-editbtn" href="/ops/settings?t=massignments">Edit in Settings</a> : <RowEdit month={ym} row={r} />)}</span>
-      </li>))}</ul>
-    {canEdit && <div className="ops-my-acts"><AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} /><AddBook month={ym} starts={nextStart} /></div>}
+    <h4>This month, {NUM[n] || n} {n === 1 ? 'thing' : 'things'} <small>· what mentees see on their page in Circle (as at the start of the month), and on the Your Year page</small></h4>
+    <ul className="ops-my-steps compact ops-my-mlist">{inCircle.map(r => <MonthRow key={r.key} r={r} ym={ym} canEdit={canEdit} counts={counts} mentees={mentees} />)}</ul>
+    {canEdit && <div className="ops-my-acts"><AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} /><AddBook month={ym} starts={bookStart} /></div>}
+    {only.length > 0 && (<><h4 style={{ marginTop: 14 }}>Only on the Your Year page <small>· not a row in Circle</small></h4>
+      <ul className="ops-my-steps compact ops-my-mlist">{only.map(r => <MonthRow key={r.key} r={r} ym={ym} canEdit={canEdit} counts={counts} mentees={mentees} />)}</ul></>)}
   </div>);
 }
 

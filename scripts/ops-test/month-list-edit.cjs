@@ -11,7 +11,8 @@ const ok = (c, m) => { if (!c) { console.error('FAIL', m); process.exitCode = 1;
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:3100/ops/mentee-year?tab=months');
   const nov = p.locator('#m-2026-11'), row = t => nov.locator('.ops-my-mlist > li', { hasText: t }), form = () => nov.locator('.ops-my-edit');
-  for (const t of ['Immersion 1 · Beneath the Pose', 'Read The Truth of Yoga', 'Suggested: Yoga Body', 'Articulation with your buddy', 'One-to-one with Jacob', 'Write your November reflection']) ok(await row(t).count() === 1, 'listed: ' + t);
+  for (const t of ['Immersion 1 · Beneath the Pose', 'Read The Truth of Yoga', 'Suggested: Yoga Body', 'Meet your buddy', 'Read Education’s End', 'One-to-one with Jacob', 'Write your first reflection']) ok(await row(t).count() === 1, 'listed: ' + t);
+  ok(await nov.getByText('This month, six things').count() === 1, 'six things, as in Circle');
   await nov.screenshot({ path: __dirname + '/out/month-list-nov.png' });
   // immersion
   await row('Immersion 1').getByRole('button', { name: 'Edit' }).click();
@@ -29,16 +30,16 @@ const ok = (c, m) => { if (!c) { console.error('FAIL', m); process.exitCode = 1;
   await row('Suggested: The Subtle Body').waitFor({ timeout: 15000 }); ok(true, 'book added');
   // buddy off and back
   p.once('dialog', d => d.accept());
-  await row('Articulation with your buddy').getByRole('button', { name: 'Edit' }).click();
+  await row('Meet your buddy').getByRole('button', { name: 'Edit' }).click();
   await form().getByRole('button', { name: 'Remove from mentee page' }).click();
-  await row('Articulation').getByRole('button', { name: 'Put back on the mentee page' }).waitFor({ timeout: 15000 }); ok(true, 'buddy row taken off');
-  await row('Articulation').getByRole('button', { name: 'Put back on the mentee page' }).click();
-  await row('Articulation').getByRole('button', { name: 'Edit' }).waitFor({ timeout: 15000 }); ok(true, 'buddy row put back');
+  await row('Meet your buddy').getByRole('button', { name: 'Put back on the mentee page' }).waitFor({ timeout: 15000 }); ok(true, 'buddy row taken off');
+  await row('Meet your buddy').getByRole('button', { name: 'Put back on the mentee page' }).click();
+  await row('Meet your buddy').getByRole('button', { name: 'Edit' }).waitFor({ timeout: 15000 }); ok(true, 'buddy row put back');
   // reflection and window
-  await row('Write your November reflection').getByRole('button', { name: 'Edit' }).click();
-  await form().getByLabel('Due', { exact: true }).fill('2026-11-29'); await form().getByLabel('Title', { exact: true }).fill('Write your first reflection');
+  await row('Write your first reflection').getByRole('button', { name: 'Edit' }).click();
+  await form().getByLabel('Due', { exact: true }).fill('2026-11-29'); await form().getByLabel('Title', { exact: true }).fill('Your first reflection');
   await form().getByRole('button', { name: 'Save' }).click();
-  await row('Write your first reflection').waitFor({ timeout: 15000 }); ok((await row('Write your first reflection').innerText()).includes('Sun 29 Nov'), 'reflection date and title');
+  await nov.getByText('Sun 29 Nov').waitFor({ timeout: 15000 }); ok((await row('Sun 29 Nov').innerText()).includes('Your first reflection'), 'reflection date and title');
   await row('One-to-one with Jacob').getByRole('button', { name: 'Edit' }).click();
   await form().getByLabel('Booking window opens').fill('2026-11-24'); await form().getByLabel('Window closes').fill('2026-11-28');
   await form().getByRole('button', { name: 'Save' }).click();

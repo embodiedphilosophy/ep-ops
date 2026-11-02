@@ -8,17 +8,24 @@ const books = [
   { month: '2', starts: '2026-11-16', title: 'The Truth of Yoga', author: 'Daniel Simpson', kind: 'required' },
   { month: '2', starts: '2026-11-16', title: 'Yoga Body', author: 'Mark Singleton', kind: 'suggested' },
 ];
-const keys = l => l.filter(r => !r.hidden).map(r => r.key);
+const keys = l => l.filter(r => !r.hidden && r.circle).map(r => r.key);
 let nov = M.monthList({ ym: '2026-11', config, bookRows: books });
-assert.deepEqual(keys(nov), ['buddy', 'immersion-1', 'book-the-truth-of-yoga', 'book-yoga-body', 'one-to-one', 'reflection']);
+// the same six things, in the same order, as the mentee page in Circle at the start of November
+assert.deepEqual(keys(nov), ['book-education-s-end', 'book-the-truth-of-yoga', 'buddy', 'immersion-1', 'one-to-one', 'reflection']);
+assert.deepEqual(nov.filter(r => r.kind === 'book').map(r => r.when), ['Now', 'From 16 Nov']);
+assert.equal(nov.find(r => r.key === 'book-education-s-end').line, 'Anthony Kronman. About 30 minutes most days.');
+assert.equal(nov.find(r => r.key === 'book-yoga-body').circle, false, 'suggested books are not a row in Circle');
+assert.match(nov.find(r => r.key === 'immersion-1').line, /^Your first weekend together/);
+assert.equal(nov.find(r => r.key === 'reflection').title, 'Write your first reflection');
 assert.equal(nov.find(r => r.key === 'immersion-1').title, 'Immersion 1 · Beneath the Pose');
 assert.equal(nov.find(r => r.key === 'reflection').date, '2026-11-30', 'last Monday');
 assert.equal(nov.find(r => r.key === 'one-to-one').date, '2026-11-23');
-assert.match(nov.find(r => r.key === 'buddy').line, /Rotation 1 \(Oct–Nov\): the same buddy/);
+assert.match(nov.find(r => r.key === 'buddy').hint, /Rotation 1 \(Oct–Nov\): the same buddy/);
 // October: no immersion → the mentee-year line; July: the retreat line; December with no books → the mentee-year Read line
 assert.equal(M.monthList({ ym: '2026-10', config, bookRows: books }).find(r => r.kind === 'note').title, 'No immersion');
 assert.equal(M.monthList({ ym: '2027-07', config }).find(r => r.key === 'note-immersion-1').title, 'Retreat practicum');
-assert.match(M.monthList({ ym: '2026-12', config, bookRows: books }).find(r => r.key === 'note-book-1').title, /^Read Pierre Hadot/);
+assert.match(M.monthList({ ym: '2026-12', config }).find(r => r.key === 'note-book-1').title, /^Read Pierre Hadot/);
+assert.equal(M.monthList({ ym: '2026-10', config, bookRows: books }).find(r => r.kind === 'book').when, 'From 21 Oct');
 // Ops changes: rename + move immersion 1, hide the buddy row, reword the reflection, move the one-to-one window, a task
 const rowRows = [
   { month: '2026-11', row: 'immersion-1', title: 'Under the Pose', date: '2026-11-21', end: '2026-11-22', link: 'https://ss.embodiedphilosophy.com/c/x', line: 'Bring a notebook.' },
