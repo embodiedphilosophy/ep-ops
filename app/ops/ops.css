@@ -865,3 +865,14 @@
 .ops-shell .ops-my-move { display: flex; gap: 4px; margin-top: 6px } .ops-shell .ops-my-move .chip { min-width: 30px; padding: 2px 8px }
 .ops-shell .ops-my-mlist .ops-my-step.mv { grid-template-columns: 90px minmax(0, 1fr) auto }
 .ops-shell .ops-my-mlist .ops-my-step.mv .ops-my-move { flex-direction: column; margin: 0 }
+
+/* Mentee year: editing the wording (EditText, AddLine) */
+.ops-shell .ops-my-text { display: inline }
+.ops-shell .ops-my-tacts { display: inline-flex; gap: 8px; margin-left: 8px; vertical-align: baseline }
+.ops-shell .ops-my-link { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px }
+.ops-shell .ops-my-link:disabled { opacity: .5 }
+.ops-shell .ops-my-addline { display: inline-block; margin: 6px 0 0 }
+.ops-shell .ops-my-tag-ed { font-style: normal; font-size: 11px; color: var(--mute); margin-left: 6px; text-transform: uppercase; letter-spacing: .04em }
+.ops-shell .ops-my-struck { text-decoration: line-through; color: var(--mute) }
+.ops-shell .ops-my-off { opacity: .7 }
+.ops-shell .ops-my-template-lines { list-style: none; padding: 10px 12px; margin: 0; background: var(--ground); border: 1px solid var(--hair); border-radius: 6px; font-family: var(--mono, monospace); font-size: 13px; display: grid; gap: 4px }
