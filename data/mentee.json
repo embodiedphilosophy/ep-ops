@@ -7,7 +7,7 @@
   "chat_url": "https://ss.embodiedphilosophy.com/c/sah-daya-upaya-messages",
   "chat_space_id": null,
   "workbook_url": "https://ss.embodiedphilosophy.com/c/apprentice-workbook",
-  "message_url": "mailto:jacob@embodiedphilosophy.com",
+  "message_url": "https://ss.embodiedphilosophy.com/u/151793d1",
   "booking_url": "https://calendly.com/embodied-philosophy/sah-daya-upaya-monthly-1-1-mentorship",
   "pinned": [],
   "windows": [
@@ -137,5 +137,11 @@
   "reflections_space_id": 2896660,
   "mentor_emails": [
     "jacob@embodiedphilosophy.com"
-  ]
+  ],
+  "orientation": {
+    "title": "Mentorship Orientation",
+    "date": "2026-11-01",
+    "sub": "Sahṛdaya Upāya & SLBT",
+    "url": ""
+  }
 }
