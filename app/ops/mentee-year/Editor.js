@@ -192,3 +192,56 @@ export function Orderable({ month, items }) {
     {msg && <p className="hint" role="status" aria-live="polite">{msg}</p>}
   </>);
 }
+
+// A piece of the Your Year page's wording, shown as it reads, with Edit (and, in a list, Remove / Put back). children: the text, already formatted.
+export function EditText({ v, list = false, long = false, children }) {
+  const [open, setOpen] = useState(false), [text, setText] = useState(v.text);
+  const s = useSave();
+  const save = value => s.run({ what: 'text', path: v.path, value }, () => setOpen(false));
+  if (open) return (<div className="ops-my-edit">
+    <label className="ops-my-f"><span>{list ? 'Line' : 'Text'} <small>· **bold**, _italic_, ~quiet~</small></span>
+      <textarea rows={long || text.length > 90 ? 4 : 2} value={text} onChange={e => setText(e.target.value)} maxLength={1500} /></label>
+    {s.err && <p className="hint err" role="alert">{s.err}</p>}
+    <div className="ops-my-acts">
+      <button type="button" className="chip primary" disabled={s.busy || !text.trim()} onClick={() => save(text)}>{s.busy ? 'Saving…' : 'Save'}</button>
+      <button type="button" className="chip" disabled={s.busy} onClick={() => setOpen(false)}>Cancel</button>
+      {v.changed && !v.added && <button type="button" className="chip" disabled={s.busy} onClick={() => save('')}>Back to the original</button>}
+    </div>
+    {v.changed && !v.added && v.original && <p className="hint">Original: {v.original}</p>}
+  </div>);
+  return (<span className="ops-my-text">
+    <span className={v.removed ? 'ops-my-struck' : ''}>{children}</span>
+    {v.changed && <em className="ops-my-tag-ed">{v.added ? 'added' : 'edited'}</em>}
+    {v.removed && <em className="ops-my-tag-ed">taken out</em>}
+    <span className="ops-my-tacts">
+      {!v.removed && <button type="button" className="ops-my-link" onClick={() => { setText(v.text); setOpen(true); }}>Edit</button>}
+      {list && !v.removed && <button type="button" className="ops-my-link" disabled={s.busy} onClick={() => { if (window.confirm('Take this line off the Your Year page?')) s.run({ what: 'text', path: v.path, value: v.added ? '' : '[remove]' }); }}>Remove</button>}
+      {v.removed && <button type="button" className="ops-my-link" disabled={s.busy} onClick={() => s.run({ what: 'text', path: v.path, value: '' })}>Put back</button>}
+    </span>
+    {s.err && <em className="hint err"> {s.err}</em>}
+  </span>);
+}
+
+export function AddLine({ path }) {
+  const [open, setOpen] = useState(false), [text, setText] = useState('');
+  const s = useSave();
+  if (!open) return <button type="button" className="ops-my-link ops-my-addline" onClick={() => { setText(''); setOpen(true); }}>+ Add a line</button>;
+  return (<div className="ops-my-edit">
+    <label className="ops-my-f"><span>New line <small>· **bold**, _italic_, ~quiet~</small></span><textarea rows={2} value={text} onChange={e => setText(e.target.value)} maxLength={1500} /></label>
+    {s.err && <p className="hint err" role="alert">{s.err}</p>}
+    <div className="ops-my-acts">
+      <button type="button" className="chip primary" disabled={s.busy || !text.trim()} onClick={() => s.run({ what: 'text', path, value: text }, () => setOpen(false))}>{s.busy ? 'Adding…' : 'Add'}</button>
+      <button type="button" className="chip" disabled={s.busy} onClick={() => setOpen(false)}>Cancel</button>
+    </div>
+  </div>);
+}
+
+// Ops → Mentee year → The manual: show the newest Google Doc on the page now (otherwise it catches up within 5 minutes)
+export function PublishManual() {
+  const s = useSave(), [done, setDone] = useState(false);
+  return (<span className="ops-my-acts">
+    <button type="button" className="chip primary" disabled={s.busy} onClick={() => s.run({ what: 'publish-manual' }, () => setDone(true))}>{s.busy ? 'Publishing…' : 'Publish the manual now'}</button>
+    {done && <span className="hint" role="status">Done: the page shows the Google Doc as it is now.</span>}
+    {s.err && <span className="hint err">{s.err}</span>}
+  </span>);
+}

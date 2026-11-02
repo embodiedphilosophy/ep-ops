@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/ops/auth';
 import { canEditSite } from '@/lib/ops/nav';
 import { ConflictError } from '@/lib/ops/store';
 import { refreshSite } from '@/lib/ops/refresh';
-import { checkItem, checkMonth, saveItem, saveMonth, checkRow, saveRow, saveReflection, checkBook, saveBook, checkOrder, saveOrder } from '@/lib/ops/menteeyearedit';
+import { checkItem, checkMonth, saveItem, saveMonth, checkRow, saveRow, saveReflection, checkBook, saveBook, checkOrder, saveOrder, checkText, saveText } from '@/lib/ops/menteeyearedit';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic';
 //   { what: 'month', values: { month, theme, focus } }               a month's theme and focus
 //   { what: 'row', values: { month, row, title, line, date, end, link }, hide?, show? }   a row of the month list (immersion, buddy, one-to-one, notes)
 //   { what: 'reflection', values: { month, due, title, line } }      the month's reflection: due date and words
+//   { what: 'text', path, value }                                  a piece of the Your Year page's wording (blank = original, [remove] = take a line out)
+//   { what: 'publish-manual' }                                      show the latest Google Doc of the manual now
 //   { what: 'order', month, keys: [rowKey, …] }                      the order of the month's list
 //   { what: 'book', month, original?: { title, starts }, values?, hide? }   a book on the reading list (Mentee Books): change, add or take off
 export async function POST(req) {
@@ -21,7 +23,13 @@ export async function POST(req) {
   const b = await req.json().catch(() => ({}));
   const who = user.name || user.email;
   try {
-    if (b.what === 'order') {
+    if (b.what === 'text') {
+      const c = checkText(b);
+      if (c.errors) return NextResponse.json({ error: Object.values(c.errors)[0] }, { status: 400 });
+      await saveText({ values: c.values, who });
+    } else if (b.what === 'publish-manual') {
+      // nothing to write: refreshSite() below makes the website read the manual's Google Doc again now
+    } else if (b.what === 'order') {
       const c = checkOrder(b);
       if (c.errors) return NextResponse.json({ error: Object.values(c.errors)[0] }, { status: 400 });
       await saveOrder({ values: c.values, who });
