@@ -16,9 +16,10 @@ const ok = (c, m) => { if (!c) { console.error('FAIL', m); process.exitCode = 1;
   await nov.screenshot({ path: __dirname + '/out/month-list-nov.png' });
   // immersion
   await row('Immersion 1').getByRole('button', { name: 'Edit' }).click();
-  await form().getByLabel('Name of the weekend').fill('Under the Pose'); await form().getByLabel('Saturday', { exact: true }).fill('2026-11-21'); await form().getByLabel('Sunday', { exact: true }).fill('2026-11-22');
+  await form().getByLabel('Name of the weekend').fill('Under the Pose'); await form().getByLabel('Saturday', { exact: true }).fill('2026-11-21'); await form().getByLabel('Sunday', { exact: true }).fill('2026-11-22'); await form().getByLabel(/^Saturday Open Session link/).fill('https://zoom.us/j/111'); await form().getByLabel(/^Sunday Practicum link/).fill('https://zoom.us/j/222');
   await form().getByRole('button', { name: 'Save' }).click();
   await row('Immersion 1 · Under the Pose').waitFor({ timeout: 15000 }); ok((await row('Under the Pose').innerText()).includes('Sat 21 Nov – Sun 22 Nov'), 'immersion renamed and moved');
+  ok(/Saturday Open Session: zoom.us\/j\/111[\s\S]*Sunday Practicum: zoom.us\/j\/222/.test(await row('Under the Pose').innerText()), 'Saturday and Sunday links saved');
   // book
   await row('Read The Truth of Yoga').getByRole('button', { name: 'Edit' }).click();
   await form().getByLabel('A line under it').fill('Begin after the weekend; a chapter a day.');
@@ -44,6 +45,14 @@ const ok = (c, m) => { if (!c) { console.error('FAIL', m); process.exitCode = 1;
   await form().getByLabel('Booking window opens').fill('2026-11-24'); await form().getByLabel('Window closes').fill('2026-11-28');
   await form().getByRole('button', { name: 'Save' }).click();
   await nov.getByText('Tue 24 Nov – Sat 28 Nov').waitFor({ timeout: 15000 }); ok(true, 'one-to-one window moved');
+  // re-order: the reflection to the top
+  for (let i = 0; i < 6; i++) {
+    const up = row('Your first reflection').getByRole('button', { name: 'Move up' });
+    if (await up.isDisabled()) break;
+    await up.click(); await p.waitForTimeout(1500);
+  }
+  ok((await nov.locator('.ops-my-mlist').first().locator('> li .what > b').first().innerText()) === 'Your first reflection', 'reflection moved to the top');
+  ok(/_order/.test(fs.readFileSync(__dirname + '/out/mock.log', 'utf8')), 'order saved');
   ok(await p.locator('#m-2027-07').locator('.ops-my-mlist').getByText('Retreat practicum').count() === 1, 'July keeps its retreat line');
   await p.setViewportSize({ width: 390, height: 844 }); await p.reload();
   ok(!(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), 'no sideways scroll at phone width');
