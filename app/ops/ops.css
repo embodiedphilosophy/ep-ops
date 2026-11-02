@@ -860,3 +860,5 @@
 .ops-shell .ops-my-hidden { margin-top: 24px; font-size: 13px; color: var(--soft) }
 .ops-shell .ops-my-hidden ul { list-style: none; padding: 0; display: grid; gap: 6px }
 .ops-shell .ops-my-edit .err, .ops-shell .ops-my-hidden .err { color: var(--risk) }
+.ops-shell .ops-my-mlist .ops-my-step.off { opacity: .55 }
+.ops-shell .ops-my-mlist .ops-my-step .when small { text-transform: none }
