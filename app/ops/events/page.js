@@ -10,7 +10,7 @@ import { isTeacher, canEditEvents } from '@/lib/ops/nav';
 import EventEditor from './EventEditor';
 import CirclePanel from './CirclePanel';
 import { AddEvent, AddPastEvent, Restore } from './EventActions';
-import { AddProgram, ProgramEditor } from './ProgramEditor';
+import { AddProgram, ProgramEditor, ProgramTitle } from './ProgramEditor';
 import { sheetChecks } from '@/lib/ops/sheetchecks';
 import { readRange, toObjects } from '@/lib/google';
 import Shell, { opsUser } from '../Shell';
@@ -194,10 +194,12 @@ export default async function Events({ searchParams }) {
         <aside className="ops-drawer" aria-label={open.title}>
           <a className="close" href={qs(sp)} aria-label="Close">×</a>
           <span className={`pill ${open.status}`}>{labelOf(open)}</span>
-          <h2>{open.title}</h2>
+          {open.program
+            ? <ProgramTitle key={`t-${open.key}`} series={open.program} title={open.title} saved={open.program_name} parent={open.parent} editable={canEditEvents(user)} />
+            : <h2>{open.title}</h2>}
           <p className="when">{open.events.length > 1 ? open.events.map(e => short(e.date)).join(' · ') : `${longDate(open.date)}${open.end_date && open.end_date !== open.date ? ` – ${longDate(open.end_date)}` : ''}${open.events[0].time ? ` · ${open.events[0].time}` : ''}`}</p>
           {enrolled(open) != null && (<div className="ops-enrolled"><b>{enrolled(open)}</b> enrolled<span> in Kit: {tagsOf(open).map(t => `${t} ${counts[t.toLowerCase()] ?? '—'}`).join(', ')}</span></div>)}
-          {(canEditEvents(user) || teacherView) && open.program && <ProgramEditor key={`p-${open.key}`} series={open.program} />}
+          {(canEditEvents(user) || teacherView) && open.program && <ProgramEditor key={`p-${open.key}-${open.title}-${open.parent}`} series={open.program} />}
           {open.checks.length > 0 && (() => {
             // A program has a check list per session: show only what's missing (soonest first), the rest folded
             const list = open.program ? open.checks.filter(c => !c.ready).sort((a, b) => a.due.localeCompare(b.due)) : open.checks;

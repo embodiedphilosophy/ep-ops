@@ -235,6 +235,14 @@
 .ops-shell .ops-drawer .close { top: 16px; right: 18px; width: 30px; height: 30px; border: 1px solid var(--edge); border-radius: var(--r-ctl); background: var(--paper); font-size: 18px; display: flex; align-items: center; justify-content: center }
 .ops-shell .ops-drawer h2 { font-size: 28px; line-height: 1.1; margin: 10px 0 4px }
 .ops-shell .ops-drawer .when { font-size: 13px }
+.ops-shell .ops-drawer .ops-parent { margin: 12px 0 -6px; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--soft) }
+.ops-shell .ops-drawer .ops-title-edit button { all: unset; cursor: text; display: inline; border-radius: 3px; padding-right: 2px; overflow-wrap: anywhere }
+.ops-shell .ops-drawer .ops-title-edit button span[aria-hidden] { font-family: var(--sans); font-size: 15px; margin-left: 8px; color: var(--soft); opacity: .55; vertical-align: middle }
+.ops-shell .ops-drawer .ops-title-edit button:hover { background: var(--paper) }
+.ops-shell .ops-drawer .ops-title-edit button:hover span[aria-hidden], .ops-shell .ops-drawer .ops-title-edit button:focus-visible span[aria-hidden] { opacity: 1; color: var(--accent) }
+.ops-shell .ops-drawer .ops-title-edit button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.ops-shell .ops-drawer .ops-title-form { margin: 10px 0 4px }
+.ops-shell .ops-drawer .ops-title-form .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px }
 .ops-shell .ops-drawer h3 { font-family: var(--font-sans), sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 24px 0 4px; padding-bottom: 8px; border-bottom: 1px solid var(--edge) }
 .ops-shell .ops-drawer h3 span { font-size: 12px; letter-spacing: .1em; font-weight: 700 }
 .ops-shell .ops-drawer .pill { padding: 0; background: none; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; color: var(--soft) }
@@ -831,3 +839,5 @@
 .ops-shell .ops-o2o-row .full { background: var(--tag); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; white-space: pre-wrap; font-size: 14px; max-width: 70ch }
 .ops-shell .ops-pill { font-size: 12.5px; font-weight: 600; white-space: nowrap; color: var(--mute) } .ops-shell .ops-pill.in { color: #3D6A4B } .ops-shell .ops-pill.soon { color: var(--soon-text) } .ops-shell .ops-pill.risk { color: #A5432A }
 @media (max-width: 860px) { .ops-shell .ops-o2o-row summary { grid-template-columns: minmax(0, 1fr) auto; } .ops-shell .ops-o2o-row summary .pv { grid-column: 1 / -1; white-space: normal } }
+/* Program title being renamed (beats the generic .ops-shell input rule) */
+.ops-shell .ops-drawer .ops-title-form input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]) { width: 100%; box-sizing: border-box; font-family: var(--serif); font-size: 24px; font-weight: 600; height: auto; min-height: 44px; color: var(--ink); line-height: 1.2; padding: 6px 8px; border: 1px solid var(--accent); border-radius: var(--r-ctl); background: var(--paper) }

@@ -14,7 +14,7 @@ const ID = /^E\d{3,}$/;
 const fail = (error, status = 400, extra = {}) => NextResponse.json({ error, ...extra }, { status });
 const field = key => FIELDS.find(f => f.key === key);
 // Where each editable value lives
-const TABLE_OF = { 'Teachers & Hosts': 'schedule', Time: 'schedule', 'Program Name': 'details', 'Module Title': 'details' };
+const TABLE_OF = { 'Teachers & Hosts': 'schedule', Time: 'schedule', 'Program Name': 'details', 'Module Title': 'details', 'Parent Program': 'details' };
 const tableOf = key => TABLE_OF[key] || field(key)?.table || 'details';
 
 async function editor({ teachers = false } = {}) {
@@ -101,12 +101,14 @@ export async function POST(req) {
 const ensureProgramCols = () => ensureColumns(TABLES.details.title, PROGRAM_COLS, { headerRow: TABLES.details.headerRow });
 const done = (written, extra = {}) => { if (written.length) refreshSite(); return NextResponse.json({ ok: true, written: written.length, ...extra }); };
 
-async function create({ name, track, start, count, every = 'weekly', time = '', teachers = '', emails = '', course_host = '', website = false, series = '', copyFrom = '' }, who) {
+async function create({ name, parent = '', track, start, count, every = 'weekly', time = '', teachers = '', emails = '', course_host = '', website = false, series = '', copyFrom = '' }, who) {
   const tracks = toObjects(await readRange(process.env.CALENDAR_SHEET_ID, "'Track Defaults'!A1:A50")).map(r => String(r.track).toUpperCase()).filter(Boolean);
   const T = String(track || '').toUpperCase();
   const title = String(name || '').trim();
   const n = Number(count);
-  if (!title || title.length > 100) return fail('Give the program a name (up to 100 characters)');
+  if (!title || title.length > 100) return fail('Give the program a title (up to 100 characters)');
+  const parentName = String(parent || '').trim();
+  if (parentName.length > 60) return fail('Part of: up to 60 characters');
   if (!tracks.includes(T)) return fail(`Pick a track (${tracks.join(', ')})`);
   if (!DATE.test(String(start)) || isNaN(Date.parse(start))) return fail('Pick the date of the first session');
   if (start < todayET()) return fail('The first session needs a date from today on');
@@ -140,7 +142,7 @@ async function create({ name, track, start, count, every = 'weekly', time = '', 
       Date: dates[i], Track: T, Event: sessionName(title, i + 1), 'Teachers & Hosts': values['Teachers & Hosts'], Time: values.Time, Status: 'Not started',
     } })), { who, create: true, dates: ['Date'] })),
     ...(await updateRows('details', ids.map((id, i) => ({ id, changes: {
-      Series: slug, 'Program Name': title, 'Public Title': publicTitle(title, mod(i)['Module Title']), 'Teacher/Host Emails': values['Teacher/Host Emails'],
+      Series: slug, 'Program Name': title, ...(parentName ? { 'Parent Program': parentName } : {}), 'Public Title': publicTitle(title, mod(i)['Module Title']), 'Teacher/Host Emails': values['Teacher/Host Emails'],
       'Course Host': values['Course Host'], Website: website ? 'TRUE' : 'FALSE',
       ...(mod(i)['Module Title'] ? { 'Module Title': mod(i)['Module Title'] } : {}), ...(mod(i).Summary ? { Summary: mod(i).Summary } : {}),
     } })), { who, create: true })),
@@ -194,7 +196,8 @@ async function saveShared({ series, changes = {}, before = {} }, who) {
   const clean = {}, errors = {};
   for (const [k, raw] of Object.entries(changes)) {
     if (!SHARED.includes(k)) { errors[k] = 'Not a program-wide field'; continue; }
-    if (k === 'Program Name') { const v = String(raw || '').trim(); if (!v || v.length > 100) errors[k] = 'A name up to 100 characters'; else clean[k] = v; continue; }
+    if (k === 'Program Name') { const v = String(raw || '').trim(); if (!v || v.length > 100) errors[k] = 'A title up to 100 characters'; else clean[k] = v; continue; }
+    if (k === 'Parent Program') { const v = String(raw || '').trim(); if (v.length > 60) errors[k] = 'Up to 60 characters'; else clean[k] = v; continue; }
     const r = check(field(k), raw);
     if (r.error) errors[k] = r.error; else clean[k] = r.value;
   }
@@ -212,7 +215,7 @@ async function saveShared({ series, changes = {}, before = {} }, who) {
     if (Object.keys(sc).length) sched.push({ id: s.id, changes: sc });
     if (Object.keys(dc).length) det.push({ id: s.id, changes: dc });
   }
-  if ('Program Name' in clean) await ensureProgramCols();
+  if ('Program Name' in clean || 'Parent Program' in clean) await ensureProgramCols();
   const written = [...(sched.length ? await updateRows('schedule', sched, { who }) : []), ...(det.length ? await updateRows('details', det, { who, create: true }) : [])];
   return done(written, { message: written.length ? `Saved for all ${sessions.length} sessions.` : 'Nothing to save.' });
 }

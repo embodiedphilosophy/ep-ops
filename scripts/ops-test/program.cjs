@@ -22,6 +22,7 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   // 2. Add a program through the form
   await p.locator('button', { hasText: '+ Add program' }).click();
   await p.fill('#pg-name', 'Spanda Kārikās: a close reading');
+  await p.fill('#pg-parent', 'Wisdom School');
   await p.selectOption('#pg-track', 'EVENT');
   await p.fill('#pg-start', '2026-11-04');
   await p.fill('#pg-count', '4');
@@ -44,7 +45,7 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
 
   // 4. What the website will read: Public Title "Program: Module", Summary, Series
   const g = await p.evaluate(async () => (await fetch('/api/ops/program?series=spanda-karikas-a-close-reading-2026-11')).json());
-  ok(g.sessions?.[0]?.values['Public Title'] === 'Spanda Kārikās: a close reading: The vibration of awareness', 'public title = program: module');
+  ok(g.sessions?.[0]?.values['Public Title'] === 'Spanda Kārikās: a close reading — The vibration of awareness', 'public title = title — module (title has a colon)');
   ok(g.sessions?.[0]?.values.Summary.startsWith('We open'), 'summary saved');
   ok(g.sessions?.[2]?.values['Public Title'] === 'Spanda Kārikās: a close reading', 'untitled module shows the program name');
 
@@ -56,6 +57,27 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   const g2 = await p.evaluate(async () => (await fetch('/api/ops/program?series=spanda-karikas-a-close-reading-2026-11')).json());
   ok(g2.sessions.every(s => s.values['Course Host'] === 'Floss Harry'), 'course host on every session');
 
+  ok(g.shared?.['Parent Program'] === 'Wisdom School', 'part of Wisdom School');
+
+  // 5b. Rename from the heading; part-of from For every session
+  await p.goto(`${BASE}/ops/events?event=P-spanda-karikas-a-close-reading-2026-11`, { waitUntil: 'networkidle' });
+  ok(/Wisdom School/i.test(await p.locator('.ops-drawer .ops-parent').innerText()), 'drawer shows what it falls under');
+  await p.locator('.ops-drawer .ops-title-edit button').click();
+  await p.fill('.ops-title-form input', 'Spanda Kārikās Close Reading');
+  await p.locator('button', { hasText: 'Save title' }).click();
+  await p.waitForFunction(() => /Spanda Kārikās Close Reading/.test(document.querySelector('.ops-drawer h2')?.innerText || ''), null, { timeout: 15000 });
+  const g3 = await p.evaluate(async () => (await fetch('/api/ops/program?series=spanda-karikas-a-close-reading-2026-11')).json());
+  ok(g3.sessions.every(s => s.values['Program Name'] === 'Spanda Kārikās Close Reading'), 'title renamed on every session');
+  ok(g3.sessions[0].values['Public Title'] === 'Spanda Kārikās Close Reading: The vibration of awareness', 'website title follows the rename');
+  ok(g3.sessions.every(s => s.values['Parent Program'] === 'Wisdom School'), 'part of is kept');
+  await p.locator('.ops-program nav a', { hasText: 'For every session' }).click();
+  await p.fill('#ps-Parent\\ Program', 'Sādhana School');
+  await p.locator('button', { hasText: 'Save for every session' }).click();
+  await p.waitForTimeout(2500);
+  const g4 = await p.evaluate(async () => (await fetch('/api/ops/program?series=spanda-karikas-a-close-reading-2026-11')).json());
+  ok(g4.sessions.every(s => s.values['Parent Program'] === 'Sādhana School'), 'part of changed for every session');
+  ok(g4.sessions[0].values['Public Title'] === 'Spanda Kārikās Close Reading: The vibration of awareness', 'part of leaves the website title alone');
+
   // 6. Add a session (keeps the weekly rhythm)
   const r = await api(p, { action: 'add-session', series: 'spanda-karikas-a-close-reading-2026-11' });
   ok(r.date === '2026-12-02', `added session on ${r.date}`);
@@ -66,7 +88,7 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
 
   // 8. The new program on the list, as one row; the existing series drawer opens
   await p.goto(`${BASE}/ops/events?all=1`, { waitUntil: 'networkidle' });
-  ok((await p.locator('.ops-events .ttl').allInnerTexts()).filter(t => /Spanda Kārikās: a close reading/.test(t)).length === 1, 'new program is one row');
+  ok((await p.locator('.ops-events .ttl').allInnerTexts()).filter(t => /Spanda Kārikās Close Reading/.test(t)).length === 1, 'new program is one row');
   await p.goto(`${BASE}/ops/events?event=P-sadhana-fall-2026`, { waitUntil: 'networkidle' });
   await p.waitForSelector('.ops-modules li', { timeout: 15000 });
   ok(await p.locator('.ops-modules li').count() >= 5, 'existing series opens as a program');

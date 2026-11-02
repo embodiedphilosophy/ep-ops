@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CADENCES, sessionDates, seriesSlug } from '@/lib/ops/programs';
+import { CADENCES, PARENTS, sessionDates, seriesSlug } from '@/lib/ops/programs';
 
 const post = async body => {
   const res = await fetch('/api/ops/program', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
@@ -16,7 +16,7 @@ const short = d => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { 
 export function AddProgram({ tracks, past = [] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ name: '', track: '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '', copyFrom: '' });
+  const [f, setF] = useState({ name: '', parent: '', track: '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '', copyFrom: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = k => e => setF(s => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
@@ -40,7 +40,10 @@ export function AddProgram({ tracks, past = [] }) {
           <option value="">A blank program</option>{past.map(p => <option key={p.series} value={p.series}>{p.label}</option>)}
         </select>
         <span className="hint">Copies its module titles and descriptions (and teachers, emails, host and time where you leave them blank). Give it new dates below.</span></div>}
-      <div className="row"><label htmlFor="pg-name">Program name</label><input id="pg-name" value={f.name} onChange={set('name')} placeholder="e.g. The Heart of Recognition" required maxLength={100} /></div>
+      <div className="row"><label htmlFor="pg-name">Title</label><input id="pg-name" value={f.name} onChange={set('name')} placeholder="e.g. Christian Mysticism: A Learning Pathway" required maxLength={100} /></div>
+      <div className="row"><label htmlFor="pg-parent">Part of</label><input id="pg-parent" list="pg-parents" value={f.parent} onChange={set('parent')} placeholder="e.g. Wisdom School (or leave blank)" maxLength={60} />
+        <span className="hint">The school or program it falls under.</span></div>
+      <datalist id="pg-parents">{PARENTS.map(x => <option key={x} value={x} />)}</datalist>
       <div className="row"><label htmlFor="pg-track">Track</label>
         <select id="pg-track" value={f.track} onChange={set('track')} required><option value="">Choose…</option>{tracks.map(t => <option key={t}>{t}</option>)}</select>
         <span className="hint">Sets the task templates and track defaults each session uses.</span></div>
@@ -69,7 +72,7 @@ export function AddProgram({ tracks, past = [] }) {
 }
 
 const SHARED_FIELDS = [
-  ['Program Name', 'Program name', 'Shown on the website before each module title.'],
+  ['Parent Program', 'Part of', 'The school or program it falls under, e.g. Wisdom School. To rename the program, click its title at the top.'],
   ['Teachers & Hosts', 'Teachers', 'For every session. Change one session’s teacher in its row below.'],
   ['Teacher/Host Emails', 'Reminder emails', 'Only these addresses get session reminders.'],
   ['Course Host', 'Course host', ''],
@@ -143,7 +146,7 @@ export function ProgramEditor({ series }) {
         <a href="#settings" aria-current={tab === 'settings' ? 'page' : undefined} onClick={e => { e.preventDefault(); setTab('settings'); }}>For every session</a>
       </nav>}
       {tab === 'modules' ? (<>
-        <p className="hint">Each module’s title and description go on the website’s events list as “{shared['Program Name'] || 'Program'}: module title”.</p>
+        <p className="hint">Each module’s title and description go on the website’s events list as “{shared['Program Name'] || 'Title'}{String(shared['Program Name'] || '').includes(':') ? ' —' : ':'} module title”.</p>
         <ol className="ops-modules">
           {data.sessions.map((s, i) => (
             <li key={s.id} className={`${errors[s.id] ? 'bad' : ''}${changedMods.includes(s.id) ? ' changed' : ''}`}>
@@ -169,10 +172,11 @@ export function ProgramEditor({ series }) {
           {SHARED_FIELDS.map(([k, label, help]) => (
             <div key={k} className={`row${errors[k] ? ' bad' : ''}${changedShared.includes(k) ? ' changed' : ''}`}>
               <label htmlFor={`ps-${k}`}>{label}</label>
-              <input id={`ps-${k}`} value={shared[k] ?? ''} disabled={busy} onChange={e => setShared(v => ({ ...v, [k]: e.target.value }))} />
+              <input id={`ps-${k}`} list={k === 'Parent Program' ? 'ps-parents' : undefined} value={shared[k] ?? ''} disabled={busy} onChange={e => setShared(v => ({ ...v, [k]: e.target.value }))} />
               {(errors[k] || help) && <span className="hint">{errors[k] || help}</span>}
             </div>
           ))}
+          <datalist id="ps-parents">{PARENTS.map(x => <option key={x} value={x} />)}</datalist>
           <div className="row"><label htmlFor="ps-web">Website</label>
             <select id="ps-web" value={String(shared.Website || '').toUpperCase()} disabled={busy} onChange={e => setShared(v => ({ ...v, Website: e.target.value }))}>
               <option value="">Mixed / track default</option><option value="TRUE">Show every session</option><option value="FALSE">Hide every session</option>
@@ -186,4 +190,43 @@ export function ProgramEditor({ series }) {
       </>)}
     </div>
   );
+}
+
+// The drawer's heading for a program: its title, which staff can click to rename. Saves to every session
+// (and renames their website titles), the same as the old "Program name" field did.
+export function ProgramTitle({ series, title, saved = '', parent = '', editable = false }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [v, setV] = useState(title);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  useEffect(() => { setV(title); }, [title]);
+  const eyebrow = parent ? <p className="ops-parent">{parent}</p> : null;
+  if (!editable) return <>{eyebrow}<h2>{title}</h2></>;
+  if (!editing) return (<>{eyebrow}
+    <h2 className="ops-title-edit"><button type="button" onClick={() => { setMsg(''); setEditing(true); }} title="Rename this program">{title}<span aria-hidden="true">✎</span><span className="sr">Rename</span></button></h2>
+    {msg && <p className="hint">{msg}</p>}
+  </>);
+  const save = async e => {
+    e.preventDefault();
+    const name = v.trim();
+    if (!name || name === title) { setEditing(false); return; }
+    setBusy(true); setMsg('');
+    const j = await post({ action: 'shared', series, changes: { 'Program Name': name }, ...(saved ? { before: { 'Program Name': saved } } : {}) });
+    setBusy(false);
+    if (j.error) return setMsg(j.errors?.['Program Name'] || j.error);
+    setEditing(false); setMsg('Renamed. The website’s events list updates within a minute.'); router.refresh();
+  };
+  return (<>{eyebrow}
+    <form className="ops-title-form" onSubmit={save}>
+      <input aria-label="Program title" value={v} onChange={e => setV(e.target.value)} maxLength={100} autoFocus disabled={busy}
+        onKeyDown={e => { if (e.key === 'Escape') { setV(title); setEditing(false); } }} />
+      <div className="bar">
+        <button className="chip primary" disabled={busy || !v.trim()}>{busy ? 'Saving…' : 'Save title'}</button>
+        <button type="button" className="chip" disabled={busy} onClick={() => { setV(title); setEditing(false); setMsg(''); }}>Cancel</button>
+        {msg && <span className="hint">{msg}</span>}
+      </div>
+      <p className="hint">Renames every session, and their titles on the website.</p>
+    </form>
+  </>);
 }
