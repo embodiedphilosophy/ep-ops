@@ -104,13 +104,13 @@ export function EditMonth({ month, theme, focus }) {
 
 // ---- the month list: one Edit per row, the fields depending on what the row is ----
 const SPEC = {
-  immersion: [['name', 'Name of the weekend', 'text'], ['date', 'Saturday', 'date'], ['end', 'Sunday', 'date'], ['link', 'Prepare lesson link', 'url', 'optional: replaces the Workbook’s own link'], ['line', 'Line under it', 'long', 'optional']],
+  immersion: [['name', 'Name of the weekend', 'text'], ['date', 'Saturday', 'date'], ['end', 'Sunday', 'date'], ['link', 'Prepare lesson link', 'url', 'the “Open the Prepare lesson” button; leave blank to use the Workbook’s own lesson'], ['sat_link', 'Saturday Open Session link (Zoom)', 'url', 'the whole school'], ['sun_link', 'Sunday Practicum link (Zoom)', 'url', 'mentees only'], ['line', 'Line under it', 'long', 'optional']],
   words: [['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
   window: [['date', 'Booking window opens', 'date'], ['end', 'Window closes', 'date'], ['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
   reflection: [['due', 'Due', 'date'], ['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
   book: [['title', 'Book title', 'text'], ['author', 'Author', 'text'], ['note', 'A line under it', 'text', 'optional'], ['kind', 'Kind', 'kind'], ['starts', 'Reading starts', 'date', 'the book shows in the month of this date']],
 };
-const startOf = (row, kind) => kind === 'immersion' ? { name: row.name, date: row.date, end: row.end, link: row.link, line: row.line }
+const startOf = (row, kind) => kind === 'immersion' ? { name: row.name, date: row.date, end: row.end, link: row.link, sat_link: row.satLink, sun_link: row.sunLink, line: row.line }
   : kind === 'window' ? { date: row.date, end: row.end, title: row.title, line: row.line }
     : kind === 'reflection' ? { due: row.date, title: row.title, line: row.line }
       : kind === 'book' ? { ...row.book } : { title: row.title, line: row.line };
@@ -131,7 +131,7 @@ export function RowEdit({ month, row }) {
   const hideable = ['immersion', 'words', 'window', 'reflection'].includes(kind);
   const body = vals => kind === 'book' ? { what: 'book', month, original: { title: row.book.title, starts: row.book.starts }, values: vals }
     : kind === 'reflection' ? { what: 'reflection', values: { month, ...vals } }
-      : { what: 'row', values: { month, row: row.key, ...(kind === 'immersion' ? { title: vals.name, line: vals.line, date: vals.date, end: vals.end, link: vals.link } : vals) } };
+      : { what: 'row', values: { month, row: row.key, ...(kind === 'immersion' ? { title: vals.name, line: vals.line, date: vals.date, end: vals.end, link: vals.link, sat_link: vals.sat_link, sun_link: vals.sun_link } : vals) } };
   if (row.hidden) return <button type="button" className="chip ops-my-editbtn" disabled={s.busy} onClick={() => s.run({ what: 'row', values: { month, row: row.key }, show: true })}>{s.busy ? 'Putting back…' : 'Put back on the mentee page'}</button>;
   if (!spec) return null;
   if (!open) return <button type="button" className="chip ops-my-editbtn" onClick={() => { set(startOf(row, kind)); setOpen(true); }}>Edit</button>;
@@ -161,4 +161,15 @@ export function AddBook({ month, starts }) {
       <button type="button" className="chip" disabled={s.busy} onClick={() => setOpen(false)}>Cancel</button>
     </div>
   </div>);
+}
+
+// ↑ ↓ on a row of the month list: saves the whole order (mentees see the same order in Circle and on their Your Year page)
+export function Move({ month, keys, index }) {
+  const s = useSave();
+  const go = d => { const k = [...keys], j = index + d; [k[index], k[j]] = [k[j], k[index]]; s.run({ what: 'order', month, keys: k }); };
+  return (<span className="ops-my-move">
+    <button type="button" className="chip" aria-label="Move up" title="Move up" disabled={s.busy || index === 0} onClick={() => go(-1)}>↑</button>
+    <button type="button" className="chip" aria-label="Move down" title="Move down" disabled={s.busy || index === keys.length - 1} onClick={() => go(1)}>↓</button>
+    {s.err && <em className="hint err"> {s.err}</em>}
+  </span>);
 }

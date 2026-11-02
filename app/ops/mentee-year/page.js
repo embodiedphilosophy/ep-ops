@@ -4,7 +4,7 @@ import { todayET } from '@/lib/events';
 import { segments, nextSteps, currentMonth, reviewFor, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
 import { loadOpsYear } from '@/lib/ops/menteeyearops';
 import Shell, { opsUser } from '../Shell';
-import { EditItem, AddItem, ShowAgain, EditMonth, RowEdit, AddBook } from './Editor';
+import { EditItem, AddItem, ShowAgain, EditMonth, RowEdit, AddBook, Move } from './Editor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Mentee year — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -22,11 +22,12 @@ const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return new Dat
 const KIND = { immersion: 'Immersion', note: 'Note', book: 'Book', suggested: 'Suggested book', buddy: 'Buddy', 'one-to-one': 'One-to-one', reflection: 'Reflection', handin: 'Hand-in', task: 'Task' };
 const span = (a, b) => (b && b !== a ? `${dayFmt(a)} – ${dayFmt(b)}` : dayFmt(a));
 const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-function MonthRow({ r, ym, canEdit, counts, mentees }) {
+function MonthRow({ r, ym, canEdit, counts, mentees, keys, index }) {
   return (<li className={`ops-my-step${r.hidden ? ' off' : ''}`}>
-    <span className="when"><b>{r.date ? span(r.date, r.end) : r.when || ''}</b><small>{KIND[r.kind]}</small></span>
+    <span className="when"><b>{r.date ? span(r.date, r.end) : r.when || ''}</b><small>{KIND[r.kind]}</small>{canEdit && keys && <Move month={ym} keys={keys} index={index} />}</span>
     <span className="what"><b><Rich text={r.title} /></b>{r.line && <span className="det"><Rich text={r.line} /></span>}
-      {r.link && <span className="ev"><a href={r.link} target="_blank" rel="noopener noreferrer">{r.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
+      {r.kind === 'immersion' ? [['Prepare lesson', r.link, 'the Workbook’s own lesson'], ['Saturday Open Session', r.satLink, 'not set yet'], ['Sunday Practicum', r.sunLink, 'not set yet']].map(([l, u, none]) => <span key={l} className="ev">{l}: {u ? <a href={u} target="_blank" rel="noopener noreferrer">{u.replace(/^https:\/\//, '').slice(0, 50)}</a> : none}</span>)
+        : r.link && <span className="ev"><a href={r.link} target="_blank" rel="noopener noreferrer">{r.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
       {r.hidden && <span className="ev">Taken off the mentee page</span>}
       {r.hint && <span className="ev">{r.hint}</span>}
       {r.kind === 'buddy' && <span className="ev">Who is paired with whom: <a href="/ops/settings/partners">Settings → Peer partners</a></span>}
@@ -40,7 +41,7 @@ function MonthList({ ym, rows, canEdit, today, counts, mentees }) {
   const bookStart = rows.find(r => r.kind === 'book' && r.date)?.date || `${ym}-01`;
   return (<div className="ops-my-tasks">
     <h4>This month, {NUM[n] || n} {n === 1 ? 'thing' : 'things'} <small>· what mentees see on their page in Circle (as at the start of the month), and on the Your Year page</small></h4>
-    <ul className="ops-my-steps compact ops-my-mlist">{inCircle.map(r => <MonthRow key={r.key} r={r} ym={ym} canEdit={canEdit} counts={counts} mentees={mentees} />)}</ul>
+    <ul className="ops-my-steps compact ops-my-mlist">{inCircle.map((r, i) => <MonthRow key={r.key} r={r} ym={ym} canEdit={canEdit} counts={counts} mentees={mentees} keys={inCircle.map(x => x.key)} index={i} />)}</ul>
     {canEdit && <div className="ops-my-acts"><AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} /><AddBook month={ym} starts={bookStart} /></div>}
     {only.length > 0 && (<><h4 style={{ marginTop: 14 }}>Only on the Your Year page <small>· not a row in Circle</small></h4>
       <ul className="ops-my-steps compact ops-my-mlist">{only.map(r => <MonthRow key={r.key} r={r} ym={ym} canEdit={canEdit} counts={counts} mentees={mentees} />)}</ul></>)}
