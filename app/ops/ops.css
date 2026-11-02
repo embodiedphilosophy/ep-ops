@@ -841,3 +841,22 @@
 @media (max-width: 860px) { .ops-shell .ops-o2o-row summary { grid-template-columns: minmax(0, 1fr) auto; } .ops-shell .ops-o2o-row summary .pv { grid-column: 1 / -1; white-space: normal } }
 /* Program title being renamed (beats the generic .ops-shell input rule) */
 .ops-shell .ops-drawer .ops-title-form input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]) { width: 100%; box-sizing: border-box; font-family: var(--serif); font-size: 24px; font-weight: 600; height: auto; min-height: 44px; color: var(--ink); line-height: 1.2; padding: 6px 8px; border: 1px solid var(--accent); border-radius: var(--r-ctl); background: var(--paper) }
+
+/* Mentee year: editing (Editor.js) */
+.ops-shell .ops-my-howto { margin: 6px 0 14px }
+.ops-shell .ops-my-editbtn, .ops-shell .ops-my-addbtn { justify-self: start; margin-top: 6px }
+.ops-shell .ops-my-addbtn { margin: 10px 0 }
+.ops-shell .ops-my-edit { display: grid; gap: 10px; margin: 10px 0; padding: 14px; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel) }
+.ops-shell .ops-my-edit h4 { margin: 0; font-size: 14px }
+.ops-shell .ops-my-fields { display: grid; gap: 10px }
+.ops-shell .ops-my-f { display: grid; gap: 4px; font-size: 13px; font-weight: 600 }
+.ops-shell .ops-my-f small { font-weight: 400; color: var(--mute) }
+.ops-shell .ops-my-f input, .ops-shell .ops-my-f select, .ops-shell .ops-my-f textarea { font: inherit; font-weight: 400; font-size: 14px; padding: 8px 10px; border: 1px solid var(--edge); border-radius: 6px; background: #fff; color: var(--ink); width: 100%; box-sizing: border-box; min-height: 38px }
+.ops-shell .ops-my-f em { font-style: normal; font-weight: 400 }
+.ops-shell .ops-my-acts { display: flex; flex-wrap: wrap; gap: 8px }
+.ops-shell .ops-my-tasks { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--hair) }
+.ops-shell .ops-my-tasks h4 { margin: 0 0 4px; font-size: 13px }
+.ops-shell .ops-my-tasks h4 small { font-weight: 400; color: var(--mute) }
+.ops-shell .ops-my-hidden { margin-top: 24px; font-size: 13px; color: var(--soft) }
+.ops-shell .ops-my-hidden ul { list-style: none; padding: 0; display: grid; gap: 6px }
+.ops-shell .ops-my-edit .err, .ops-shell .ops-my-hidden .err { color: var(--risk) }

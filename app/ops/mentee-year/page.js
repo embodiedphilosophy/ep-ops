@@ -1,9 +1,10 @@
 import data from '@/data/mentee-year.json';
-import { isStaff } from '@/lib/ops/nav';
+import { isStaff, canEditSite } from '@/lib/ops/nav';
 import { todayET } from '@/lib/events';
 import { segments, nextSteps, currentMonth, reviewFor, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
 import { loadOpsYear } from '@/lib/ops/menteeyearops';
 import Shell, { opsUser } from '../Shell';
+import { EditItem, AddItem, ShowAgain, EditMonth } from './Editor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Mentee year — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -15,6 +16,24 @@ const dayYear = d => `${dayFmt(d)} ${d.slice(0, 4)}`;
 // Rich text from the data file: bold, italic, quiet, dates
 const Rich = ({ text }) => segments(text).map((x, i) => x.t === 'b' ? <b key={i}>{x.s}</b> : x.t === 'i' ? <i key={i}>{x.s}</i> : x.t === 'q' ? <span key={i} className="my-q"><Rich text={x.s} /></span> : x.t === 'd' ? <span key={i} className="my-d">{x.s}</span> : x.s);
 const Proj = ({ p }) => <span className={`ops-my-proj ${p}`}><i />{PROJECTS[p]}</span>;
+const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
+
+// The tasks on the mentees' "This month" list for one month, each editable, with "+ Add a task"
+function Tasks({ ym, tasks, canEdit, today, mentees }) {
+  const mine = tasks.filter(c => c.step.month === ym);
+  return (<div className="ops-my-tasks">
+    <h4>Tasks on the mentee page <small>· tickable, in their “This month” list</small></h4>
+    {mine.length === 0 ? <p className="ops-empty">None yet. The list already shows the book, buddy session, immersion, one-to-one and reflection by itself.</p> : (
+      <ul className="ops-my-steps compact">{mine.map(c => (
+        <li key={c.step.id} className="ops-my-step">
+          <span className="when"><b>{dayFmt(c.step.date)}</b></span>
+          <span className="what"><b>{c.step.title}</b>{c.step.detail && <span className="det">{c.step.detail}</span>}{c.step.link && <span className="ev"><a href={c.step.link} target="_blank" rel="noopener noreferrer">{c.step.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
+            {mentees > 0 && <span className="ev">{c.count} of {c.of} ticked</span>}
+            {canEdit && <EditItem kind="task" item={c.step} />}</span>
+        </li>))}</ul>)}
+    {canEdit && <AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} />}
+  </div>);
+}
 
 function Step({ s, today, detail }) {
   const n = daysUntil(s.date, today);
@@ -36,6 +55,9 @@ export default async function MenteeYear({ searchParams }) {
   const baseMonth = currentMonth(data.months, today), month = baseMonth && { ...baseMonth, theme: year.month?.theme || baseMonth.theme, focus: year.month?.focus || baseMonth.focus };
   const doneDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'America/New_York' }) : '';
   const dotOf = c => c.count === c.of && c.of ? 'ok' : c.count && c.step.date < today ? 'risk' : 'none';
+  const canEdit = canEditSite(user);
+  const monthSteps = ym => year.steps.filter(s => s.month === ym).map(s => ({ ...s, text: s.title }));
+  const themeOf = m => (year.months[m.id] && year.months[m.id].theme) || m.theme, focusOf = m => (year.months[m.id] && year.months[m.id].focus) || m.focus;
   const href = (t, extra = '') => `/ops/mentee-year${t === 'now' && !extra ? '' : `?tab=${t}${extra}`}`;
 
   return (
@@ -43,6 +65,7 @@ export default async function MenteeYear({ searchParams }) {
       head={<nav className="ops-filters" aria-label="Mentee year">{TABS.map(([k, l]) => <a key={k} href={href(k)} aria-current={tab === k ? 'page' : undefined}>{l}</a>)}</nav>}>
       <p className="ops-empty ops-my-lede">{data.lede}</p>
       <p className="ops-more"><a href="/school/mentee-year" target="_blank" rel="noopener">View the mentee version (what mentees see) →</a></p>
+      {canEdit && <p className="ops-note ops-my-howto">You can edit this page: add tasks to a month (Month by month), and change or add project steps (Final projects). What you save is what mentees see on their page, usually within a minute.</p>}
 
       {tab === 'now' && (<div className="ops-my-cols">
         <section>
@@ -64,7 +87,9 @@ export default async function MenteeYear({ searchParams }) {
           <p className="theme">{month.theme}{month.tag ? ` · ${month.tag}` : ''}</p>
           <p className="focus">{month.focus}</p>
           <ul className="ops-my-items">{month.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul>
-          {month.steps.length > 0 && (<><h3>Project steps due this month</h3><ul className="ops-my-steps compact">{month.steps.map((s, i) => <Step key={i} s={{ ...s, title: s.text }} today={today} />)}</ul></>)}
+          {monthSteps(month.id).length > 0 && (<><h3>Project steps due this month</h3><ul className="ops-my-steps compact">{monthSteps(month.id).map(s => <Step key={s.id} s={s} today={today} />)}</ul></>)}
+          <Tasks ym={month.id} tasks={year.tasks} canEdit={canEdit} today={today} mentees={year.mentees.length} />
+          {canEdit && <EditMonth month={month.id} theme={month.theme || ''} focus={month.focus || ''} />}
         </section>)}
       </div>)}
 
@@ -82,10 +107,12 @@ export default async function MenteeYear({ searchParams }) {
         <p className="ops-empty">Each card gives the month's focus, its fixed points and the project steps due. Immersion dates follow the cohort calendar.</p>
         <div className="ops-my-months">{data.months.map(m => (
           <article key={m.id} id={`m-${m.id}`} className={`ops-my-card${month && m.id === month.id ? ' current' : ''}`}>
-            <header><div><h3>{m.title}</h3><p className="theme">{m.theme}</p></div>{m.tag && <span className="ops-my-tag">{m.tag}</span>}</header>
-            <p className="focus">{m.focus}</p>
+            <header><div><h3>{m.title}</h3><p className="theme">{themeOf(m)}</p></div>{m.tag && <span className="ops-my-tag">{m.tag}</span>}</header>
+            <p className="focus">{focusOf(m)}</p>
             <ul className="ops-my-items">{m.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul>
-            {m.steps.length > 0 && (<><h4>Project steps due this month</h4><ul className="ops-my-steps compact">{m.steps.map((s, i) => <li key={i} className="ops-my-step"><span className="when"><b>{dayFmt(s.date)}</b></span><span className="what"><Proj p={s.project} />{s.text}</span></li>)}</ul></>)}
+            {monthSteps(m.id).length > 0 && (<><h4>Project steps due this month</h4><ul className="ops-my-steps compact">{monthSteps(m.id).map(s => <li key={s.id} className="ops-my-step"><span className="when"><b>{dayFmt(s.date)}</b></span><span className="what"><Proj p={s.project} />{s.text}</span></li>)}</ul></>)}
+            <Tasks ym={m.id} tasks={year.tasks} canEdit={canEdit} today={today} mentees={year.mentees.length} />
+            {canEdit && <EditMonth month={m.id} theme={themeOf(m) || ''} focus={focusOf(m) || ''} />}
           </article>
         ))}</div>
       </section>)}
@@ -98,13 +125,18 @@ export default async function MenteeYear({ searchParams }) {
           <div className="lab">Three-session offering</div>{data.lanes.offering.map(b => <div key={b.label} className="bar offering" style={laneStyle(b)}>{b.label}</div>)}
         </div>
         <p className="ops-note">{data.spacing}</p>
+        {canEdit && <AddItem kind="step" />}
         <nav className="ops-filters" aria-label="Filter steps">{[['all', 'All steps'], ['talk', '60-min talk'], ['offering', 'Three-session offering']].map(([k, l]) => <a key={k} href={href('projects', k === 'all' ? '' : `&p=${k}`)} aria-current={filter === k ? 'page' : undefined}>{l}</a>)}</nav>
         <ul className="ops-my-steps full">{year.cohort.filter(c => filter === 'all' || c.step.project === filter || c.step.project === 'both').map(c => (
           <li key={c.step.id} className={`ops-my-step${c.step.date < today ? ' past' : ''}`}>
             <span className="when"><b>{dayYear(c.step.date)}</b></span>
-            <span className="what"><Proj p={c.step.project} /><b>{c.step.title}</b><span className="det">{c.step.detail}</span><span className="ev">Evidence: {c.step.evidence}</span><span className={`ops-my-count ${dotOf(c)}`}><i />{c.count} of {c.of} done</span></span>
+            <span className="what"><Proj p={c.step.project} /><b>{c.step.title}</b><span className="det">{c.step.detail}</span><span className="ev">Evidence: {c.step.evidence}</span><span className={`ops-my-count ${dotOf(c)}`}><i />{c.count} of {c.of} done</span>{canEdit && <EditItem kind="step" item={c.step} />}</span>
           </li>
         ))}</ul>
+        {canEdit && year.hidden.length > 0 && (<div className="ops-my-hidden">
+          <h4>Taken off the mentee page</h4>
+          <ul>{year.hidden.map(h => <li key={h.id}>{h.date ? dayYear(h.date) : ''} · {h.kind === 'task' ? 'Task' : 'Step'}: {h.title}<ShowAgain kind={h.kind} id={h.id} /></li>)}</ul>
+        </div>)}
       </section>)}
 
       {tab === 'one-to-ones' && (<section className="ops-my-cols">
