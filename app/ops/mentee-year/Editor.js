@@ -1,7 +1,7 @@
 'use client';
 // Editing on Ops → Mentee year (Jacob, Irene, Floss): project steps, tasks on the mentees' "This month" list, and each month's
 // theme and focus. Saves go to /api/ops/mentee-year, which writes the Mentee Schedule / Mentee Months tabs that the mentee page reads.
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const post = async body => {
@@ -163,13 +163,32 @@ export function AddBook({ month, starts }) {
   </div>);
 }
 
-// ↑ ↓ on a row of the month list: saves the whole order (mentees see the same order in Circle and on their Your Year page)
-export function Move({ month, keys, index }) {
-  const s = useSave();
-  const go = d => { const k = [...keys], j = index + d; [k[index], k[j]] = [k[j], k[index]]; s.run({ what: 'order', month, keys: k }); };
-  return (<span className="ops-my-move">
-    <button type="button" className="chip" aria-label="Move up" title="Move up" disabled={s.busy || index === 0} onClick={() => go(-1)}>↑</button>
-    <button type="button" className="chip" aria-label="Move down" title="Move down" disabled={s.busy || index === keys.length - 1} onClick={() => go(1)}>↓</button>
-    {s.err && <em className="hint err"> {s.err}</em>}
-  </span>);
+// The month list with ↑ ↓ on each row. Rows move at once on the page; the order is saved once, a moment after the last click
+// (one save for several moves, so Google's limit on reads is never hit). Mentees see the same order in Circle and on their Your Year page.
+export function Orderable({ month, items }) {
+  const router = useRouter();
+  const [order, setOrder] = useState(items.map(x => x.key)), [msg, setMsg] = useState(''), timer = useRef(null);
+  const sig = items.map(x => x.key).join(',');
+  useEffect(() => { setOrder(items.map(x => x.key)); }, [sig]); // the page changed (an edit, an added task): start from it
+  const save = keys => {
+    clearTimeout(timer.current); setMsg('Moving…');
+    timer.current = setTimeout(async () => {
+      setMsg('Saving the order…');
+      try { await post({ what: 'order', month, keys }); setMsg('Order saved'); router.refresh(); setTimeout(() => setMsg(''), 2500); }
+      catch (e) { setMsg(e.message || 'The order didn’t save. Try again.'); }
+    }, 1200);
+  };
+  const move = (i, d) => { const k = [...order], j = i + d; if (j < 0 || j >= k.length) return; [k[i], k[j]] = [k[j], k[i]]; setOrder(k); save(k); };
+  const by = Object.fromEntries(items.map(x => [x.key, x]));
+  return (<>
+    <ul className="ops-my-steps compact ops-my-mlist">{order.filter(k => by[k]).map((k, i, all) => (
+      <li key={k} className={`ops-my-step mv${by[k].off ? ' off' : ''}`}>
+        {by[k].body}
+        <span className="ops-my-move">
+          <button type="button" className="chip" aria-label="Move up" title="Move up" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
+          <button type="button" className="chip" aria-label="Move down" title="Move down" disabled={i === all.length - 1} onClick={() => move(i, 1)}>↓</button>
+        </span>
+      </li>))}</ul>
+    {msg && <p className="hint" role="status" aria-live="polite">{msg}</p>}
+  </>);
 }
