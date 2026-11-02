@@ -863,3 +863,5 @@
 .ops-shell .ops-my-mlist .ops-my-step.off { opacity: .55 }
 .ops-shell .ops-my-mlist .ops-my-step .when small { text-transform: none }
 .ops-shell .ops-my-move { display: flex; gap: 4px; margin-top: 6px } .ops-shell .ops-my-move .chip { min-width: 30px; padding: 2px 8px }
+.ops-shell .ops-my-mlist .ops-my-step.mv { grid-template-columns: 90px minmax(0, 1fr) auto }
+.ops-shell .ops-my-mlist .ops-my-step.mv .ops-my-move { flex-direction: column; margin: 0 }
