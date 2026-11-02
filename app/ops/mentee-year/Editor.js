@@ -101,3 +101,64 @@ export function EditMonth({ month, theme, focus }) {
     </div>
   </div>);
 }
+
+// ---- the month list: one Edit per row, the fields depending on what the row is ----
+const SPEC = {
+  immersion: [['name', 'Name of the weekend', 'text'], ['date', 'Saturday', 'date'], ['end', 'Sunday', 'date'], ['link', 'Prepare lesson link', 'url', 'optional: replaces the Workbook’s own link'], ['line', 'Line under it', 'long', 'optional']],
+  words: [['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
+  window: [['date', 'Booking window opens', 'date'], ['end', 'Window closes', 'date'], ['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
+  reflection: [['due', 'Due', 'date'], ['title', 'Title', 'text'], ['line', 'Line under it', 'long']],
+  book: [['title', 'Book title', 'text'], ['author', 'Author', 'text'], ['note', 'A line under it', 'text', 'optional'], ['kind', 'Kind', 'kind'], ['starts', 'Reading starts', 'date', 'the book shows in the month of this date']],
+};
+const startOf = (row, kind) => kind === 'immersion' ? { name: row.name, date: row.date, end: row.end, link: row.link, line: row.line }
+  : kind === 'window' ? { date: row.date, end: row.end, title: row.title, line: row.line }
+    : kind === 'reflection' ? { due: row.date, title: row.title, line: row.line }
+      : kind === 'book' ? { ...row.book } : { title: row.title, line: row.line };
+
+function Fields({ spec, v, set, fields }) {
+  return (<div className="ops-my-fields">{spec.map(([k, label, type, hint]) => (
+    <label key={k} className="ops-my-f"><span>{label}{hint && <small> · {hint}</small>}</span>
+      {type === 'long' ? <textarea rows={2} value={v[k] || ''} onChange={e => set({ ...v, [k]: e.target.value })} maxLength={600} />
+        : type === 'kind' ? <select value={v[k] || 'required'} onChange={e => set({ ...v, [k]: e.target.value })}><option value="required">Required (the reflection is on it)</option><option value="suggested">Suggested</option></select>
+          : <input type={type === 'date' ? 'date' : type === 'url' ? 'url' : 'text'} value={v[k] || ''} onChange={e => set({ ...v, [k]: e.target.value })} maxLength={type === 'text' ? 160 : undefined} />}
+      {fields[k] && <em className="hint err">{fields[k]}</em>}</label>))}</div>);
+}
+
+export function RowEdit({ month, row }) {
+  const kind = row.edit, spec = SPEC[kind];
+  const [open, setOpen] = useState(false), [v, set] = useState({});
+  const s = useSave();
+  const hideable = ['immersion', 'words', 'window', 'reflection'].includes(kind);
+  const body = vals => kind === 'book' ? { what: 'book', month, original: { title: row.book.title, starts: row.book.starts }, values: vals }
+    : kind === 'reflection' ? { what: 'reflection', values: { month, ...vals } }
+      : { what: 'row', values: { month, row: row.key, ...(kind === 'immersion' ? { title: vals.name, line: vals.line, date: vals.date, end: vals.end, link: vals.link } : vals) } };
+  if (row.hidden) return <button type="button" className="chip ops-my-editbtn" disabled={s.busy} onClick={() => s.run({ what: 'row', values: { month, row: row.key }, show: true })}>{s.busy ? 'Putting back…' : 'Put back on the mentee page'}</button>;
+  if (!spec) return null;
+  if (!open) return <button type="button" className="chip ops-my-editbtn" onClick={() => { set(startOf(row, kind)); setOpen(true); }}>Edit</button>;
+  return (<div className="ops-my-edit">
+    <Fields spec={spec} v={v} set={set} fields={s.fields} />
+    {s.err && <p className="hint err" role="alert">{s.err}</p>}
+    <div className="ops-my-acts">
+      <button type="button" className="chip primary" disabled={s.busy} onClick={() => s.run(body(v), () => setOpen(false))}>{s.busy ? 'Saving…' : 'Save'}</button>
+      <button type="button" className="chip" disabled={s.busy} onClick={() => setOpen(false)}>Cancel</button>
+      {hideable && <button type="button" className="chip danger" disabled={s.busy} onClick={() => { if (window.confirm(`Take “${row.title}” off the mentees’ page for this month? You can put it back.`)) s.run({ what: 'row', values: { month, row: row.key }, hide: true }, () => setOpen(false)); }}>Remove from mentee page</button>}
+      {kind === 'book' && <button type="button" className="chip danger" disabled={s.busy} onClick={() => { if (window.confirm(`Take “${row.book.title}” off the reading list?`)) s.run({ what: 'book', month, original: { title: row.book.title, starts: row.book.starts }, hide: true }, () => setOpen(false)); }}>Take off the reading list</button>}
+    </div>
+  </div>);
+}
+
+export function AddBook({ month, starts }) {
+  const [open, setOpen] = useState(false), [v, set] = useState({});
+  const s = useSave();
+  const fresh = { title: '', author: '', note: '', kind: 'required', starts };
+  if (!open) return <button type="button" className="chip ops-my-addbtn" onClick={() => { set(fresh); setOpen(true); }}>+ Add a book</button>;
+  return (<div className="ops-my-edit">
+    <h4>New book for this month</h4>
+    <Fields spec={SPEC.book} v={v} set={set} fields={s.fields} />
+    {s.err && <p className="hint err" role="alert">{s.err}</p>}
+    <div className="ops-my-acts">
+      <button type="button" className="chip primary" disabled={s.busy} onClick={() => s.run({ what: 'book', month, values: v }, () => setOpen(false))}>{s.busy ? 'Adding…' : 'Add to the reading list'}</button>
+      <button type="button" className="chip" disabled={s.busy} onClick={() => setOpen(false)}>Cancel</button>
+    </div>
+  </div>);
+}

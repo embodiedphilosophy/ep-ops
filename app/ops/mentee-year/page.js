@@ -4,7 +4,7 @@ import { todayET } from '@/lib/events';
 import { segments, nextSteps, currentMonth, reviewFor, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
 import { loadOpsYear } from '@/lib/ops/menteeyearops';
 import Shell, { opsUser } from '../Shell';
-import { EditItem, AddItem, ShowAgain, EditMonth } from './Editor';
+import { EditItem, AddItem, ShowAgain, EditMonth, RowEdit, AddBook } from './Editor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Mentee year — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -18,20 +18,25 @@ const Rich = ({ text }) => segments(text).map((x, i) => x.t === 'b' ? <b key={i}
 const Proj = ({ p }) => <span className={`ops-my-proj ${p}`}><i />{PROJECTS[p]}</span>;
 const lastDay = ym => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
 
-// The tasks on the mentees' "This month" list for one month, each editable, with "+ Add a task"
-function Tasks({ ym, tasks, canEdit, today, mentees }) {
-  const mine = tasks.filter(c => c.step.month === ym);
+// One month's list: exactly what mentees see under "This month" on their page in Circle (and on /school/mentee-year), each row editable
+const KIND = { immersion: 'Immersion', note: 'Note', book: 'Book', suggested: 'Suggested book', buddy: 'Buddy', 'one-to-one': 'One-to-one', reflection: 'Reflection', handin: 'Hand-in', task: 'Task' };
+const span = (a, b) => (b && b !== a ? `${dayFmt(a)} – ${dayFmt(b)}` : dayFmt(a));
+function MonthList({ ym, rows, canEdit, today, counts, mentees }) {
+  const nextStart = rows.find(r => r.kind === 'book')?.book?.starts || `${ym}-01`;
   return (<div className="ops-my-tasks">
-    <h4>Tasks on the mentee page <small>· tickable, in their “This month” list</small></h4>
-    {mine.length === 0 ? <p className="ops-empty">None yet. The list already shows the book, buddy session, immersion, one-to-one and reflection by itself.</p> : (
-      <ul className="ops-my-steps compact">{mine.map(c => (
-        <li key={c.step.id} className="ops-my-step">
-          <span className="when"><b>{dayFmt(c.step.date)}</b></span>
-          <span className="what"><b>{c.step.title}</b>{c.step.detail && <span className="det">{c.step.detail}</span>}{c.step.link && <span className="ev"><a href={c.step.link} target="_blank" rel="noopener noreferrer">{c.step.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
-            {mentees > 0 && <span className="ev">{c.count} of {c.of} ticked</span>}
-            {canEdit && <EditItem kind="task" item={c.step} />}</span>
-        </li>))}</ul>)}
-    {canEdit && <AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} />}
+    <h4>On the mentee page this month <small>· the “This month” list in Circle, and this month on the Your Year page</small></h4>
+    <ul className="ops-my-steps compact ops-my-mlist">{rows.map(r => (
+      <li key={r.key} className={`ops-my-step${r.hidden ? ' off' : ''}`}>
+        <span className="when"><b>{r.date ? span(r.date, r.end) : ''}</b><small>{KIND[r.kind]}</small></span>
+        <span className="what"><b><Rich text={r.title} /></b>{r.line && <span className="det"><Rich text={r.line} /></span>}
+          {r.link && <span className="ev"><a href={r.link} target="_blank" rel="noopener noreferrer">{r.link.replace(/^https:\/\//, '').slice(0, 60)}</a></span>}
+          {r.hidden && <span className="ev">Taken off the mentee page</span>}
+          {(r.kind === 'note' || r.kind === 'suggested') && <span className="ev">Shown on the Your Year page{r.kind === 'note' ? '' : ' and the reading list'}, not as a row in Circle{r.hint ? ` · ${r.hint}` : ''}</span>}
+          {r.kind === 'buddy' && <span className="ev">Who is paired with whom: <a href="/ops/settings/partners">Settings → Peer partners</a></span>}
+          {r.kind === 'task' && mentees > 0 && <span className="ev">{counts[r.key] || 0} of {mentees} ticked</span>}
+          {canEdit && (r.kind === 'task' ? <EditItem kind="task" item={r.task} /> : r.edit === 'settings' ? <a className="chip ops-my-editbtn" href="/ops/settings?t=massignments">Edit in Settings</a> : <RowEdit month={ym} row={r} />)}</span>
+      </li>))}</ul>
+    {canEdit && <div className="ops-my-acts"><AddItem kind="task" date={today.slice(0, 7) === ym ? (today < lastDay(ym) ? lastDay(ym) : today) : lastDay(ym)} /><AddBook month={ym} starts={nextStart} /></div>}
   </div>);
 }
 
@@ -65,7 +70,7 @@ export default async function MenteeYear({ searchParams }) {
       head={<nav className="ops-filters" aria-label="Mentee year">{TABS.map(([k, l]) => <a key={k} href={href(k)} aria-current={tab === k ? 'page' : undefined}>{l}</a>)}</nav>}>
       <p className="ops-empty ops-my-lede">{data.lede}</p>
       <p className="ops-more"><a href="/school/mentee-year" target="_blank" rel="noopener">View the mentee version (what mentees see) →</a></p>
-      {canEdit && <p className="ops-note ops-my-howto">You can edit this page: add tasks to a month (Month by month), and change or add project steps (Final projects). What you save is what mentees see on their page, usually within a minute.</p>}
+      {canEdit && <p className="ops-note ops-my-howto">You can edit this page. Each month’s list is exactly what mentees see under “This month” in Circle and on their Your Year page: edit any row (immersion dates and names, books, the one-to-one window, the reflection date, the wording), take a row off, or add a task or a book. Project steps are edited under Final projects. Changes show for mentees within a minute.</p>}
 
       {tab === 'now' && (<div className="ops-my-cols">
         <section>
@@ -86,9 +91,8 @@ export default async function MenteeYear({ searchParams }) {
           <h2>This month <span>{month.title}</span></h2>
           <p className="theme">{month.theme}{month.tag ? ` · ${month.tag}` : ''}</p>
           <p className="focus">{month.focus}</p>
-          <ul className="ops-my-items">{month.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul>
           {monthSteps(month.id).length > 0 && (<><h3>Project steps due this month</h3><ul className="ops-my-steps compact">{monthSteps(month.id).map(s => <Step key={s.id} s={s} today={today} />)}</ul></>)}
-          <Tasks ym={month.id} tasks={year.tasks} canEdit={canEdit} today={today} mentees={year.mentees.length} />
+          <MonthList ym={month.id} rows={year.lists[month.id] || []} canEdit={canEdit} today={today} counts={year.counts} mentees={year.mentees.length} />
           {canEdit && <EditMonth month={month.id} theme={month.theme || ''} focus={month.focus || ''} />}
         </section>)}
       </div>)}
@@ -109,9 +113,8 @@ export default async function MenteeYear({ searchParams }) {
           <article key={m.id} id={`m-${m.id}`} className={`ops-my-card${month && m.id === month.id ? ' current' : ''}`}>
             <header><div><h3>{m.title}</h3><p className="theme">{themeOf(m)}</p></div>{m.tag && <span className="ops-my-tag">{m.tag}</span>}</header>
             <p className="focus">{focusOf(m)}</p>
-            <ul className="ops-my-items">{m.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul>
             {monthSteps(m.id).length > 0 && (<><h4>Project steps due this month</h4><ul className="ops-my-steps compact">{monthSteps(m.id).map(s => <li key={s.id} className="ops-my-step"><span className="when"><b>{dayFmt(s.date)}</b></span><span className="what"><Proj p={s.project} />{s.text}</span></li>)}</ul></>)}
-            <Tasks ym={m.id} tasks={year.tasks} canEdit={canEdit} today={today} mentees={year.mentees.length} />
+            <MonthList ym={m.id} rows={year.lists[m.id] || []} canEdit={canEdit} today={today} counts={year.counts} mentees={year.mentees.length} />
             {canEdit && <EditMonth month={m.id} theme={themeOf(m) || ''} focus={focusOf(m) || ''} />}
           </article>
         ))}</div>
