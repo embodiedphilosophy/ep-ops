@@ -4,12 +4,14 @@ import { todayET } from '@/lib/events';
 import { segments, nextSteps, currentMonth, reviewFor, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
 import { loadOpsYear } from '@/lib/ops/menteeyearops';
 import Shell, { opsUser } from '../Shell';
-import { EditItem, AddItem, ShowAgain, EditMonth, RowEdit, AddBook, Orderable } from './Editor';
+import { EditItem, AddItem, ShowAgain, EditMonth, RowEdit, AddBook, Orderable, EditText, AddLine, PublishManual } from './Editor';
+import { listView, textView } from '@/lib/mentee/yearcontent';
+const MANUAL_DOC_URL = 'https://docs.google.com/document/d/1u9O7F59dnj0I6mo0u0wIZ_SVjfbIMRZpcIsVzpnYuOw/edit';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Mentee year — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const TABS = [['now', 'Now'], ['rhythm', 'The rhythm'], ['months', 'Month by month'], ['projects', 'Final projects'], ['one-to-ones', 'One-to-ones']];
+const TABS = [['now', 'Now'], ['rhythm', 'The rhythm'], ['months', 'Month by month'], ['projects', 'Final projects'], ['one-to-ones', 'One-to-ones'], ['manual', 'The manual']];
 const dayFmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '');
 const dayYear = d => `${dayFmt(d)} ${d.slice(0, 4)}`;
 
@@ -74,14 +76,21 @@ export default async function MenteeYear({ searchParams }) {
   const canEdit = canEditSite(user);
   const monthSteps = ym => year.steps.filter(s => s.month === ym).map(s => ({ ...s, text: s.title }));
   const themeOf = m => (year.months[m.id] && year.months[m.id].theme) || m.theme, focusOf = m => (year.months[m.id] && year.months[m.id].focus) || m.focus;
+  // The Your Year page's wording, with the edits saved from here laid over data/mentee-year.json (lib/mentee/yearcontent.js)
+  const T = path => textView(data, year.textRows, path);
+  const Words = ({ v, list, long }) => (canEdit ? <EditText v={v} list={list} long={long}><Rich text={v.text} /></EditText> : <Rich text={v.text} />);
+  const Lines = ({ base, as: Tag = 'ul', cls = 'ops-my-items' }) => {
+    const l = listView(data, year.textRows, base);
+    return (<><Tag className={cls}>{l.lines.filter(x => canEdit || !x.removed).map(x => <li key={x.path} className={x.removed ? 'ops-my-off' : ''}><Words v={x} list /></li>)}</Tag>{canEdit && <AddLine path={l.next} />}</>);
+  };
   const href = (t, extra = '') => `/ops/mentee-year${t === 'now' && !extra ? '' : `?tab=${t}${extra}`}`;
 
   return (
     <Shell user={user} current="mentee-year" eyebrow="Sahṛdaya Upāya · 2026–27 cohort" title="The mentee year"
       head={<nav className="ops-filters" aria-label="Mentee year">{TABS.map(([k, l]) => <a key={k} href={href(k)} aria-current={tab === k ? 'page' : undefined}>{l}</a>)}</nav>}>
-      <p className="ops-empty ops-my-lede">{data.lede}</p>
+      <p className="ops-empty ops-my-lede"><Words v={T('lede')} long /></p>
       <p className="ops-more"><a href="/school/mentee-year" target="_blank" rel="noopener">View the mentee version (what mentees see) →</a></p>
-      {canEdit && <p className="ops-note ops-my-howto">You can edit this page. Each month’s list is exactly what mentees see under “This month” in Circle and on their Your Year page: edit any row (immersion dates and names, books, the one-to-one window, the reflection date, the wording), take a row off, or add a task or a book. Project steps are edited under Final projects. Changes show for mentees within a minute.</p>}
+      {canEdit && <p className="ops-note ops-my-howto">Everything here is editable, and it is what mentees see: every line of words (Edit, Remove, + Add a line), each month’s list as it appears under “This month” in Circle (immersions, books, the one-to-one, the reflection, tasks, and the order), the project steps, and the manual (The manual tab, in its Google Doc). Changes show for mentees within a minute.</p>}
 
       {tab === 'now' && (<div className="ops-my-cols">
         <section>
@@ -110,12 +119,12 @@ export default async function MenteeYear({ searchParams }) {
 
       {tab === 'rhythm' && (<section>
         <p className="ops-empty">Five layers, from the daily sit to certification. The lower layers are what keep the upper ones from piling up.</p>
-        <div className="ops-my-ladder">{data.rhythm.map(r => (
-          <div key={r.level} className="row"><div className="lvl">{r.level}<small>{r.note}</small></div><ul>{r.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul></div>
+        <div className="ops-my-ladder">{data.rhythm.map((r, ri) => (
+          <div key={r.level} className="row"><div className="lvl"><Words v={T(`rhythm.${ri}.level`)} /><small><Words v={T(`rhythm.${ri}.note`)} /></small></div><div><Lines base={`rhythm.${ri}.items`} cls="" /></div></div>
         ))}</div>
         <h2 style={{ marginTop: 28 }}>A typical month, week by week</h2>
         <p className="ops-empty">The same four-week shape repeats each month. The immersion weekend moves to wherever it falls; everything else stays put.</p>
-        <div className="ops-my-weeks">{data.week.map(w => <div key={w.title} className="ops-my-card"><h3>{w.title}</h3><ul className="ops-my-items">{w.items.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ul></div>)}</div>
+        <div className="ops-my-weeks">{data.week.map((w, wi) => <div key={w.title} className="ops-my-card"><h3><Words v={T(`week.${wi}.title`)} /></h3><Lines base={`week.${wi}.items`} /></div>)}</div>
       </section>)}
 
       {tab === 'months' && (<section>
@@ -138,7 +147,7 @@ export default async function MenteeYear({ searchParams }) {
           <div className="lab">60-min talk</div>{data.lanes.talk.map(b => <div key={b.label} className="bar talk" style={laneStyle(b)}>{b.label}</div>)}
           <div className="lab">Three-session offering</div>{data.lanes.offering.map(b => <div key={b.label} className="bar offering" style={laneStyle(b)}>{b.label}</div>)}
         </div>
-        <p className="ops-note">{data.spacing}</p>
+        <p className="ops-note"><Words v={T('spacing')} long /></p>
         {canEdit && <AddItem kind="step" />}
         <nav className="ops-filters" aria-label="Filter steps">{[['all', 'All steps'], ['talk', '60-min talk'], ['offering', 'Three-session offering']].map(([k, l]) => <a key={k} href={href('projects', k === 'all' ? '' : `&p=${k}`)} aria-current={filter === k ? 'page' : undefined}>{l}</a>)}</nav>
         <ul className="ops-my-steps full">{year.cohort.filter(c => filter === 'all' || c.step.project === filter || c.step.project === 'both').map(c => (
@@ -156,16 +165,28 @@ export default async function MenteeYear({ searchParams }) {
       {tab === 'one-to-ones' && (<section className="ops-my-cols">
         <div className="ops-my-card">
           <h2>How mentees book</h2>
-          <ol className="ops-my-items">{data.oneToOne.howTo.map((t, i) => <li key={i}><Rich text={t} /></li>)}</ol>
+          <Lines base="oneToOne.howTo" as="ol" />
         </div>
         <div className="ops-my-card">
           <h2>Booking summary</h2>
-          <pre className="ops-my-template">{data.oneToOne.template.join('\n')}</pre>
-          <p className="ops-empty">{data.oneToOne.note}</p>
+          <Lines base="oneToOne.template" cls="ops-my-template-lines" />
+          <p className="ops-empty"><Words v={T('oneToOne.note')} long /></p>
         </div>
       </section>)}
 
-      <p className="ops-more">{data.footer}</p>
+      {tab === 'manual' && (<section className="ops-my-card">
+        <h2>The Teacher Formation Manual</h2>
+        <p>The manual mentees read on the Your Year page (and its Seminal Texts tab) is read straight from its Google Doc, <b>Sahṛdaya Upāya - Training Manual</b>. Edit it there as you would any document: the page follows within five minutes, or at once with the button below. The “Download the PDF” button always gives the doc as it is now.</p>
+        <ul className="ops-my-items">
+          <li>Keep the headings the page is built on: <b>Heading 2</b> for each part (“Part I. …” to “Part V. …”, “Appendix A. …” to “Appendix C. …”, and “Appendices and sources”), <b>Heading 3</b> and <b>Heading 4</b> for sections inside them.</li>
+          <li>If an edit leaves out a part the page needs, the page keeps showing the last good version until it is fixed.</li>
+          <li>Italic indented paragraphs become verses; a paragraph all in italics becomes a note; tables, lists and checkboxes (☐) carry over.</li>
+        </ul>
+        <div className="ops-my-acts"><a className="chip" href={MANUAL_DOC_URL} target="_blank" rel="noopener noreferrer">Open the Google Doc</a><a className="chip" href="https://www.embodiedphilosophy.com/school/mentee-year?tab=manual" target="_blank" rel="noopener noreferrer">View the manual page</a>{canEdit && <PublishManual />}</div>
+        <p className="ops-empty" style={{ marginTop: 18 }}>Everything else on the Your Year page is edited here: the opening line (top of this page), The rhythm and the typical month, Month by month, Final projects and One-to-ones.</p>
+      </section>)}
+
+      <p className="ops-more"><Words v={T('footer')} long /></p>
     </Shell>
   );
 }
