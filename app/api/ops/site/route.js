@@ -6,6 +6,8 @@ import { ensureColumns, createTab } from '@/lib/ops/store';
 import { readPlain, updatePlain, addPlain, ConflictError } from '@/lib/ops/store';
 import { tableOf, typeOf, checkCell, OLD_SITE_SHEET } from '@/lib/ops/sitetables';
 import { copyTab } from '@/lib/google';
+import { revalidateTag } from 'next/cache';
+import { TEAM_TAG } from '@/lib/calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +69,7 @@ export async function POST(req) {
     if (t.columns) await ensureColumns(t.title, Object.keys(clean).filter(c => t.columns.includes(c)));
     const result = row == null ? { added: await addPlain(t.title, clean, { who }) } : { written: await updatePlain(t.title, Number(row), clean, { before, who }) };
     refreshSite(); // the site and dashboard show it now, not in 5 minutes
+    if (t.key === 'team') revalidateTag(TEAM_TAG, { expire: 0 }); // who can sign in, and as what
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     if (e instanceof ConflictError) return NextResponse.json({ error: e.message, conflict: e.current }, { status: 409 });
