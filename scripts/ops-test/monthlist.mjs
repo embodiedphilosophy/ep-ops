@@ -28,7 +28,7 @@ assert.match(M.monthList({ ym: '2026-12', config }).find(r => r.key === 'note-bo
 assert.equal(M.monthList({ ym: '2026-10', config, bookRows: books }).find(r => r.kind === 'book').when, 'From 21 Oct');
 // Ops changes: rename + move immersion 1, hide the buddy row, reword the reflection, move the one-to-one window, a task
 const rowRows = [
-  { month: '2026-11', row: 'immersion-1', title: 'Under the Pose', date: '2026-11-21', end: '2026-11-22', link: 'https://ss.embodiedphilosophy.com/c/x', line: 'Bring a notebook.' },
+  { month: '2026-11', row: 'immersion-1', sat_link: 'https://zoom.us/j/111', sun_link: 'https://zoom.us/j/222', title: 'Under the Pose', date: '2026-11-21', end: '2026-11-22', link: 'https://ss.embodiedphilosophy.com/c/x', line: 'Bring a notebook.' },
   { month: '2026-11', row: 'buddy', publish: 'FALSE' },
   { month: '2026-11', row: 'reflection', title: 'Your first reflection' },
   { month: '2026-11', row: 'one-to-one', date: '2026-11-24', end: '2026-11-28' },
@@ -39,8 +39,15 @@ const im = nov.find(r => r.key === 'immersion-1');
 assert.deepEqual([im.title, im.date, im.end, im.link, im.line], ['Immersion 1 · Under the Pose', '2026-11-21', '2026-11-22', 'https://ss.embodiedphilosophy.com/c/x', 'Bring a notebook.']);
 assert.equal(nov.find(r => r.key === 'buddy').hidden, true); assert.equal(nov.find(r => r.key === 'reflection').title, 'Your first reflection');
 assert.equal(nov.find(r => r.key === 'one-to-one').date, '2026-11-24'); assert.ok(nov.some(r => r.key === 't-2026-11-x'));
+assert.deepEqual([im.satLink, im.sunLink], ['https://zoom.us/j/111', 'https://zoom.us/j/222']);
 const cfg = M.withOverrides(config, rowRows);
+assert.deepEqual([cfg.immersions[0].sat_link, cfg.immersions[0].sun_link], ['https://zoom.us/j/111', 'https://zoom.us/j/222']);
 assert.deepEqual([cfg.immersions[0].title, cfg.immersions[0].sat, cfg.immersions[0].prepare_link], ['Under the Pose', '2026-11-21', 'https://ss.embodiedphilosophy.com/c/x']);
 assert.equal(cfg.windows.find(w => w.from.startsWith('2026-11')).to, '2026-11-28'); assert.equal(config.immersions[0].sat, '2026-11-14', 'the original is untouched');
 assert.deepEqual(M.monthOverrides(rowRows, '2026-11').buddy, { title: '', line: '', hide: true });
+// the order set in Ops: placed rows first, the rest in their usual order
+const ordered = M.monthList({ ym: '2026-11', config, bookRows: books, tasks, rowRows: [{ month: '2026-11', row: '_order', line: 't-2026-11-x, reflection' }] }).filter(r => r.circle).map(r => r.key);
+assert.deepEqual(ordered.slice(0, 3), ['t-2026-11-x', 'reflection', 'book-education-s-end']);
+assert.deepEqual(M.monthOrder([{ month: '2026-11', row: '_order', line: 'a, b' }], '2026-11'), ['a', 'b']);
+assert.equal(M.overridesFrom([{ month: '2026-11', row: '_order', line: 'a' }])['2026-11|_order'], undefined);
 console.log('monthlist: ok');

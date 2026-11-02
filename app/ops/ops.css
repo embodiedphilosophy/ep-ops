@@ -862,3 +862,4 @@
 .ops-shell .ops-my-edit .err, .ops-shell .ops-my-hidden .err { color: var(--risk) }
 .ops-shell .ops-my-mlist .ops-my-step.off { opacity: .55 }
 .ops-shell .ops-my-mlist .ops-my-step .when small { text-transform: none }
+.ops-shell .ops-my-move { display: flex; gap: 4px; margin-top: 6px } .ops-shell .ops-my-move .chip { min-width: 30px; padding: 2px 8px }
