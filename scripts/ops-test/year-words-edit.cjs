@@ -1,0 +1,40 @@
+// Click-through: Ops → Mentee year, editing the Your Year page's words (the lede, a rhythm line: edit, take out, put back, add) and
+// "Publish the manual now". Writes go to the mock (Mentee Year Content tab).   bash scripts/ops-test/run.sh && node scripts/ops-test/year-words-edit.cjs
+const { chromium } = require('playwright');
+const fs = require('fs');
+const cookie = fs.readFileSync(__dirname + '/out/cookie.txt', 'utf8').trim();
+const ok = (c, m) => { if (!c) { console.error('FAIL', m); process.exitCode = 1; } else console.log('ok', m); };
+(async () => {
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 1000 } });
+  await ctx.addCookies([{ name: 'ep_ops', value: cookie, domain: 'localhost', path: '/' }]);
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto('http://localhost:3100/ops/mentee-year?tab=rhythm');
+  const lede = p.locator('.ops-my-lede');
+  await lede.getByRole('button', { name: 'Edit' }).click();
+  await p.locator('.ops-my-edit textarea').fill('A new opening line for the year.');
+  await p.locator('.ops-my-edit').getByRole('button', { name: 'Save' }).click();
+  await p.locator('.ops-my-edit').waitFor({ state: 'detached', timeout: 15000 }); await lede.getByText('A new opening line for the year.').waitFor({ timeout: 15000 }); ok(true, 'lede edited');
+  const first = p.locator('.ops-my-ladder .row').first().locator('li').first();
+  await first.getByRole('button', { name: 'Edit' }).click();
+  await p.locator('.ops-my-edit textarea').fill('Sit for twenty minutes, **every day**.');
+  await p.locator('.ops-my-edit').getByRole('button', { name: 'Save' }).click();
+  await p.locator('.ops-my-edit').waitFor({ state: 'detached', timeout: 15000 }); await p.locator('.ops-my-ladder').getByText('Sit for twenty minutes,').waitFor({ timeout: 15000 }); ok(true, 'rhythm line edited');
+  p.once('dialog', d => d.accept());
+  const second = p.locator('.ops-my-ladder .row').first().locator('li').nth(1);
+  await second.getByRole('button', { name: 'Remove' }).click();
+  await second.getByRole('button', { name: 'Put back' }).waitFor({ timeout: 15000 }); ok(true, 'line taken out (shown struck through here)');
+  await second.getByRole('button', { name: 'Put back' }).click();
+  await second.getByRole('button', { name: 'Remove' }).waitFor({ timeout: 15000 }); ok(true, 'line put back');
+  await p.locator('.ops-my-ladder .row').first().getByRole('button', { name: '+ Add a line' }).click();
+  await p.locator('.ops-my-edit textarea').fill('A line added from Ops.');
+  await p.locator('.ops-my-edit').getByRole('button', { name: 'Add' }).click();
+  await p.locator('.ops-my-edit').waitFor({ state: 'detached', timeout: 15000 }); await p.locator('.ops-my-ladder').getByText('A line added from Ops.').waitFor({ timeout: 15000 }); ok(true, 'line added');
+  await p.goto('http://localhost:3100/ops/mentee-year?tab=manual');
+  ok(await p.getByRole('link', { name: 'Open the Google Doc' }).getAttribute('href') === 'https://docs.google.com/document/d/1u9O7F59dnj0I6mo0u0wIZ_SVjfbIMRZpcIsVzpnYuOw/edit', 'manual tab links to the Google Doc');
+  await p.getByRole('button', { name: 'Publish the manual now' }).click();
+  await p.getByText('Done: the page shows the Google Doc as it is now.').waitFor({ timeout: 15000 }); ok(true, 'publish the manual');
+  const log = fs.readFileSync(__dirname + '/out/mock.log', 'utf8');
+  ok(/Mentee Year Content/.test(log) && /rhythm\.0\.items\.1/.test(log) && /\[remove\]/.test(log), 'saved to Mentee Year Content');
+  ok(!errs.length, 'no page errors ' + errs.join(' | '));
+  await b.close();
+})();
