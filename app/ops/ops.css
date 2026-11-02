@@ -876,3 +876,50 @@
 .ops-shell .ops-my-struck { text-decoration: line-through; color: var(--mute) }
 .ops-shell .ops-my-off { opacity: .7 }
 .ops-shell .ops-my-template-lines { list-style: none; padding: 10px 12px; margin: 0; background: var(--ground); border: 1px solid var(--hair); border-radius: 6px; font-family: var(--mono, monospace); font-size: 13px; display: grid; gap: 4px }
+
+/* YouTube: proposal cards (Vimeo still left, angle + reason), review panels (player + thumbnail), published rows */
+.ops-shell .ops-yt-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ops-yt-card { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 16px; background: var(--panel); border: 1px solid var(--line-in); padding: 12px 14px }
+.ops-shell .ops-yt-card .pic { position: relative; aspect-ratio: 16 / 9; background: var(--sand); color: var(--ink-soft); display: flex; align-items: center; justify-content: center; overflow: hidden }
+.ops-shell .ops-yt-card .pic img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .ops-yt-card .len { position: absolute; right: 6px; bottom: 6px; background: var(--pine); color: var(--ground); font-size: 11.5px; padding: 1px 6px }
+.ops-shell .ops-yt-card .body { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.ops-shell .ops-yt-card .top { display: flex; gap: 14px; align-items: center; font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ops-yt-card .ttl { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.15; color: var(--ink); text-decoration: none }
+.ops-shell .ops-yt-card .ttl:hover { color: var(--accent) }
+.ops-shell .ops-yt-card .who { font-size: 13px; color: var(--ink-soft) }
+.ops-shell .ops-yt-card .angle { font-size: 14.5px; font-weight: 600 }
+.ops-shell .ops-yt-card .reason { font-size: 13px; color: var(--ink-soft) }
+.ops-shell .ops-yt-card .acts, .ops-shell .ops-yt-approve .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px }
+.ops-shell .ops-yt-approve { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 8px 14px; align-items: end; padding: 10px 12px; margin-top: 4px; background: var(--ivory); border: 1px solid var(--line-in) }
+.ops-shell .ops-yt-approve label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600 }
+.ops-shell .ops-yt-approve .acts { grid-column: 1 / -1 }
+.ops-shell .ops-yt-cut .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px }
+.ops-shell .ops-yt-cut .head h2 { margin: 2px 0 0 }
+.ops-shell .ops-yt-media { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start }
+.ops-shell .ops-yt-media .frame { background: var(--pine); color: var(--ground) }
+.ops-shell .ops-yt-media .frame > span { aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center }
+.ops-shell .ops-yt-media iframe { width: 100%; height: auto; aspect-ratio: 16 / 9; border: 0; display: block }
+.ops-shell .ops-yt-media .io { font-size: 12.5px; color: var(--ink-soft); margin: 8px 0 }
+.ops-shell .ops-yt-media p { font-size: 13.5px; margin: 6px 0 }
+.ops-shell .ops-yt-media .quote { font-family: var(--serif); font-size: 17px; font-style: italic; border-left: 2px solid var(--line); padding-left: 12px; color: var(--ink) }
+.ops-shell .ops-yt-io { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px }
+.ops-shell .ops-yt-io label { margin: 0 !important; width: 110px }
+.ops-shell .yt-thumb { aspect-ratio: 16 / 9; background: var(--sand); color: var(--ink-soft); display: flex; align-items: center; justify-content: center; font-size: 13px; overflow: hidden; border: 1px solid var(--line-in) }
+.ops-shell .yt-thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .ops-yt-media .thumbcol .btn { margin-top: 10px; width: 100% }
+.ops-shell .ops-yt-meta { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--line-in) }
+.ops-shell .ops-yt-meta textarea { display: block; margin-top: 4px; font-weight: 400 }
+.ops-shell .ops-yt-meta .cnt { float: right; font-weight: 400; color: var(--ink-soft) }
+.ops-shell .ops-yt-meta .cnt.over { color: var(--risk); font-weight: 600 }
+.ops-shell .ops-yt-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px }
+.ops-shell .ops-yt-row { grid-template-columns: 128px minmax(0, 1fr) auto }
+.ops-shell .ops-yt-row .thumb { width: 128px; height: 72px }
+@media (max-width: 860px) {
+  .ops-shell .ops-yt-card { grid-template-columns: 1fr }
+  .ops-shell .ops-yt-media { grid-template-columns: 1fr }
+  .ops-shell .ops-yt-approve { grid-template-columns: 1fr }
+  .ops-shell .ops-yt-row { grid-template-columns: 96px minmax(0, 1fr) }
+  .ops-shell .ops-yt-row .thumb { width: 96px; height: 54px }
+  .ops-shell .ops-yt-row .acts { grid-column: 1 / -1; justify-content: flex-start }
+}

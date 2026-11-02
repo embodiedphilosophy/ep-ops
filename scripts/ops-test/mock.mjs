@@ -314,6 +314,12 @@ http.createServer(async (req, res) => {
     if (p === '/site/checkout/ok') { if (req.method === 'HEAD') { res.writeHead(405); return res.end(); } res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('checkout'); }
     if (p === '/site/checkout/broken') return send(res, 500, {});
     if (p === '/site/api/revalidate-courses') { log('SITE REVALIDATE-COURSES', req.method, req.headers['x-revalidate-secret'] === 'mock-secret' ? 'secret ok' : 'secret WRONG'); return send(res, 200, { ok: true }); }
+    // GitHub repository_dispatch for the YouTube pipeline (GITHUB_API_BASE=$M/github): logged, nothing runs
+    if (p.startsWith('/github/repos/') && p.endsWith('/dispatches') && req.method === 'POST') {
+      const b = await body(req);
+      log('GITHUB DISPATCH', p.split('/').slice(3, 5).join('/'), b.event_type, JSON.stringify(b.client_payload), req.headers.authorization === 'Bearer mock-gh' ? 'token ok' : 'token WRONG');
+      res.writeHead(204); return res.end();
+    }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);
       if (b.action === 'get') {

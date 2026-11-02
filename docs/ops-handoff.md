@@ -153,3 +153,28 @@ The mentees' "This week" page is built in **ep-website** (`/school/sahrdaya-upay
 ## 9. Library by department (Oct 2026)
 
 Settings → **Library** → **Library items** is where staff enter the member Library shown in Circle at `/c/library` (ep-website, `public/circle/library.js`; see ep-website `docs/library-departments.md`). One row per item: department, level (Foundations / Deepening / Advanced), label, title, teachers, link, access, publish. Defined in `lib/ops/sitetables.js` (`LIBRARY_TABLES`); the `Library Items` tab is made from the editor on first use. Tested against the mock (create tab, add row, validation, Change Log).
+
+## 10. YouTube Studio (Nov 2026, branch `claude/youtube-studio`)
+
+Vimeo → YouTube: each Monday the worker (separate repo **embodiedphilosophy/ep-youtube-pipeline**, GitHub Actions)
+proposes 5 Studio-Produced talks; staff approve them here; the worker cuts a 15–20 min stretch, makes the thumbnail,
+parks the cut on Vimeo; staff review and push to YouTube. Ops only stores, shows and fires.
+
+- Page `/ops/youtube` (`app/ops/youtube/`): tabs This week · Review queue · Published · Skipped. Access `canYouTube` in
+  `nav.js` (directors + Team role Media or YouTube, i.e. Jacob and Rebecka). Sidebar: Publishing → YouTube.
+- Logic `lib/ops/youtube.js`; records in Neon table `ops_youtube` (`kind` proposal|cut, jsonb `data`; memory without DATABASE_URL).
+  Proposal: proposed → producing → ready → published, or skipped. Cut: review ⇄ recutting / rethumbing → publishing → published.
+- Worker API `app/api/youtube/*` (Bearer `OPS_PIPELINE_SECRET`, `lib/ops/pipelineauth.js`): `GET /state`, `POST /proposals`,
+  `POST /cuts`, `GET /cuts/{id}`, `POST /cuts/{id}/thumbnail` (→ Vercel Blob `youtube/thumbs/`), `POST /cuts/{id}/published`.
+  `used_vimeo_ids` = everything approved, skipped, cut or published (untouched proposals may come back).
+  `upcoming_programs` = one row per program starting on the Master Schedule in the next 10 weeks.
+- A re-cut posts `/cuts` again with the same `proposal_id`: the same cut is updated; any field staff edited (`edited[]`) keeps the staff value.
+- Ops fires `repository_dispatch` (`produce`, `thumb`, `publish`) with `GITHUB_PIPELINE_TOKEN`. Re-cut start/end are sent as
+  strings because the workflow drops a numeric 0. `thumb` sends the **source** Vimeo ID (the worker grabs frames from it).
+- Scheduled release: date + time in New York → `publish_at` in UTC (YouTube keeps it private until then).
+- Tasks: one "[yt:week:<date>]" task when proposals arrive and one "[yt:cut:<id>]" per new cut, labelled with directors +
+  Media/YouTube people; closed when the week is all decided / the cut is published. Only with the database (not in local tests).
+- Env (ep-ops on Vercel): `OPS_PIPELINE_SECRET` (same as the GitHub secret, 24+ chars), `GITHUB_PIPELINE_TOKEN` (fine-grained,
+  repo ep-youtube-pipeline, Contents read & write), `BLOB_READ_WRITE_TOKEN` (existing store is fine). Optional
+  `GITHUB_PIPELINE_REPO`, `GITHUB_API_BASE` (tests).
+- Test: `node scripts/ops-test/youtube.cjs` after `run.sh` (plays the worker; dispatches land in `out/mock.log` as `GITHUB DISPATCH`).
