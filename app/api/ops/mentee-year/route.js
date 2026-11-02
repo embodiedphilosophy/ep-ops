@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/ops/auth';
 import { canEditSite } from '@/lib/ops/nav';
 import { ConflictError } from '@/lib/ops/store';
 import { refreshSite } from '@/lib/ops/refresh';
-import { checkItem, checkMonth, saveItem, saveMonth } from '@/lib/ops/menteeyearedit';
+import { checkItem, checkMonth, saveItem, saveMonth, checkRow, saveRow, saveReflection, checkBook, saveBook } from '@/lib/ops/menteeyearedit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,13 +11,28 @@ export const dynamic = 'force-dynamic';
 //   { what: 'step' | 'task', id? (omit to add), values, before? }   add or change a project step / a task on the mentees' "This month"
 //   { what: 'step' | 'task', id, hide: true } / { …, show: true }    take it off the mentees' page, or put it back
 //   { what: 'month', values: { month, theme, focus } }               a month's theme and focus
+//   { what: 'row', values: { month, row, title, line, date, end, link }, hide?, show? }   a row of the month list (immersion, buddy, one-to-one, notes)
+//   { what: 'reflection', values: { month, due, title, line } }      the month's reflection: due date and words
+//   { what: 'book', month, original?: { title, starts }, values?, hide? }   a book on the reading list (Mentee Books): change, add or take off
 export async function POST(req) {
   const user = await currentUser();
   if (!canEditSite(user)) return NextResponse.json({ error: 'Only Jacob, Irene and Floss can edit the mentee year' }, { status: 403 });
   const b = await req.json().catch(() => ({}));
   const who = user.name || user.email;
   try {
-    if (b.what === 'month') {
+    if (b.what === 'row') {
+      const c = checkRow(b.values || {});
+      if (c.errors) return NextResponse.json({ error: 'Some fields need fixing', errors: c.errors }, { status: 400 });
+      await saveRow({ values: c.values, hide: !!b.hide, show: !!b.show, who });
+    } else if (b.what === 'reflection') {
+      const v = b.values || {}, c = checkRow({ ...v, row: 'reflection', date: v.due });
+      if (c.errors) return NextResponse.json({ error: 'Some fields need fixing', errors: { ...c.errors, ...(c.errors.date ? { due: c.errors.date } : {}) } }, { status: 400 });
+      await saveReflection({ month: c.values.month, due: c.values.date, title: c.values.title, line: c.values.line, who });
+    } else if (b.what === 'book') {
+      let values = {};
+      if (!b.hide) { const c = checkBook(b.values || {}); if (c.errors) return NextResponse.json({ error: 'Some fields need fixing', errors: c.errors }, { status: 400 }); values = c.values; }
+      await saveBook({ month: String(b.month || ''), original: b.original || null, values, hide: !!b.hide, who });
+    } else if (b.what === 'month') {
       const c = checkMonth(b.values || {});
       if (c.errors) return NextResponse.json({ error: 'Some fields need fixing', errors: c.errors }, { status: 400 });
       await saveMonth({ values: c.values, who });
