@@ -27,3 +27,6 @@ export KALIGHAT_COVER_URL=$M/img/kalighat.png
 export LANDING_PAGES_URL=$M/site/api/landing-pages
 # CE credits ledger (/ops/ce): the website's CE admin API comes from the mock
 export CE_ADMIN_KEY=mock-ce
+# YouTube: dispatches go to the mock's fake GitHub; the pipeline's calls use a throwaway secret; no Blob (thumbnails kept in memory)
+unset BLOB_READ_WRITE_TOKEN
+export GITHUB_API_BASE=$M/github GITHUB_PIPELINE_TOKEN=mock-gh OPS_PIPELINE_SECRET=mock-pipeline-secret-0123456789abcdef
