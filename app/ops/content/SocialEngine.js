@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
-import { rhythmWarnings, weekAhead, DEFAULT_RULES } from '@/lib/ops/socialrules';
+import { rhythmWarnings, weekAhead, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
 import Cropper, { shrink } from './Cropper';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -29,7 +29,7 @@ export default function SocialEngine({ director, initial = 'plan' }) {
       <nav className="ops-filters ops-site-tabs" aria-label="Social">
         {views.map(v => <a key={v.key} href={`/ops/content?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
       </nav>
-      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'review' ? <Review /> : view === 'health' ? <Health /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
+      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'calendar' ? <Calendar /> : view === 'review' ? <Review /> : view === 'health' ? <Health /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>
   );
 }
@@ -802,6 +802,98 @@ function Health() {
       <p className="ops-empty">Checked just now from the sheet and Instagram; the Instagram check itself runs every hour. Most urgent first.</p>
       <ul>{data.items.map((i, k) => (
         <li key={k} className={i.level}><span className="lv">{i.level}</span><span className="b"><b>{i.title}</b><span>{i.detail}</span></span></li>))}</ul>
+    </div>
+  );
+}
+
+// ---------- Calendar: a week of seven days (or the month), each with its category, and drag to reschedule ----------
+const addD = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const monOf = d => addD(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
+const out = p => ['Posted', 'Manual'].includes(p.status);
+function Calendar() {
+  const [data, reload] = useView('plan');
+  const [mode, setMode] = useState('week');
+  const [start, setStart] = useState(monOf(today()));
+  const [editing, setEditing] = useState(false);
+  const [scope, setScope] = useState('standing');
+  const [open, setOpen] = useState(null);
+  const [drag, setDrag] = useState(null);
+  const [msg, setMsg] = useState('');
+  if (!data) return <p className="ops-empty">Loading the calendar…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const posts = [...data.rows, ...(data.past || [])].filter((r, i, a) => a.findIndex(x => x.row === r.row) === i)
+    .map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const cats = data.dayCategories || [], t = today();
+  const labels = new Set(data.events || []);
+  const blockedOf = p => guardrails(p._raw, { eventLabels: labels }).blocked.length > 0;
+  const days = mode === 'week' ? Array.from({ length: 7 }, (_, i) => addD(start, i)) : (() => { const first = start.slice(0, 7) + '-01', from = monOf(first); return Array.from({ length: 42 }, (_, i) => addD(from, i)); })();
+  const step = n => setStart(mode === 'week' ? addD(start, 7 * n) : (() => { const d = new Date(start.slice(0, 7) + '-01T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); })());
+  const move = async (row, date) => {
+    const p = posts.find(x => x._row === row);
+    if (!p || p.publish_date === date) return;
+    if (out(p)) return setMsg('A post that is already out can’t be moved.');
+    if (date < t) return setMsg('Pick today or a day ahead.');
+    const j = await api({ view: 'plan', row, changes: { publish_date: date }, before: p._raw });
+    setMsg(j.ok ? `Moved to ${day(date)}.` : j.error); reload();
+  };
+  const setCat = async (weekday, category) => {
+    const j = await api({ view: 'plan', dayCategory: { weekday, category, scope, week_of: start } });
+    setMsg(j.ok ? `${weekday}: ${category || 'no category'}${scope === 'week' ? ' (this week only)' : ' (every week)'}.` : j.error); reload();
+  };
+  const dayCell = d => {
+    const ps = posts.filter(p => p.publish_date === d && p.status !== 'Deleted').sort((a, b) => timeKey(a.publish_time_ET).localeCompare(timeKey(b.publish_time_ET)));
+    const cat = categoryFor(d, cats), st = dayState({ date: d, today: t, posts: ps, category: cat, blockedOf });
+    return { d, ps, cat, st };
+  };
+  const i = open != null ? posts.findIndex(p => p._row === open) : -1;
+  return (
+    <div className="ops-cal">
+      <div className="ops-se-bar">
+        <span className="ops-se-mode" role="group" aria-label="Calendar view">
+          <button className={`chip${mode === 'week' ? ' on' : ''}`} aria-pressed={mode === 'week'} onClick={() => setMode('week')}>Week</button>
+          <button className={`chip${mode === 'month' ? ' on' : ''}`} aria-pressed={mode === 'month'} onClick={() => setMode('month')}>Month</button>
+        </span>
+        <button className="chip" onClick={() => step(-1)} aria-label="Earlier">←</button>
+        <b className="when">{mode === 'week' ? `${day(start)} to ${day(addD(start, 6))}` : new Date(start.slice(0, 7) + '-01T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</b>
+        <button className="chip" onClick={() => step(1)} aria-label="Later">→</button>
+        <button className="chip" onClick={() => setStart(monOf(t))}>Today</button>
+        {data.canCategory && <button className={`chip${editing ? ' on' : ''}`} onClick={() => setEditing(x => !x)}>Edit day categories</button>}
+        {msg && <span className="hint" role="status">{msg}</span>}
+      </div>
+      {editing && (
+        <div className="ops-cal-cats">
+          <p className="hint">Each weekday can have a standing type of post. A day shows whether that post is in the plan yet.</p>
+          <div role="radiogroup" aria-label="How long this lasts">
+            <label><input type="radio" name="scope" checked={scope === 'standing'} onChange={() => setScope('standing')} /> Every week from now on</label>{' '}
+            <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only ({day(start)})</label>
+          </div>
+          <div className="grid">{WEEKDAYS.map((w, k) => { const dd = addD(start, k); return (
+            <label key={w}>{w}<select value={categoryFor(dd, cats)} onChange={e => setCat(w, e.target.value)}>
+              <option value="">No category</option>{[...new Set([...POST_TYPES, categoryFor(dd, cats)].filter(Boolean))].map(c => <option key={c}>{c}</option>)}</select></label>); })}</div>
+        </div>)}
+      <div className={`ops-cal-grid ${mode}`}>
+        {mode === 'month' && WEEKDAYS.map(w => <div key={w} className="head">{w.slice(0, 3)}</div>)}
+        {days.map(d => { const { ps, cat, st } = dayCell(d), other = mode === 'month' && d.slice(0, 7) !== start.slice(0, 7); return (
+          <div key={d} className={`day s-${st.state}${d === t ? ' today' : ''}${other ? ' other' : ''}`}
+            onDragOver={e => { if (drag != null) e.preventDefault(); }} onDrop={() => { if (drag != null) move(drag, d); setDrag(null); }}>
+            <div className="dh"><b>{mode === 'week' ? day(d) : Number(d.slice(8))}</b>
+              {mode === 'month' && ps.length > 0 && <span className="n">{ps.length}</span>}</div>
+            {cat && <div className="cat" title={STATE_LABEL[st.state]}>{cat}</div>}
+            {cat && <div className={`sl ${st.state}`}>{STATE_LABEL[st.state]}{st.state === 'not-filled' && st.instead ? ` · has ${st.instead} instead` : ''}</div>}
+            {mode === 'week' && ps.map(p => (
+              <button key={p._row} className={`post s-${String(p.status).replace(/\s/g, '')}`} draggable={!out(p) && data.canEdit} onDragStart={() => setDrag(p._row)} onClick={() => setOpen(p._row)}
+                aria-label={`${time(p.publish_time_ET)} ${p.status}: ${String(p.caption || '').slice(0, 60)}`}>
+                {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="ph" />}
+                <span className="m"><b>{time(p.publish_time_ET)}</b> {kindLabel(p) || 'Feed'}<span className={`pill s-${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></span>
+                <span className="c">{p.caption || 'No caption yet'}</span>
+                {p.created_by && <span className="by">by {p.created_by.split(' ')[0]}</span>}
+              </button>))}
+            {mode === 'week' && !ps.some(p => isFeed(p)) && d >= t && <div className="slot">Open feed slot 11:00</div>}
+            {mode === 'month' && <button className="more" onClick={() => { setMode('week'); setStart(monOf(d)); }} aria-label={`Open the week of ${day(d)}`}>{ps.length ? `${ps.length} post${ps.length === 1 ? '' : 's'}` : ' '}</button>}
+          </div>); })}
+      </div>
+      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} types={POST_TYPES} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
+        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
     </div>
   );
 }

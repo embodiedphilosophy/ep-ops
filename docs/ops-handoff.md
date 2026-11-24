@@ -211,3 +211,8 @@ Brief: the "EP Ops · Content & Social v2" handoff (Jake, 24 Nov 2026). Phase 1 
 - Social → **Review**: tick posts, exact count on the button, a reason is required for flagged ones and saved in `override_reason`; the server
   enforces both. Social → **Health**: Instagram check, Meta token expiry, unconfirmed/failed/expired posts, posts without pictures, broken columns.
 - Tests: `content-v2-phase2-api.sh`, `content-v2-phase2.cjs`.
+
+### Content & Social v2, calendar and day categories
+- Social → **Calendar**: Week (7 columns, post cards, "Open feed slot 11:00", drag a card to another day to reschedule; posts already out can't be moved, nor can a post be moved into the past) and Month (counts per day, click a day for its week).
+- **Day categories** live on the new **Day Categories** tab (made on first save): `weekday, category, scope (standing | week_of), week_of, updated_by`. "This week only" beats the standing row (`categoryFor`, `lib/ops/socialrules.js`). Each day shows Filled · approved / awaiting approval / Filled but blocked / Not filled ("has X instead") / Missed / No category (`dayState`). Editors, approvers and directors can change categories.
+- Test: `scripts/ops-test/content-v2-calendar.cjs` (start from a fresh `run.sh`).

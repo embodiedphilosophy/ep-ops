@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
-import { isStaff, canEditSocial, canPublishSocial, canDeleteSocial } from '@/lib/ops/nav';
-import { readPlain, updatePlain, addPlain, ensureColumns, ConflictError } from '@/lib/ops/store';
+import { isStaff, canEditSocial, canPublishSocial, canDeleteSocial, canApproveSocial } from '@/lib/ops/nav';
+import { readPlain, updatePlain, addPlain, ensureColumns, createTab, ConflictError } from '@/lib/ops/store';
 import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText, timeKey, isFeed, displayStatus, V2_COLS, MIN_SLIDES } from '@/lib/ops/socialengine';
 import { loadCalendar } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
 import { driveIdOf } from '@/lib/ops/socialimages';
-import { readRules, guardrails, rhythmWarnings } from '@/lib/ops/socialrules';
+import { readRules, guardrails, rhythmWarnings, WEEKDAYS } from '@/lib/ops/socialrules';
 import { getHealth } from '@/lib/ops/socialhealth';
 import { tokenDaysLeft, igConfigured } from '@/lib/ops/igsync';
 
@@ -64,7 +64,7 @@ export async function GET(req) {
       }
       // The grid preview: the last twelve feed posts that went out, for context beneath the upcoming ones
       const past = live.filter(r => r.values.publish_date <= today && ['Posted', 'Manual'].includes(r.values.status) && isFeed(r.values)).sort(order).reverse().slice(0, 12).map(mine);
-      extra = { types, past, rules: await rulesOf() };
+      extra = { types, past, rules: await rulesOf(), dayCategories: (await readPlain('Day Categories', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values) };
       rows = rows.filter(r => r.values.status !== 'Deleted' && (r.values.publish_date || '9') >= from).sort(order).map(mine);
     } else if (v.images && url.searchParams.get('pick')) {
       // The post editor's picker: only Art (no words on the picture) that may be used, newest first (uploads are added at the bottom)
@@ -102,7 +102,7 @@ export async function GET(req) {
     const events = v.key !== 'plan' ? undefined : (await loadCalendar().catch(() => []))
       .filter(e => e.date >= addDays(todayET(), -3) && e.date <= addDays(todayET(), 120) && /public/i.test(e.audience || '') && e.track !== 'MM')
       .filter((e, i, a) => a.findIndex(x => eventLabel(x) === eventLabel(e)) === i).slice(0, 60).map(eventLabel);
-    return NextResponse.json({ head: data.head, rows: page, total, offset, events, ...extra, canEdit: canEditSocial(user) && (!v.director || user.director), canPublish: canPublishSocial(user), me: user.name || user.email,
+    return NextResponse.json({ head: data.head, rows: page, total, offset, events, ...extra, canEdit: canEditSocial(user) && (!v.director || user.director), canPublish: canPublishSocial(user), canCategory: canApproveSocial(user), me: user.name || user.email,
       locked: data.head.filter(h => isLocked(v.tab, h)) });
   } catch (e) {
     console.error('Social read failed', v.tab, e.message);
@@ -132,6 +132,22 @@ export async function POST(req) {
   const now = () => new Date().toISOString();
   const wantsApproved = out => out.status === 'Approved';
   try {
+    // Day categories: a weekday's standing post type, or an override for one week
+    if (body.dayCategory) {
+      if (!canApproveSocial(user)) return NextResponse.json({ error: 'Only editors and approvers change the day categories' }, { status: 403 });
+      const d = body.dayCategory, weekday = WEEKDAYS.find(w => w.toLowerCase() === String(d.weekday || '').toLowerCase()), category = String(d.category || '').trim().slice(0, 80);
+      const once = d.scope === 'week', week_of = once ? String(d.week_of || '').slice(0, 10) : '';
+      if (!weekday) return NextResponse.json({ error: 'Pick a day' }, { status: 400 });
+      if (once && !/^\d{4}-\d{2}-\d{2}$/.test(week_of)) return NextResponse.json({ error: 'Which week?' }, { status: 400 });
+      const head = ['weekday', 'category', 'scope', 'week_of', 'updated_by'];
+      let tab = await readPlain('Day Categories', SHEET).catch(() => null);
+      if (!tab) { await createTab('Day Categories', head, [], SHEET); tab = await readPlain('Day Categories', SHEET); }
+      const same = tab.rows.find(r => r.values.weekday === weekday && (once ? /week/i.test(r.values.scope) && String(r.values.week_of).slice(0, 10) === week_of : !/week/i.test(r.values.scope || '')));
+      const values = { weekday, category, scope: once ? 'week_of' : 'standing', week_of, updated_by: who };
+      if (same) await updatePlain('Day Categories', same.row, values, { before: {}, who, ...SHEET }); else await addPlain('Day Categories', values, { who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true });
+    }
     if (v.key === 'plan') await ensureV2();
     // Approving (= scheduling: Make or the dashboard publishes at the date and time) needs publish rights
     if (v.key === 'plan' && (Array.isArray(body.approve) || wantsApproved(body.changes || {}) || wantsApproved(body.values || {})) && !canPublishSocial(user))
