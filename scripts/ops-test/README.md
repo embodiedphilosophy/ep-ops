@@ -30,3 +30,4 @@ When you add a sheet tab or column the dashboard reads, add it to the synthetic 
 
 | `content-v2-api.sh` | Content v2 at API level (needs `run.sh` running): who can edit / approve, Expired and Unconfirmed, carousel rules (2 to 10 slides, Manual when approved), delete, author stamps, and the Instagram sync (new posts only, backfill, match to the plan). |
 | `content-v2.cjs` | Content v2 in a browser: Expired banner, build a carousel from the library, reorder, upload a video to the Drive mock, delete, "Use in a post" from Art and Quotes, Carolyn (Publisher) vs a viewer, phone width. The mock stands in for Instagram (`/graph`) and Drive (`/gdrive`). |
+| `instagram-ingest.sh` | The Make → dashboard Instagram endpoint: secret, form and JSON bodies, new vs known posts, match to the plan. Start from a fresh `run.sh`. |

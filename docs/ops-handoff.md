@@ -202,3 +202,6 @@ Brief: the "EP Ops · Content & Social v2" handoff (Jake, 24 Nov 2026). Phase 1 
   `/api/ops/social-sync?key=CRON_SECRET` (`&dry=1` shows what it would do, `&from=2026-10-01` backfills from that day).
   It only reads Instagram. Last run and errors are kept in `ops_social_health` (Neon) for the Health panel (phase 2).
 - Tests: `scripts/ops-test/content-v2-api.sh` (roles, delete, carousels, sync) and `content-v2.cjs` (browser).
+
+### Instagram without a Meta token (Make → dashboard)
+`/api/ops/social-sync/ingest` takes Instagram posts from the Make scenario "EP Social: Instagram to dashboard" (Make's Instagram connection reads them). Header `x-ingest-secret` must equal Vercel `SOCIAL_INGEST_SECRET`. Same logic as the direct sync (`applyMedia` in `lib/ops/igsync.js`): new posts into Post History, likes/comments refreshed, matching plan rows marked Posted with the link. Form fields (one post) or JSON `{ media: [...] }`. Once `META_ACCESS_TOKEN` exists the hourly direct sync takes over and the Make scenario can be switched off.
