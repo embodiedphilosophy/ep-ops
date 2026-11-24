@@ -284,7 +284,11 @@ async function healthData(user) {
   const [plan, sync, syncErr, lib, hist] = await Promise.all([readPlain('Weekly Plan', SHOW), getHealth('ig_sync').catch(() => null), getHealth('ig_sync_error').catch(() => null),
     readPlain('Image Library', SHOW).catch(() => null), readPlain('Post History', SHOW).catch(() => null)]);
   // Instagram connection and the hourly sync
-  if (!igConfigured()) add('High', 'Instagram isn’t connected', 'The hourly check that fills Published and confirms posts can’t run yet. It needs the Meta access token and Instagram account ID in Vercel.');
+  const viaMake = !igConfigured() && !!process.env.SOCIAL_INGEST_SECRET;
+  if (viaMake) {
+    // Make sends only new posts, so a quiet week is normal: show when one last arrived instead of calling it behind
+    add('Low', 'Instagram is connected through Make', sync ? `The last post came in ${new Date(sync.last_synced_at || sync.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' })}. Likes and comments stay at their first value until the dashboard has its own Meta token.` : 'No post has come in yet. Switch on the Make scenario “EP Social: Instagram to dashboard”.');
+  } else if (!igConfigured()) add('High', 'Instagram isn’t connected', 'The hourly check that fills Published and confirms posts can’t run yet. It needs the Meta access token and Instagram account ID in Vercel, or the Make scenario “EP Social: Instagram to dashboard”.');
   else if (!sync) add('High', 'The Instagram check hasn’t run yet', 'Open /api/ops/social-sync once with the cron key to run it, or wait for the next hour.');
   else {
     const hrs = (Date.now() - new Date(sync.last_synced_at || sync.at).getTime()) / 36e5;
