@@ -1,0 +1,213 @@
+/* The Content & Social workspace (design: "EP Ops · Content calendar" and its sibling screens). Scoped to .soc so the rest of ops is untouched. */
+.ops-shell .soc { --card: #FFFDF8; --line2: #D8C9AE; --sand2: #F2E8D6; --terra: #A5432A; --terra-d: #83341F; --ochre2: #B98A3E; display: flex; flex-direction: column; gap: 24px; max-width: 1180px; font-size: 14px }
+.ops-shell .soc h1, .ops-shell .soc h2 { font-family: var(--serif, 'Cormorant Garamond', serif); font-weight: 600; margin: 0 }
+.ops-shell .soc .mono { font-family: 'JetBrains Mono', ui-monospace, monospace }
+.ops-shell .soc .cap { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .soc .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--terra) }
+.ops-shell .soc-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between }
+.ops-shell .soc-head h1 { font-size: 44px; line-height: 1.05 }
+.ops-shell .soc-head h1 em { color: var(--terra) }
+.ops-shell .soc-head p { margin: 6px 0 0; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .soc-act { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.ops-shell .soc-seg { display: flex; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; background: var(--card) }
+.ops-shell .soc-seg button { min-height: 44px; padding: 0 14px; border: 0; background: transparent; color: var(--ink); font-size: 13px; cursor: pointer }
+.ops-shell .soc-seg button[aria-pressed=true] { background: var(--pine); color: var(--ground) }
+.ops-shell .soc-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--pine); background: var(--card); color: var(--pine); font-weight: 600; font-size: 13px; text-decoration: none; cursor: pointer }
+.ops-shell .soc-btn.primary { background: var(--terra); border-color: var(--terra); color: #fff }
+.ops-shell .soc-btn.small { min-height: 36px; padding: 0 12px; font-weight: 500; border-color: var(--line2); color: var(--ink); border-radius: 6px }
+.ops-shell .soc-btn.small.danger { border-color: var(--terra); color: var(--terra) }
+.ops-shell .soc-btn:disabled { opacity: .5; cursor: default }
+.ops-shell .soc-btn .n { font-size: 12px; background: var(--pine); color: var(--ground); border-radius: 10px; padding: 2px 7px }
+.ops-shell .soc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px }
+.ops-shell .soc-card { background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; color: inherit; text-decoration: none }
+.ops-shell .soc-card b { font-size: 15px; font-weight: 600 }
+.ops-shell .soc-card span:last-child { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-card.alert { background: var(--terra); border-color: var(--terra); color: #fff }
+.ops-shell .soc-card.alert .cap, .ops-shell .soc-card.alert span:last-child { color: var(--sand2) }
+.ops-shell .soc-card.dark { background: var(--pine); border-color: var(--pine); color: var(--ground) }
+.ops-shell .soc-card.dark .cap { color: var(--ochre2) }
+.ops-shell .soc-card.dark span:last-child { color: #EADDC6 }
+.ops-shell .soc-card.warnc { border-color: var(--terra) }
+.ops-shell .soc-card.warnc .cap { color: var(--terra); font-weight: 600 }
+.ops-shell .soc-card .late { color: var(--terra-d) }
+.ops-shell .soc-balance { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; padding: 16px 20px; background: var(--sand2); border-radius: 10px }
+.ops-shell .soc-balance .bar { flex: 1 1 360px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .soc-balance .bar .top { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-balance .bar .top b { color: var(--ink) }
+.ops-shell .soc-balance .track { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--ground) }
+.ops-shell .soc-balance .key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px }
+.ops-shell .soc-balance .key i { display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 6px }
+.ops-shell .soc-balance .stats { display: flex; gap: 28px }
+.ops-shell .soc-balance .stat { display: flex; flex-direction: column }
+.ops-shell .soc-balance .stat .v { font-size: 26px; font-family: 'JetBrains Mono', ui-monospace, monospace }
+.ops-shell .soc-balance .stat .v small { font-size: 16px; color: var(--ink-soft) }
+.ops-shell .soc-balance .stat > span:last-child { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px }
+.ops-shell .soc-two .soc-card strong { font-size: 14px }
+.ops-shell .soc-two .soc-card .ru { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-banner { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px dashed var(--ink-soft); border-radius: 10px }
+.ops-shell .soc-banner .b { display: flex; gap: 8px; flex-wrap: wrap }
+.ops-shell .soc-panel { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; background: var(--card); border: 1px solid var(--line2); border-radius: 10px }
+.ops-shell .soc-panel .ph { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center }
+.ops-shell .soc-panel h2 { font-size: 24px }
+.ops-shell .soc-panel .sub { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px }
+.ops-shell .soc-cats label { display: flex; flex-direction: column; gap: 6px }
+.ops-shell .soc-cats select { min-height: 44px; border: 1px solid var(--line2); border-radius: 8px; background: #fff; padding: 0 8px; font-size: 13px }
+.ops-shell .soc-scope { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-scope label { display: flex; align-items: center; gap: 8px }
+.ops-shell .soc-scope input { width: auto; min-height: 0 }
+.ops-shell .soc-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-legend span { display: flex; align-items: center; gap: 6px }
+.ops-shell .soc-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block }
+.ops-shell .soc-main { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start }
+.ops-shell .soc-main > .view { flex: 999 1 640px; min-width: 0 }
+.ops-shell .soc-weekgrid { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 8px; min-width: 820px }
+.ops-shell .soc-day { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.ops-shell .soc-day .dh { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 4px 6px }
+.ops-shell .soc-day .dh b { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase }
+.ops-shell .soc-day .dh span { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-day.today .dh b { color: var(--terra) }
+.ops-shell .soc-slot { border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line2); background: var(--card) }
+.ops-shell .soc-slot .t { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase }
+.ops-shell .soc-slot .ty { font-size: 12px; font-weight: 600; line-height: 1.25 }
+.ops-shell .soc-slot .st { font-size: 11px; line-height: 1.3 }
+.ops-shell .soc-slot.filled-approved { background: var(--pine); border-color: var(--pine); color: var(--ground) }
+.ops-shell .soc-slot.filled-awaiting { background: var(--sand2); border-color: var(--ochre2) }
+.ops-shell .soc-slot.filled-blocked { background: #FFF7F3; border: 1px solid var(--terra); color: var(--terra-d) }
+.ops-shell .soc-slot.not-filled { border: 1.5px dashed var(--terra); background: transparent; color: var(--terra-d) }
+.ops-shell .soc-slot.missed { background: #EFE7D8; border-color: #E4D8C0; color: var(--ink-soft) }
+.ops-shell .soc-slot.open { background: transparent; border-style: dotted; color: var(--ink-soft) }
+.ops-shell .soc-post { display: flex; flex-direction: column; gap: 5px; padding: 6px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); text-decoration: none; color: var(--ink); min-width: 0 }
+.ops-shell .soc-post[draggable=true] { cursor: grab }
+.ops-shell .soc-post.proposed { border-style: dashed }
+.ops-shell .soc-post.expired { opacity: .55 }
+.ops-shell .soc-post .th { aspect-ratio: 4/5; border-radius: 5px; background: var(--sand); overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center }
+.ops-shell .soc-post .th img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .soc-post .th span { font-family: var(--serif, 'Cormorant Garamond', serif); font-style: italic; font-size: 13px; line-height: 1.1; padding: 6px }
+.ops-shell .soc-post .m { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 11px }
+.ops-shell .soc-post .dot { width: 9px; height: 9px; border-radius: 5px; flex: none }
+.ops-shell .soc-post .ti { font-size: 12px; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
+.ops-shell .soc-post .by { font-size: 10px; color: var(--ink-soft) }
+.ops-shell .soc-post .note { font-size: 11px; line-height: 1.3; color: var(--terra-d) }
+.ops-shell .soc-badge { align-self: flex-start; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #E9E3D8; color: var(--ink) }
+.ops-shell .soc-badge.Approved, .ops-shell .soc-badge.Posted { background: #4F7B5C; color: #fff }
+.ops-shell .soc-badge.Proposed { background: var(--sand2); border: 1px solid var(--ochre2) }
+.ops-shell .soc-badge.Needsedit, .ops-shell .soc-badge.Unconfirmed { background: #D99A22; color: #fff }
+.ops-shell .soc-badge.Failed, .ops-shell .soc-badge.Expired { background: var(--terra); color: #fff }
+.ops-shell .soc-badge.Manual { background: #5b6b64; color: #fff }
+.ops-shell .soc-badge.Draft { background: #fff; border: 1px solid var(--line2) }
+.ops-shell .soc-open { border: 1px dashed var(--ochre2); border-radius: 8px; padding: 14px 8px; text-align: center; font-size: 12px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px }
+.ops-shell .soc-tray { flex: 1 1 220px; display: flex; flex-direction: column; gap: 10px; background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 14px 16px; max-width: 320px }
+.ops-shell .soc-tray .hd { display: flex; justify-content: space-between; align-items: baseline }
+.ops-shell .soc-tray h2 { font-size: 22px }
+.ops-shell .soc-tray .d { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line2); border-radius: 8px; background: #fff; cursor: grab; text-decoration: none; color: inherit }
+.ops-shell .soc-tray .d .t { width: 38px; height: 48px; border-radius: 4px; background: var(--sand); overflow: hidden; flex: none }
+.ops-shell .soc-tray .d .t img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .soc-tray .d b { font-size: 12px; font-weight: 600 }
+.ops-shell .soc-tray .d small { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-tray .never { border-top: 1px solid var(--line2); padding-top: 12px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .soc-tray .pills { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .soc-tray .pills a { font-size: 11px; padding: 4px 8px; border-radius: 12px; border: 1px solid var(--line2); color: var(--ink); text-decoration: none }
+.ops-shell .soc-month { display: flex; flex-direction: column; gap: 12px }
+.ops-shell .soc-month .nav { display: flex; align-items: center; gap: 8px }
+.ops-shell .soc-month .nav button { width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card); color: var(--ink); cursor: pointer }
+.ops-shell .soc-month .nav h2 { font-size: 28px; min-width: 190px; text-align: center }
+.ops-shell .soc-mgrid { display: grid; grid-template-columns: repeat(7, minmax(118px, 1fr)); gap: 6px; min-width: 860px }
+.ops-shell .soc-mgrid .dow { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); padding: 0 4px }
+.ops-shell .soc-mcell { border: 1px solid var(--line2); border-radius: 8px; background: var(--card); padding: 6px 8px; min-height: 96px; display: flex; flex-direction: column; gap: 3px; text-align: left; color: inherit; cursor: pointer; font: inherit }
+.ops-shell .soc-mcell.other { opacity: .45 }
+.ops-shell .soc-mcell.today { box-shadow: inset 0 0 0 2px var(--pine) }
+.ops-shell .soc-mcell .top { display: flex; justify-content: space-between; align-items: baseline }
+.ops-shell .soc-mcell .top .big { font-family: var(--serif, 'Cormorant Garamond', serif); font-size: 30px; font-weight: 600; line-height: .8; color: var(--ochre2) }
+.ops-shell .soc-mcell .cat { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-mcell .it { font-size: 11px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ops-shell .soc-table { overflow-x: auto; border: 1px solid var(--line2); border-radius: 10px; background: var(--card) }
+.ops-shell .soc-table table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px }
+.ops-shell .soc-table th { background: #EADDC6; text-align: left; padding: 10px 12px }
+.ops-shell .soc-table td { padding: 10px 12px; border-top: 1px solid var(--line2); vertical-align: top }
+.ops-shell .soc-table td a { color: var(--ink); text-decoration: none }
+.ops-shell .soc-phone { width: 360px; max-width: 100%; background: #fff; border: 1px solid var(--line2); border-radius: 24px; padding: 16px 12px }
+.ops-shell .soc-phone.feed { width: 400px; border-radius: 28px; padding: 16px 0 }
+.ops-shell .soc-phone .who { display: flex; align-items: center; gap: 10px; padding: 0 4px 14px }
+.ops-shell .soc-phone .who i { width: 44px; height: 44px; border-radius: 22px; background: var(--pine); flex: none }
+.ops-shell .soc-phone .who b { font-size: 13px; display: block }
+.ops-shell .soc-phone .who small { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; list-style: none; margin: 0; padding: 0 }
+.ops-shell .soc-g3 li { aspect-ratio: 4/5; background: var(--sand); position: relative; overflow: hidden }
+.ops-shell .soc-g3 li.prop { outline: 2px dashed var(--ochre2); outline-offset: -2px }
+.ops-shell .soc-g3 li.out { opacity: .5 }
+.ops-shell .soc-g3 li.drag { opacity: .35 }
+.ops-shell .soc-g3 img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .soc-g3 li span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9px; padding: 3px 4px; background: rgba(255,255,255,.88); text-align: center }
+.ops-shell .soc-g3 li a { display: block; width: 100%; height: 100%; cursor: grab }
+.ops-shell .soc-explain { flex: 1 1 260px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .soc-explain h2 { font-size: 26px; color: var(--ink) }
+.ops-shell .soc-explain p { margin: 0 }
+.ops-shell .soc-explain .run { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--terra); background: var(--card); display: flex; flex-direction: column; gap: 4px }
+.ops-shell .soc-explain .run strong { color: var(--terra-d) }
+.ops-shell .soc-stories { display: flex; gap: 12px; padding: 4px 14px 12px; border-bottom: 1px solid #EFE7D8; overflow-x: auto }
+.ops-shell .soc-stories span { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; width: 62px; font-size: 10px; text-align: center; line-height: 1.2 }
+.ops-shell .soc-stories i { width: 52px; height: 52px; border-radius: 26px; border: 2px solid var(--ochre2); background: var(--sand); display: block }
+.ops-shell .soc-feed { max-height: 780px; overflow-y: auto }
+.ops-shell .soc-feed article.out { opacity: .5 }
+.ops-shell .soc-feed .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px }
+.ops-shell .soc-feed .hd i { width: 30px; height: 30px; border-radius: 15px; background: var(--pine); flex: none }
+.ops-shell .soc-feed .hd div { flex: 1; min-width: 0; display: flex; flex-direction: column }
+.ops-shell .soc-feed .hd b { font-size: 12px }
+.ops-shell .soc-feed .hd small { font-size: 10px; color: var(--ink-soft) }
+.ops-shell .soc-feed .media { display: block; aspect-ratio: 4/5; background: var(--sand); overflow: hidden }
+.ops-shell .soc-feed .media img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .soc-feed .body { padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 6px }
+.ops-shell .soc-feed .body p { margin: 0; font-size: 12px; line-height: 1.45 }
+.ops-shell .soc-feed .tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #FFF7F3; color: var(--terra-d); border: 1px solid var(--terra) }
+.ops-shell .soc-feed .pl { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: var(--sand2) }
+.ops-shell .soc-scroll { overflow-x: auto }
+.ops-shell .soc-tabs, .ops-shell .ops-soc-tabs { display: flex; flex-wrap: wrap; gap: 6px 18px; border-bottom: 1px solid var(--line2); margin-bottom: 14px }
+.ops-shell .ops-soc-tabs a { padding: 8px 0; color: var(--ink-soft); text-decoration: none; font-size: 14px }
+.ops-shell .ops-soc-tabs a[aria-current=page] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--terra) }
+@media (max-width: 860px) {
+  .ops-shell .soc-head h1 { font-size: 34px }
+  .ops-shell .soc-tray { max-width: none }
+}
+.ops-shell .soc-review { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start }
+.ops-shell .soc-review .main { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.ops-shell .soc-rev { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line2) }
+.ops-shell .soc-rev li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line2) }
+.ops-shell .soc-rev .pick { min-height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 2px }
+.ops-shell .soc-rev .pick input { width: 22px; height: 22px; min-height: 0 }
+.ops-shell .soc-rev .b { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.ops-shell .soc-rev .meta { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-rev b { font-size: 15px; font-weight: 600; overflow-wrap: anywhere }
+.ops-shell .soc-rev .sub { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .soc-rev .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.ops-shell .soc-rev .chips a { font-size: 12px; color: var(--terra) }
+.ops-shell .soc-rev .why { width: 100%; max-width: 520px; min-height: 40px }
+.ops-shell .soc-rev li.blocked b { color: var(--ink-soft) }
+.ops-shell .gchip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #E9E3D8 }
+.ops-shell .gchip.bad { background: var(--terra); color: #fff }
+.ops-shell .gchip.flag { background: #D99A22; color: #fff }
+.ops-shell .gchip.ok { background: #4F7B5C; color: #fff }
+.ops-shell .soc-sumbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--sand2); border-radius: 10px; font-size: 13px; position: sticky; bottom: 12px }
+.ops-shell .soc-review .health { background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; position: sticky; top: 16px }
+.ops-shell .soc-review .health h2 { font-size: 24px }
+.ops-shell .soc-review .health .sub { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .soc-review .health ul { list-style: none; margin: 0; padding: 0 }
+.ops-shell .soc-review .health li { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; padding: 12px 0; border-top: 1px solid var(--line2) }
+.ops-shell .soc-review .health .lv { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em }
+.ops-shell .soc-review .health li.High .lv { color: var(--terra) }
+.ops-shell .soc-review .health li.Medium .lv { color: #B07A12 }
+.ops-shell .soc-review .health li.Low .lv { color: #4F7B5C }
+.ops-shell .soc-review .health .t { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0 }
+.ops-shell .soc-review .health .t span { color: var(--ink-soft); font-size: 12px; overflow-wrap: anywhere }
+.ops-shell .soc-review .health li .soc-btn { grid-column: 2; justify-self: start }
+@media (max-width: 960px) { .ops-shell .soc-review { grid-template-columns: 1fr } .ops-shell .soc-review .health { position: static } }
+.ops-shell .ops-se-modal.page { position: static; inset: auto; z-index: auto; background: none; display: block; padding: 0; overflow: visible }
+.ops-shell .ops-se-modal.page .ops-se-comp { max-width: none; box-shadow: none; border: 1px solid var(--line2); background: var(--card) }
+.ops-shell .ops-se-modal.page .bar { position: static }
+@media (max-width: 700px) {
+  .ops-shell .soc-weekgrid { grid-template-columns: 1fr; min-width: 0 }
+  .ops-shell .soc-post { flex-direction: row; flex-wrap: wrap; align-items: center }
+  .ops-shell .soc-post .th { width: 64px; flex: none }
+  .ops-shell .soc-day .dh { border-top: 1px solid var(--line2); padding-top: 10px }
+}

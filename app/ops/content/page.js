@@ -9,9 +9,10 @@ import { longDate } from '@/lib/dates';
 import Shell, { opsUser } from '../Shell';
 import SiteEditor from './SiteEditor';
 import { tableOf } from '@/lib/ops/sitetables';
-import SocialEngine, { NextPosts } from './SocialEngine';
+import { NextPosts } from './SocialEngine';
 import { draftUrl } from '@/lib/kit';
 import { promoRows } from '@/lib/ops/promo';
+import { waitingReplays } from '@/lib/ops/lanes';
 import { loadPages, offeringKey } from '@/lib/teach';
 import PromoEmails from './PromoEmails';
 import { upcomingSocial } from '@/lib/social';
@@ -21,7 +22,7 @@ import { flagOf } from '../SocialGrid';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Content — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const TABS = [['overview', 'Overview'], ['social', 'Social'], ['email', 'Email'], ['media', 'Media'], ['review', 'Review']];
+const TABS = [['overview', 'Overview'], ['email', 'Email'], ['media', 'Media'], ['review', 'Review']];
 
 // Is everything we publish moving? Social, Email and Media, and Review: what teachers sent for the website.
 // The website's own tables live in Settings.
@@ -29,14 +30,19 @@ export default async function Content({ searchParams }) {
   const user = await opsUser(isStaff);
   const sp = await searchParams;
   // The website tables moved to Settings
+  // Social moved to its own workspace (/ops/social): old links and bookmarks land on the right page
+  if (sp?.tab === 'social') {
+    const s = String(sp.s || '');
+    const to = { review: 'review', health: 'review', history: 'published', quotes: 'sources', captions: 'sources', rules: 'rules', art: 'library', images: 'library', promo: 'library', videos: 'library', categories: 'library', sources: 'library' }[s];
+    redirect(`/ops/social${to ? `/${to}${['art', 'promo', 'videos', 'categories', 'sources', 'quotes', 'captions'].includes(s) ? `?s=${s}` : ''}` : ''}`);
+  }
   if (sp?.tab === 'website') redirect(`/ops/settings${sp?.t ? `?t=${encodeURIComponent(sp.t)}` : ''}`);
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   const tab = tabs.some(([k]) => k === sp?.tab) ? sp.tab : 'overview';
   return (
-    <Shell user={user} current="content" desc="Is everything we publish moving? Social posts, promo emails, pictures and review." eyebrow="Social · Email · Media · Review" title="Content"
+    <Shell user={user} current="content" desc="Is everything we publish moving? Social posts, promo emails, pictures and review." eyebrow="Email · Media · Review" title="Content"
       head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={k === 'overview' ? '/ops/content' : `/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'overview' && <Overview canReview={canEditSite(user)} />}
-      {tab === 'social' && <SocialEngine director={!!user.director} initial={sp?.s === 'images' ? 'art' : ['plan', 'calendar', 'review', 'history', 'videos', 'quotes', 'art', 'promo', 'captions', 'rules', 'health', 'categories', 'sources'].includes(sp?.s) ? sp.s : 'plan'} />}
       {tab === 'email' && <Email canEdit={canEditSite(user)} />}
       {tab === 'email' && <SiteEditor scope="email" initial="scaffolding" base="/ops/content?tab=email&" />}
       {tab === 'media' && <Media />}
@@ -83,15 +89,6 @@ async function Email({ canEdit }) {
       <h2 className="ops-sub" style={{ marginTop: 28 }}>The Weekly Scaffolding</h2>
     </section>
   );
-}
-
-// Sessions from the last 30 days whose track has a replay task, still without a Video ID
-async function waitingReplays() {
-  const [cal, tpls] = await Promise.all([loadCalendar(), loadTemplates()]);
-  const tracks = new Set(tpls.filter(t => /vimeo|replay|video id/i.test(t.task)).map(t => t.track.toUpperCase()));
-  const today = todayET(), from = addDays(today, -30);
-  return cal.filter(e => tracks.has(e.track) && e.date >= from && e.date < today && !e.replay_link && !e.video_id && !/cancel/i.test(e.status))
-    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 async function Media() {
@@ -144,7 +141,7 @@ async function Overview({ canReview }) {
   // [lane, level (green|amber|red|none), status word, next action, link]
   const lanes = [
     ['Social', !posts ? 'none' : needImages ? 'amber' : 'green', !posts ? 'Not connected' : needImages ? (noImage ? 'Needs images' : 'To check') : 'On track',
-      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? [noImage && `${noImage} of the next ${posts.length} posts ${noImage === 1 ? 'has' : 'have'} no image`, notReviewed && `${notReviewed} ${notReviewed === 1 ? 'image hasn’t' : 'images haven’t'} been checked yet`].filter(Boolean).join(', ') : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/content?tab=social'],
+      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? [noImage && `${noImage} of the next ${posts.length} posts ${noImage === 1 ? 'has' : 'have'} no image`, notReviewed && `${notReviewed} ${notReviewed === 1 ? 'image hasn’t' : 'images haven’t'} been checked yet`].filter(Boolean).join(', ') : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/social'],
     ['Email', !promo?.kit ? 'none' : late ? 'red' : behind.length ? 'amber' : 'green', !promo?.kit ? 'Not connected' : late ? 'Late' : behind.length ? 'Behind' : 'On track',
       !promo?.kit ? 'Kit isn’t connected, so promo emails can’t be checked.' : behind.length ? `${behind.length} event${behind.length === 1 ? '' : 's'} short of promo emails` : 'Every upcoming event has its promo emails', '/ops/content?tab=email'],
     ['Media', replays === null ? 'none' : replays.length ? 'amber' : 'green', replays === null ? 'Not connected' : replays.length ? 'Waiting' : 'On track',
