@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
+import { rhythmWarnings, weekAhead, DEFAULT_RULES } from '@/lib/ops/socialrules';
 import Cropper, { shrink } from './Cropper';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -28,7 +29,7 @@ export default function SocialEngine({ director, initial = 'plan' }) {
       <nav className="ops-filters ops-site-tabs" aria-label="Social">
         {views.map(v => <a key={v.key} href={`/ops/content?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
       </nav>
-      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
+      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'review' ? <Review /> : view === 'health' ? <Health /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>
   );
 }
@@ -90,6 +91,7 @@ function Plan({ seed, clearSeed }) {
         {data.canEdit && proposed.length > 0 && <button className="chip primary" onClick={approveAll}>Approve all proposed ({proposed.length})</button>}
         {msg && <span className="hint">{msg}</span>}
       </div>
+      <RhythmCards posts={all} rules={data.rules} />
       {data.canEdit && expired.length > 0 && (
         <div className="ops-se-expired" role="status">
           <p><b>{expired.length} post{expired.length === 1 ? ' wasn’t' : 's weren’t'} approved in time</b> and {expired.length === 1 ? 'is' : 'are'} marked Expired. They didn’t go out.</p>
@@ -712,5 +714,94 @@ function UploadBox({ kind, onDone }) {
         <input type="file" accept={accept} disabled={pct != null} onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} /></label>
       {msg && <span className="hint" role="status">{msg}</span>}
     </>
+  );
+}
+
+// ---------- Feed rhythm and "a week ahead" (on the Plan) ----------
+function RhythmCards({ posts, rules }) {
+  const r = { ...DEFAULT_RULES, ...(rules || {}) };
+  const t = today();
+  const warn = rhythmWarnings(posts.filter(p => p.publish_date >= t), r);
+  const ahead = weekAhead(posts, t, r.plan_ahead_days);
+  const short = ahead.covered < ahead.total;
+  return (
+    <div className="ops-rhythm">
+      <div className={`card${short ? ' warn' : ' ok'}`}>
+        <b>A week ahead</b>
+        <span>{ahead.covered} of the next {ahead.total} days have a feed post{short ? `. Still open: ${ahead.missing.map(day).join(', ')}.` : '.'}</span>
+      </div>
+      <div className={`card${warn.length ? ' warn' : ' ok'}`}>
+        <b>Feed rhythm</b>
+        {warn.length ? <ul>{warn.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul> : <span>No more than {r.max_text_heavy_run} text-heavy or {r.max_promo_run} promotional post{r.max_promo_run === 1 ? '' : 's'} in a row.</span>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Review & approve: exactly what you tick is what is approved ----------
+function Review() {
+  const [data, reload] = useView('review');
+  const [sel, setSel] = useState({});       // row → true
+  const [why, setWhy] = useState({});       // row → reason, for posts with flags
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!data) return <p className="ops-empty">Loading…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const rows = data.rows, picked = rows.filter(r => sel[r.row]);
+  const missingReason = picked.filter(r => r.flags.length && !String(why[r.row] || '').trim());
+  const ready = rows.filter(r => !r.blocked.length && !r.flags.length);
+  const go = async () => {
+    setBusy(true); setMsg('');
+    const j = await api({ view: 'plan', approve: picked.map(r => ({ row: r.row, before: r.values, reason: why[r.row] })) });
+    setBusy(false);
+    setMsg(j.ok ? `${j.approved} approved.${j.skipped?.length ? ` ${j.skipped.length} left alone: ${j.skipped.map(x => x.why).join('; ')}` : ''}` : j.error);
+    setSel({}); reload();
+  };
+  return (
+    <div className="ops-review">
+      <p className="ops-empty">Every proposed post from {day(data.window.from)} to {day(data.window.to)}. Tick the ones to approve. A post with missing facts can’t be ticked until they’re fixed. A flag is a reminder, not a lock: tick it, say why, and it goes through.</p>
+      <div className="ops-se-bar">
+        {data.canPublish && <>
+          <button className="chip" onClick={() => setSel(Object.fromEntries(ready.map(r => [r.row, true])))} disabled={!ready.length}>Tick the {ready.length} with nothing flagged</button>
+          <button className="chip" onClick={() => setSel({})} disabled={!picked.length}>Clear</button>
+          <button className="chip primary" disabled={busy || !picked.length || missingReason.length > 0} onClick={go}>{picked.length ? `Approve ${picked.length} post${picked.length === 1 ? '' : 's'}` : 'Approve'}</button>
+        </>}
+        {missingReason.length > 0 && <span className="hint">{missingReason.length} ticked post{missingReason.length === 1 ? ' needs' : 's need'} a reason first.</span>}
+        {msg && <span className="hint">{msg}</span>}
+      </div>
+      {data.rhythm?.length > 0 && <div className="ops-rhythm"><div className="card warn"><b>Feed rhythm</b><ul>{data.rhythm.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul></div></div>}
+      {!rows.length && <p className="ops-empty">Nothing is waiting for approval.</p>}
+      <ul className="ops-rev-list">
+        {rows.map(r => { const v = r.values, blocked = r.blocked.length > 0; return (
+          <li key={r.row} className={blocked ? 'blocked' : ''}>
+            <label className="pick"><input type="checkbox" disabled={blocked || !data.canPublish} checked={!!sel[r.row]} onChange={e => setSel(s => ({ ...s, [r.row]: e.target.checked }))} aria-label={`Approve ${day(v.publish_date)} ${time(v.publish_time_ET)}`} /></label>
+            <span className="t">{r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">None</span>}</span>
+            <span className="b">
+              <b>{day(v.publish_date)} · {time(v.publish_time_ET)}</b> <span className="hint">{[v.media_kind && v.media_kind !== 'single' ? v.media_kind : '', v.pillar].filter(Boolean).join(' · ')}</span>
+              <span className="cap">{String(v.caption || '').slice(0, 140) || 'No caption yet'}</span>
+              <span className="chips">
+                {r.blocked.map(x => <span key={x} className="gchip bad">{x}</span>)}
+                {r.flags.map(x => <span key={x} className="gchip flag">{x}</span>)}
+                {!r.blocked.length && !r.flags.length && <span className="gchip ok">Ready</span>}
+              </span>
+              {sel[r.row] && r.flags.length > 0 && <input className="why" placeholder="Why is it OK to approve? (one line, saved on the post)" value={why[r.row] || ''} onChange={e => setWhy(s => ({ ...s, [r.row]: e.target.value }))} />}
+            </span>
+          </li>); })}
+      </ul>
+    </div>
+  );
+}
+
+// ---------- Health: what to look at first ----------
+function Health() {
+  const [data] = useView('health');
+  if (!data) return <p className="ops-empty">Checking…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  return (
+    <div className="ops-health">
+      <p className="ops-empty">Checked just now from the sheet and Instagram; the Instagram check itself runs every hour. Most urgent first.</p>
+      <ul>{data.items.map((i, k) => (
+        <li key={k} className={i.level}><span className="lv">{i.level}</span><span className="b"><b>{i.title}</b><span>{i.detail}</span></span></li>))}</ul>
+    </div>
   );
 }
