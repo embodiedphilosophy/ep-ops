@@ -218,3 +218,11 @@ Brief: the "EP Ops · Content & Social v2" handoff (Jake, 24 Nov 2026). Phase 1 
 - Social → **Calendar**: Week (7 columns, post cards, "Open feed slot 11:00", drag a card to another day to reschedule; posts already out can't be moved, nor can a post be moved into the past) and Month (counts per day, click a day for its week).
 - **Day categories** live on the new **Day Categories** tab (made on first save): `weekday, category, scope (standing | week_of), week_of, updated_by`. "This week only" beats the standing row (`categoryFor`, `lib/ops/socialrules.js`). Each day shows Filled · approved / awaiting approval / Filled but blocked / Not filled ("has X instead") / Missed / No category (`dayState`). Editors, approvers and directors can change categories.
 - Test: `scripts/ops-test/content-v2-calendar.cjs` (start from a fresh `run.sh`).
+
+
+### Social is its own workspace (Content & Social v2 design)
+The Social tools moved out of Content's tabs into their own sidebar section, one page per job, following the design canvas:
+`/ops/social` Calendar (the week at a glance: status cards, pillar balance, feed rhythm, a week ahead, day categories, week / month / list / grid / feed views, drafts tray, expired banner) · `/ops/social/compose` Composer (a page, `?row=N` to edit) · `/ops/social/review` Review & approve with Health beside it · `/ops/social/library`, `/sources`, `/published`, `/rules` (the tables, in `[section]/page.js`).
+"Also in Content" in the sidebar keeps Email, Media and Site copy review; `/ops/content` keeps Overview, Email, Media, Review, and old `?tab=social…` links redirect.
+Code: `app/ops/social/*` (new screens, `social.css` scoped to `.soc`), shared pieces still exported from `app/ops/content/SocialEngine.js` (`Composer`, `useView`, `api`), `lib/ops/socialstatus.js` (review and health data), `lib/ops/socialcards.js` (status cards), `lib/ops/socialrules.js` (rules, day categories). Test: `scripts/ops-test/social-workspace.cjs` (fresh `run.sh`).
+Still the older look: the Composer form (design has a phone preview, template picker and guardrail list) and the Library tables (design has a three-pane library with filters).

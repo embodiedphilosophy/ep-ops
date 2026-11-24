@@ -134,7 +134,7 @@ export default async function Home({ searchParams }) {
           </div>
         ))}
         {later > 0 && <p className="ops-more"><a href={viewing === user ? '/ops/tasks' : `/ops/tasks?who=${encodeURIComponent(viewing.name)}`}>{later} more in the next 4 weeks →</a></p>}
-        {socialLine && <p className="ops-more"><a href="/ops/content?tab=social">{socialLine} →</a></p>}
+        {socialLine && <p className="ops-more"><a href="/ops/social">{socialLine} →</a></p>}
 
       </section>
 

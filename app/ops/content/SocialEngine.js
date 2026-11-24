@@ -5,36 +5,38 @@ import { rhythmWarnings, weekAhead, DEFAULT_RULES, WEEKDAYS, categoryFor, daySta
 import Cropper, { shrink } from './Cropper';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
-const time = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/); if (!m) return t || ''; const h = +m[1]; return `${h % 12 || 12}${m[2] === '00' ? '' : ':' + m[2]}${h >= 12 ? 'pm' : 'am'}`; };
-const isStory = p => p.media_kind === 'story' || !isFeed(p);
-const kindLabel = p => p.media_kind === 'carousel' ? `Carousel · ${readSlides(p).length}` : p.media_kind === 'reel' ? 'Reel' : isStory(p) ? 'Story' : '';
+export const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
+export const time = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/); if (!m) return t || ''; const h = +m[1]; return `${h % 12 || 12}${m[2] === '00' ? '' : ':' + m[2]}${h >= 12 ? 'pm' : 'am'}`; };
+export const isStory = p => p.media_kind === 'story' || !isFeed(p);
+export const kindLabel = p => p.media_kind === 'carousel' ? `Carousel · ${readSlides(p).length}` : p.media_kind === 'reel' ? 'Reel' : isStory(p) ? 'Story' : '';
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 const ago = d => { if (!d) return ''; const n = daysBetween(d, today()); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n < 14 ? `${n} days ago` : n < 60 ? `${Math.round(n / 7)} weeks ago` : `${Math.round(n / 30)} months ago`; };
-const api = async (body) => {
+export const api = async (body) => {
   const res = await fetch('/api/ops/social', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
   const j = await res?.json().catch(() => ({}));
   return { ok: !!res?.ok, status: res?.status, ...j };
 };
 
 // Content → Social: the whole EP Social Engine. Make still publishes Approved posts at their date and time.
-export default function SocialEngine({ director, initial = 'plan' }) {
-  const [view, setView] = useState(initial);
-  const [seed, setSeed] = useState(null); // "Use in a post": a picture or words from a library, carried to a new post
-  const views = VIEWS.filter(v => !v.director || director);
-  const useIn = s => { setSeed(s); go('plan'); };
-  const go = k => { setView(k); try { history.replaceState(null, '', k === 'plan' ? '/ops/content?tab=social' : `/ops/content?tab=social&s=${k}`); } catch {} };
+export default function SocialEngine({ director, keys, initial, base = '/ops/social/library' }) {
+  const views = (keys ? keys.map(k => VIEWS.find(v => v.key === k)) : VIEWS).filter(v => v && !v.virtual && v.key !== 'plan' && (!v.director || director));
+  const [view, setView] = useState(views.some(v => v.key === initial) ? initial : views[0]?.key);
+  const [seed, setSeed] = useState(null); // "Use in a post": carried to the Composer page
+  const go = k => { setView(k); try { history.replaceState(null, '', `${base}?s=${k}`); } catch {} };
+  // Starting a post from a picture or words: the Composer is its own page
+  const useIn = s => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify(s)); } catch {} window.location.href = '/ops/social/compose?seed=1'; };
   return (
     <section className="ops-se">
-      <nav className="ops-filters ops-site-tabs" aria-label="Social">
-        {views.map(v => <a key={v.key} href={`/ops/content?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
-      </nav>
-      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'calendar' ? <Calendar /> : view === 'review' ? <Review /> : view === 'health' ? <Health /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
+      {views.length > 1 && (
+        <nav className="ops-soc-tabs" aria-label="Sections">
+          {views.map(v => <a key={v.key} href={`${base}?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
+        </nav>)}
+      {view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>
   );
 }
 
-function useView(view, q = '', offset = 0, extra = '') {
+export function useView(view, q = '', offset = 0, extra = '') {
   const [data, setData] = useState(null);
   const load = async () => {
     const res = await fetch(`/api/ops/social?view=${view}&q=${encodeURIComponent(q)}&offset=${offset}${extra}`).catch(() => null);
@@ -47,112 +49,11 @@ function useView(view, q = '', offset = 0, extra = '') {
 
 // ---------- Plan: the feed, and each post edited where it shows ----------
 const weekOf = p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') ? mondayOf(p.publish_date) : p.week_of || '';
-function Plan({ seed, clearSeed }) {
-  const [data, reload] = useView('plan');
-  const [open, setOpen] = useState(seed ? 'new' : null); // a row number, or 'new'
-  const [msg, setMsg] = useState('');
-  const [mode, setMode] = useState('list'); // list | grid
-  const [type, setType] = useState('');
-  if (!data) return <p className="ops-empty">Loading the plan…</p>;
-  if (data.error) return <p className="ops-empty">{data.error}</p>;
-  // `status` is what the screen shows (Proposed past its time reads Expired); the sheet's own value stays in _raw
-  const all = data.rows.map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
-  const pastPosts = (data.past || []).map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
-  const posts = type ? all.filter(p => (p.pillar || 'No type') === type) : all;
-  const typeNames = [...new Set([...POST_TYPES, ...Object.keys(data.types || {}), ...all.map(p => p.pillar).filter(Boolean)])];
-  const proposed = posts.filter(p => p.status === 'Proposed');
-  const expired = all.filter(p => p.status === 'Expired');
-  const weeks = [...new Set(posts.map(weekOf))];
-  const approveAll = async () => {
-    if (!confirm(`Approve all ${proposed.length} proposed posts? Make publishes each at its date and time.`)) return;
-    const j = await api({ view: 'plan', approve: proposed.map(p => ({ row: p._row, before: p._raw })) });
-    setMsg(j.ok ? `${j.approved} approved.` : j.error); reload();
-  };
-  const clearExpired = async what => {
-    const verb = what === 'delete' ? 'Delete' : 'Archive';
-    if (!confirm(`${verb} ${expired.length} post${expired.length === 1 ? '' : 's'} that weren’t approved in time?${what === 'delete' ? ' They disappear from the plan.' : ' They move to Skip and stay in the sheet.'}`)) return;
-    const list = expired.map(p => ({ row: p._row, before: p._raw }));
-    const j = await api(what === 'delete' ? { view: 'plan', delete: list } : { view: 'plan', skip: list });
-    setMsg(j.ok ? `${j.deleted ?? j.skipped} ${what === 'delete' ? 'deleted' : 'archived'}.` : j.error); reload();
-  };
-  const count = s => posts.filter(p => p.status === s).length;
-  const pool = [...posts, ...pastPosts.filter(p => !posts.some(x => x._row === p._row))];
-  const i = pool.findIndex(p => p._row === open);
-  return (
-    <div className="ops-se-plan">
-      <p className="ops-empty">Tap a post to read and edit it. Approved posts are published by Make at their date and time; rows still Proposed at the Sunday 6pm deadline aren’t posted.</p>
-      <div className="ops-se-bar">
-        <span className="ops-se-mode" role="group" aria-label="How to look at the plan">
-          <button className={`chip${mode === 'list' ? ' on' : ''}`} aria-pressed={mode === 'list'} onClick={() => setMode('list')}>By week</button>
-          <button className={`chip${mode === 'grid' ? ' on' : ''}`} aria-pressed={mode === 'grid'} onClick={() => setMode('grid')}>Grid preview</button>
-        </span>
-        <span className="pills">{['Proposed', 'Approved', 'Unconfirmed', 'Needs edit', 'Manual', 'Posted', 'Failed', 'Expired'].filter(count).map(s => <span key={s} className={`pill s-${s.replace(/\s/g, '')}`}>{count(s)} {s}</span>)}</span>
-        {data.canEdit && <button className="chip" onClick={() => setOpen('new')}>New post</button>}
-        {data.canEdit && proposed.length > 0 && <button className="chip primary" onClick={approveAll}>Approve all proposed ({proposed.length})</button>}
-        {msg && <span className="hint">{msg}</span>}
-      </div>
-      <RhythmCards posts={all} rules={data.rules} />
-      {data.canEdit && expired.length > 0 && (
-        <div className="ops-se-expired" role="status">
-          <p><b>{expired.length} post{expired.length === 1 ? ' wasn’t' : 's weren’t'} approved in time</b> and {expired.length === 1 ? 'is' : 'are'} marked Expired. They didn’t go out.</p>
-          <span><button className="chip" onClick={() => clearExpired('skip')}>Archive all</button> <button className="chip" onClick={() => clearExpired('delete')}>Delete all</button></span>
-        </div>)}
-      <TypeStrip names={typeNames} stats={data.types || {}} counts={all} type={type} setType={setType} />
-      {!posts.length && <p className="ops-empty">{type ? `Nothing planned as “${type}”.` : 'Nothing planned from last week on.'}</p>}
-      {mode === 'grid' && !type && <GridPreview posts={posts} past={pastPosts} canEdit={data.canEdit}
-        open={setOpen} reload={reload} setMsg={setMsg} />}
-      {mode === 'grid' && type && <p className="ops-empty">The grid preview shows every post, so it ignores the type filter. Clear the filter to see it.</p>}
-      {mode === 'list' && weeks.map(w => (
-        <div key={w}>
-          <h3 className="ops-se-h">{/^\d{4}-\d{2}-\d{2}$/.test(w) ? `Week of ${day(w)}` : w || 'Undated'}</h3>
-          <ul className="ops-se-feed">
-            {posts.filter(p => weekOf(p) === w).map(p => (
-              <li key={p._row} className={['Skip', 'Failed'].includes(p.status) ? 'off' : ''}>
-                <button onClick={() => setOpen(p._row)} aria-label={`${day(p.publish_date)} ${time(p.publish_time_ET)}: ${String(p.caption || 'no caption').slice(0, 80)}`}>
-                  <span className="pic">
-                    {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
-                    <span className={`st s-${String(p.status || 'Proposed').replace(/\s/g, '')}`}>{p.status || 'Proposed'}</span>
-                    {kindLabel(p) && <span className="kind">{kindLabel(p)}</span>}
-                  </span>
-                  <span className="meta">{day(p.publish_date)} · {time(p.publish_time_ET)}{p.pillar && <span className="tag">{p.pillar}</span>}</span>
-                  <span className="cap">{p.caption || <i>No caption yet</i>}</span>
-                  {p.created_by && <span className="by">by {p.created_by.split(' ')[0]}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-      {open === 'new' && <Composer key="new" p={blankPost(seed)} events={data.events || []} types={typeNames} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload} close={() => { setOpen(null); clearSeed?.(); }}
-        onAdded={id => { setOpen(null); clearSeed?.(); setMsg(`Added ${id}.`); }} />}
-      {i >= 0 && <Composer key={pool[i]._row} p={pool[i]} events={data.events || []} types={typeNames} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
-        prev={i > 0 ? () => setOpen(pool[i - 1]._row) : null} next={i < pool.length - 1 ? () => setOpen(pool[i + 1]._row) : null} close={() => setOpen(null)} />}
-    </div>
-  );
-}
 
-// Every kind of post, with how long since the last one went out, so a gap ("no suggested reading in three weeks") is easy to see.
-// Tapping a type filters the plan to it.
-function TypeStrip({ names, stats, counts, type, setType }) {
-  return (
-    <div className="ops-se-types" role="group" aria-label="Types of post">
-      <button className={`chip${!type ? ' on' : ''}`} aria-pressed={!type} onClick={() => setType('')}>All types</button>
-      {names.map(n => {
-        const st = stats[n] || {}, c = counts.filter(p => p.pillar === n).length, gap = st.last ? daysBetween(st.last, today()) : null;
-        return (
-          <button key={n} className={`chip${type === n ? ' on' : ''}${!st.next && (gap == null || gap > 21) ? ' gap' : ''}`} aria-pressed={type === n} onClick={() => setType(type === n ? '' : n)}
-            title={st.next ? `Next planned ${day(st.next)}` : 'Nothing planned yet'}>
-            {n}<small>{st.last ? `last ${ago(st.last)}` : c ? '' : 'not yet'}{st.next ? `${st.last ? ' · ' : ''}next ${day(st.next)}` : ''}</small>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 // The Instagram profile grid: three across, newest top left. Upcoming posts first (the week as it will look once posted), then what's
 // already out. Drag an upcoming post onto another to swap their times, or use its Earlier / Later buttons.
-function GridPreview({ posts, past, canEdit, open, reload, setMsg }) {
+export function GridPreview({ posts, past, canEdit, open, reload, setMsg }) {
   const [drag, setDrag] = useState(null);
   const upcoming = posts.filter(p => isFeed(p) && !['Skip', 'Failed', 'Posted', 'Manual'].includes(p.status) && (p.publish_date || '') >= today())
     .sort((a, b) => `${b.publish_date} ${timeKey(b.publish_time_ET)}`.localeCompare(`${a.publish_date} ${timeKey(a.publish_time_ET)}`));
@@ -230,16 +131,16 @@ export function NextPosts({ n = 9 }) {
 }
 
 const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
-const blankPost = seed => {
+export const blankPost = seed => {
   const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', media_kind: 'single', pillar: '', status: 'Proposed',
     ...(seed?.caption && { caption: seed.caption }), ...(seed?.image_id && { image_id: seed.image_id, image_url: '' }) };
   return { ...v, _row: null, _raw: v, _new: true, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
 };
-const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], ['carousel', 'Carousel', 'IG Feed, Facebook', 'Carousel'], ['reel', 'Video / Reel', 'IG Reel, Facebook', 'Reel'], ['story', 'Story frame', 'IG Story', 'Story']];
+export const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], ['carousel', 'Carousel', 'IG Feed, Facebook', 'Carousel'], ['reel', 'Video / Reel', 'IG Reel, Facebook', 'Reel'], ['story', 'Story frame', 'IG Story', 'Story']];
 
 // One post, laid out like it will appear: the picture on one side, its words and settings on the other.
 // Everything about the post is edited here; one Save writes all the changes.
-function Composer({ p, events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
+export function Composer({ p, page = false, events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
   const [vals, setVals] = useState(p._raw);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
@@ -269,7 +170,7 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, canPublish, onS
   };
   // Manual only locks a plain picture post: carousels, Reels and Stories wait there to be posted by hand
   const locked = p.status === 'Posted' || (p.status === 'Manual' && kind === 'single'), dis = !canEdit || locked || busy;
-  const canDelete = canEdit && !isNew && ['Proposed', 'Needs edit', 'Skip', 'Expired'].includes(p.status);
+  const canDelete = canEdit && !isNew && ['Proposed', 'Needs edit', 'Skip', 'Expired', 'Draft'].includes(p.status);
   const remove = async () => {
     if (!confirm('Delete this post? It disappears from the plan. A post that has already gone out can’t be deleted here.')) return;
     setBusy(true);
@@ -279,6 +180,7 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, canPublish, onS
   };
   const leave = go => () => { if (!(isNew ? String(vals.caption || '').trim() || vals.image_id : changed.length) || confirm('Leave without saving your changes?')) go(); };
   useEffect(() => {
+    if (page) return undefined; // a page, not a pop-up: no Escape-to-close, no scroll lock
     const key = e => {
       if (e.key === 'Escape') leave(close)();
       if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
@@ -340,7 +242,7 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, canPublish, onS
   const shapeOf = isStory(p) ? '9:16' : '4:5';
   const status = p.status || 'Proposed';
   return (
-    <div className="ops-se-modal" role="dialog" aria-modal="true" aria-label="Post" onClick={e => { if (e.target === e.currentTarget) leave(close)(); }}>
+    <div className={`ops-se-modal${page ? ' page' : ''}`} role={page ? undefined : 'dialog'} aria-modal={page ? undefined : 'true'} aria-label="Post" onClick={e => { if (!page && e.target === e.currentTarget) leave(close)(); }}>
       <div className="ops-se-comp">
         <div className="top">
           <span className={`pill s-${status.replace(/\s/g, '')}`}>{isNew ? 'New post' : status}</span>
@@ -717,183 +619,10 @@ function UploadBox({ kind, onDone }) {
   );
 }
 
-// ---------- Feed rhythm and "a week ahead" (on the Plan) ----------
-function RhythmCards({ posts, rules }) {
-  const r = { ...DEFAULT_RULES, ...(rules || {}) };
-  const t = today();
-  const warn = rhythmWarnings(posts.filter(p => p.publish_date >= t), r);
-  const ahead = weekAhead(posts, t, r.plan_ahead_days);
-  const short = ahead.covered < ahead.total;
-  return (
-    <div className="ops-rhythm">
-      <div className={`card${short ? ' warn' : ' ok'}`}>
-        <b>A week ahead</b>
-        <span>{ahead.covered} of the next {ahead.total} days have a feed post{short ? `. Still open: ${ahead.missing.map(day).join(', ')}.` : '.'}</span>
-      </div>
-      <div className={`card${warn.length ? ' warn' : ' ok'}`}>
-        <b>Feed rhythm</b>
-        {warn.length ? <ul>{warn.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul> : <span>No more than {r.max_text_heavy_run} text-heavy or {r.max_promo_run} promotional post{r.max_promo_run === 1 ? '' : 's'} in a row.</span>}
-      </div>
-    </div>
-  );
-}
 
-// ---------- Review & approve: exactly what you tick is what is approved ----------
-function Review() {
-  const [data, reload] = useView('review');
-  const [sel, setSel] = useState({});       // row → true
-  const [why, setWhy] = useState({});       // row → reason, for posts with flags
-  const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  if (!data) return <p className="ops-empty">Loading…</p>;
-  if (data.error) return <p className="ops-empty">{data.error}</p>;
-  const rows = data.rows, picked = rows.filter(r => sel[r.row]);
-  const missingReason = picked.filter(r => r.flags.length && !String(why[r.row] || '').trim());
-  const ready = rows.filter(r => !r.blocked.length && !r.flags.length);
-  const go = async () => {
-    setBusy(true); setMsg('');
-    const j = await api({ view: 'plan', approve: picked.map(r => ({ row: r.row, before: r.values, reason: why[r.row] })) });
-    setBusy(false);
-    setMsg(j.ok ? `${j.approved} approved.${j.skipped?.length ? ` ${j.skipped.length} left alone: ${j.skipped.map(x => x.why).join('; ')}` : ''}` : j.error);
-    setSel({}); reload();
-  };
-  return (
-    <div className="ops-review">
-      <p className="ops-empty">Every proposed post from {day(data.window.from)} to {day(data.window.to)}. Tick the ones to approve. A post with missing facts can’t be ticked until they’re fixed. A flag is a reminder, not a lock: tick it, say why, and it goes through.</p>
-      <div className="ops-se-bar">
-        {data.canPublish && <>
-          <button className="chip" onClick={() => setSel(Object.fromEntries(ready.map(r => [r.row, true])))} disabled={!ready.length}>Tick the {ready.length} with nothing flagged</button>
-          <button className="chip" onClick={() => setSel({})} disabled={!picked.length}>Clear</button>
-          <button className="chip primary" disabled={busy || !picked.length || missingReason.length > 0} onClick={go}>{picked.length ? `Approve ${picked.length} post${picked.length === 1 ? '' : 's'}` : 'Approve'}</button>
-        </>}
-        {missingReason.length > 0 && <span className="hint">{missingReason.length} ticked post{missingReason.length === 1 ? ' needs' : 's need'} a reason first.</span>}
-        {msg && <span className="hint">{msg}</span>}
-      </div>
-      {data.rhythm?.length > 0 && <div className="ops-rhythm"><div className="card warn"><b>Feed rhythm</b><ul>{data.rhythm.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul></div></div>}
-      {!rows.length && <p className="ops-empty">Nothing is waiting for approval.</p>}
-      <ul className="ops-rev-list">
-        {rows.map(r => { const v = r.values, blocked = r.blocked.length > 0; return (
-          <li key={r.row} className={blocked ? 'blocked' : ''}>
-            <label className="pick"><input type="checkbox" disabled={blocked || !data.canPublish} checked={!!sel[r.row]} onChange={e => setSel(s => ({ ...s, [r.row]: e.target.checked }))} aria-label={`Approve ${day(v.publish_date)} ${time(v.publish_time_ET)}`} /></label>
-            <span className="t">{r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">None</span>}</span>
-            <span className="b">
-              <b>{day(v.publish_date)} · {time(v.publish_time_ET)}</b> <span className="hint">{[v.media_kind && v.media_kind !== 'single' ? v.media_kind : '', v.pillar].filter(Boolean).join(' · ')}</span>
-              <span className="cap">{String(v.caption || '').slice(0, 140) || 'No caption yet'}</span>
-              <span className="chips">
-                {r.blocked.map(x => <span key={x} className="gchip bad">{x}</span>)}
-                {r.flags.map(x => <span key={x} className="gchip flag">{x}</span>)}
-                {!r.blocked.length && !r.flags.length && <span className="gchip ok">Ready</span>}
-              </span>
-              {sel[r.row] && r.flags.length > 0 && <input className="why" placeholder="Why is it OK to approve? (one line, saved on the post)" value={why[r.row] || ''} onChange={e => setWhy(s => ({ ...s, [r.row]: e.target.value }))} />}
-            </span>
-          </li>); })}
-      </ul>
-    </div>
-  );
-}
 
-// ---------- Health: what to look at first ----------
-function Health() {
-  const [data] = useView('health');
-  if (!data) return <p className="ops-empty">Checking…</p>;
-  if (data.error) return <p className="ops-empty">{data.error}</p>;
-  return (
-    <div className="ops-health">
-      <p className="ops-empty">Checked just now from the sheet and Instagram; the Instagram check itself runs every hour. Most urgent first.</p>
-      <ul>{data.items.map((i, k) => (
-        <li key={k} className={i.level}><span className="lv">{i.level}</span><span className="b"><b>{i.title}</b><span>{i.detail}</span></span></li>))}</ul>
-    </div>
-  );
-}
 
 // ---------- Calendar: a week of seven days (or the month), each with its category, and drag to reschedule ----------
 const addD = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const monOf = d => addD(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
 const out = p => ['Posted', 'Manual'].includes(p.status);
-function Calendar() {
-  const [data, reload] = useView('plan');
-  const [mode, setMode] = useState('week');
-  const [start, setStart] = useState(monOf(today()));
-  const [editing, setEditing] = useState(false);
-  const [scope, setScope] = useState('standing');
-  const [open, setOpen] = useState(null);
-  const [drag, setDrag] = useState(null);
-  const [msg, setMsg] = useState('');
-  if (!data) return <p className="ops-empty">Loading the calendar…</p>;
-  if (data.error) return <p className="ops-empty">{data.error}</p>;
-  const posts = [...data.rows, ...(data.past || [])].filter((r, i, a) => a.findIndex(x => x.row === r.row) === i)
-    .map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
-  const cats = data.dayCategories || [], t = today();
-  const labels = new Set(data.events || []);
-  const blockedOf = p => guardrails(p._raw, { eventLabels: labels }).blocked.length > 0;
-  const days = mode === 'week' ? Array.from({ length: 7 }, (_, i) => addD(start, i)) : (() => { const first = start.slice(0, 7) + '-01', from = monOf(first); return Array.from({ length: 42 }, (_, i) => addD(from, i)); })();
-  const step = n => setStart(mode === 'week' ? addD(start, 7 * n) : (() => { const d = new Date(start.slice(0, 7) + '-01T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); })());
-  const move = async (row, date) => {
-    const p = posts.find(x => x._row === row);
-    if (!p || p.publish_date === date) return;
-    if (out(p)) return setMsg('A post that is already out can’t be moved.');
-    if (date < t) return setMsg('Pick today or a day ahead.');
-    const j = await api({ view: 'plan', row, changes: { publish_date: date }, before: p._raw });
-    setMsg(j.ok ? `Moved to ${day(date)}.` : j.error); reload();
-  };
-  const setCat = async (weekday, category) => {
-    const j = await api({ view: 'plan', dayCategory: { weekday, category, scope, week_of: start } });
-    setMsg(j.ok ? `${weekday}: ${category || 'no category'}${scope === 'week' ? ' (this week only)' : ' (every week)'}.` : j.error); reload();
-  };
-  const dayCell = d => {
-    const ps = posts.filter(p => p.publish_date === d && p.status !== 'Deleted').sort((a, b) => timeKey(a.publish_time_ET).localeCompare(timeKey(b.publish_time_ET)));
-    const cat = categoryFor(d, cats), st = dayState({ date: d, today: t, posts: ps, category: cat, blockedOf });
-    return { d, ps, cat, st };
-  };
-  const i = open != null ? posts.findIndex(p => p._row === open) : -1;
-  return (
-    <div className="ops-cal">
-      <div className="ops-se-bar">
-        <span className="ops-se-mode" role="group" aria-label="Calendar view">
-          <button className={`chip${mode === 'week' ? ' on' : ''}`} aria-pressed={mode === 'week'} onClick={() => setMode('week')}>Week</button>
-          <button className={`chip${mode === 'month' ? ' on' : ''}`} aria-pressed={mode === 'month'} onClick={() => setMode('month')}>Month</button>
-        </span>
-        <button className="chip" onClick={() => step(-1)} aria-label="Earlier">←</button>
-        <b className="when">{mode === 'week' ? `${day(start)} to ${day(addD(start, 6))}` : new Date(start.slice(0, 7) + '-01T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</b>
-        <button className="chip" onClick={() => step(1)} aria-label="Later">→</button>
-        <button className="chip" onClick={() => setStart(monOf(t))}>Today</button>
-        {data.canCategory && <button className={`chip${editing ? ' on' : ''}`} onClick={() => setEditing(x => !x)}>Edit day categories</button>}
-        {msg && <span className="hint" role="status">{msg}</span>}
-      </div>
-      {editing && (
-        <div className="ops-cal-cats">
-          <p className="hint">Each weekday can have a standing type of post. A day shows whether that post is in the plan yet.</p>
-          <div role="radiogroup" aria-label="How long this lasts">
-            <label><input type="radio" name="scope" checked={scope === 'standing'} onChange={() => setScope('standing')} /> Every week from now on</label>{' '}
-            <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only ({day(start)})</label>
-          </div>
-          <div className="grid">{WEEKDAYS.map((w, k) => { const dd = addD(start, k); return (
-            <label key={w}>{w}<select value={categoryFor(dd, cats)} onChange={e => setCat(w, e.target.value)}>
-              <option value="">No category</option>{[...new Set([...POST_TYPES, categoryFor(dd, cats)].filter(Boolean))].map(c => <option key={c}>{c}</option>)}</select></label>); })}</div>
-        </div>)}
-      <div className={`ops-cal-grid ${mode}`}>
-        {mode === 'month' && WEEKDAYS.map(w => <div key={w} className="head">{w.slice(0, 3)}</div>)}
-        {days.map(d => { const { ps, cat, st } = dayCell(d), other = mode === 'month' && d.slice(0, 7) !== start.slice(0, 7); return (
-          <div key={d} className={`day s-${st.state}${d === t ? ' today' : ''}${other ? ' other' : ''}`}
-            onDragOver={e => { if (drag != null) e.preventDefault(); }} onDrop={() => { if (drag != null) move(drag, d); setDrag(null); }}>
-            <div className="dh"><b>{mode === 'week' ? day(d) : Number(d.slice(8))}</b>
-              {mode === 'month' && ps.length > 0 && <span className="n">{ps.length}</span>}</div>
-            {cat && <div className="cat" title={STATE_LABEL[st.state]}>{cat}</div>}
-            {cat && <div className={`sl ${st.state}`}>{STATE_LABEL[st.state]}{st.state === 'not-filled' && st.instead ? ` · has ${st.instead} instead` : ''}</div>}
-            {mode === 'week' && ps.map(p => (
-              <button key={p._row} className={`post s-${String(p.status).replace(/\s/g, '')}`} draggable={!out(p) && data.canEdit} onDragStart={() => setDrag(p._row)} onClick={() => setOpen(p._row)}
-                aria-label={`${time(p.publish_time_ET)} ${p.status}: ${String(p.caption || '').slice(0, 60)}`}>
-                {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="ph" />}
-                <span className="m"><b>{time(p.publish_time_ET)}</b> {kindLabel(p) || 'Feed'}<span className={`pill s-${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></span>
-                <span className="c">{p.caption || 'No caption yet'}</span>
-                {p.created_by && <span className="by">by {p.created_by.split(' ')[0]}</span>}
-              </button>))}
-            {mode === 'week' && !ps.some(p => isFeed(p)) && d >= t && <div className="slot">Open feed slot 11:00</div>}
-            {mode === 'month' && <button className="more" onClick={() => { setMode('week'); setStart(monOf(d)); }} aria-label={`Open the week of ${day(d)}`}>{ps.length ? `${ps.length} post${ps.length === 1 ? '' : 's'}` : ' '}</button>}
-          </div>); })}
-      </div>
-      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} types={POST_TYPES} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
-        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
-    </div>
-  );
-}
