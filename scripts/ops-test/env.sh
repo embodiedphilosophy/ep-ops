@@ -30,3 +30,7 @@ export CE_ADMIN_KEY=mock-ce
 # YouTube: dispatches go to the mock's fake GitHub; the pipeline's calls use a throwaway secret; no Blob (thumbnails kept in memory)
 unset BLOB_READ_WRITE_TOKEN
 export GITHUB_API_BASE=$M/github GITHUB_PIPELINE_TOKEN=mock-gh OPS_PIPELINE_SECRET=mock-pipeline-secret-0123456789abcdef
+# Content v2: Instagram (read only) and Drive uploads against the mock; a local-only cron key for /api/ops/social-sync
+export META_GRAPH_URL=$M/graph META_ACCESS_TOKEN=mock META_IG_USER_ID=IG1 META_APP_ID=1 META_APP_SECRET=mock
+export DRIVE_API_BASE=$M/gdrive DRIVE_UPLOAD_USER=jacob@embodiedphilosophy.com SOCIAL_UPLOADS_FOLDER_ID=mockfolder0123456789
+export CRON_SECRET=mock-cron-secret OPS_LIVE=1

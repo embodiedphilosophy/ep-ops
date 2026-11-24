@@ -27,3 +27,6 @@ grep -E "WROTE|APPENDED|BLOCKED" scripts/ops-test/out/mock.log
 Notes: the mock keeps state until restarted (rerun `run.sh`). Cached sheet reads survive builds in
 `.next/cache/fetch-cache` (`run.sh` clears it). Playwright: the cloud image has it in /opt/node-tools; locally `npm i -D playwright`.
 When you add a sheet tab or column the dashboard reads, add it to the synthetic data in `mock.mjs` too.
+
+| `content-v2-api.sh` | Content v2 at API level (needs `run.sh` running): who can edit / approve, Expired and Unconfirmed, carousel rules (2 to 10 slides, Manual when approved), delete, author stamps, and the Instagram sync (new posts only, backfill, match to the plan). |
+| `content-v2.cjs` | Content v2 in a browser: Expired banner, build a carousel from the library, reorder, upload a video to the Drive mock, delete, "Use in a post" from Art and Quotes, Carolyn (Publisher) vs a viewer, phone width. The mock stands in for Instagram (`/graph`) and Drive (`/gdrive`). |

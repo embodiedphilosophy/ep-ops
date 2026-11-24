@@ -923,3 +923,25 @@
   .ops-shell .ops-yt-row .thumb { width: 96px; height: 54px }
   .ops-shell .ops-yt-row .acts { grid-column: 1 / -1; justify-content: flex-start }
 }
+
+/* Content v2: kinds, slides, expired banner, authors */
+.ops-shell .ops-se .ops-kinds { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .ops-se .chip.danger { color: var(--risk); border-color: var(--risk) }
+.ops-shell .ops-se .ops-se-expired { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; border: 1px solid var(--hair); border-left: 3px solid var(--risk); padding: 10px 12px; margin: 8px 0 12px; border-radius: 4px }
+.ops-shell .ops-se .ops-se-expired p { margin: 0; flex: 1 1 260px; font-size: 14px }
+.ops-shell .ops-se-feed .by { display: block; font-size: 11.5px; color: var(--soft); margin-top: 2px }
+.ops-shell .ops-se-comp .hint.by { margin: 0 }
+.ops-shell .ops-se .hint.err { color: var(--risk) }
+.ops-shell .ops-se .s-Expired, .ops-shell .ops-se .st.s-Expired { background: var(--risk); color: #fff }
+.ops-shell .ops-se .s-Unconfirmed, .ops-shell .ops-se .st.s-Unconfirmed { background: #D99A22; color: #fff }
+.ops-shell .ops-se .s-Manual, .ops-shell .ops-se .st.s-Manual { background: #5b6b64; color: #fff }
+.ops-shell .ops-slides { width: 100%; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ops-slides ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.ops-shell .ops-slides li { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--hair); border-radius: 4px; padding: 6px 8px; background: #fff; min-height: 44px }
+.ops-shell .ops-slides li.drag { opacity: .4 }
+.ops-shell .ops-slides li[draggable=true] { cursor: grab }
+.ops-shell .ops-slides .n { font-size: 12px; color: var(--soft); text-align: center }
+.ops-shell .ops-slides .t { width: 54px; height: 54px; background: #e9e3d8; border-radius: 3px; overflow: hidden; display: block }
+.ops-shell .ops-slides .t img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .ops-slides .l { font-size: 13px; overflow-wrap: anywhere }
+.ops-shell .ops-slides .a { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end }

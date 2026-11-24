@@ -178,3 +178,27 @@ parks the cut on Vimeo; staff review and push to YouTube. Ops only stores, shows
   repo ep-youtube-pipeline, Contents read & write), `BLOB_READ_WRITE_TOKEN` (existing store is fine). Optional
   `GITHUB_PIPELINE_REPO`, `GITHUB_API_BASE` (tests).
 - Test: `node scripts/ops-test/youtube.cjs` after `run.sh` (plays the worker; dispatches land in `out/mock.log` as `GITHUB DISPATCH`).
+
+
+## Content & Social v2 (Nov 2026, phase 1)
+
+Brief: the "EP Ops · Content & Social v2" handoff (Jake, 24 Nov 2026). Phase 1 is built; phases 2 to 4 are not.
+
+- **Roles** (`lib/ops/nav.js`, Team tab → roles): Editor, Creator, Publisher, Approver and the older Social all open the Social tools.
+  Approving (= scheduling) needs Publisher, Approver, Editor or Social; Creator and Viewer can't. Anyone who schedules can delete a
+  Proposed post, and an author can delete their own. Sign-in is an emailed link to anyone on the Team tab, so no Google account is needed.
+- **Weekly Plan gains columns** on first write (`ensureColumns`): `created_by approved_by updated_by updated_at media_kind slides_json`
+  (and `ig_media_id permalink` when the sync first matches a post). Nothing else about the tab changes, so Make is unaffected.
+- **Statuses worked out on screen, never written:** Expired (Proposed past its time), Unconfirmed (Approved, 2 hours past its time, no
+  Posted yet). **Deleted** is written, but the row stays so row numbers never move; it is hidden everywhere.
+- **Carousel / Reel / Story:** `media_kind` + `slides_json` (`readSlides`/`checkSlides` in `lib/ops/socialengine.js`, limit `MAX_SLIDES` = 10).
+  Make posts one picture, so approving one of these writes **Manual** (post by hand) until `META_PUBLISH=live` exists (phase 3).
+- **Uploads:** `lib/ops/driveupload.js` + `app/api/ops/social/upload`. The server opens a Drive resumable session as a Workspace user
+  (domain-wide delegation, `DRIVE_UPLOAD_USER`, folder `SOCIAL_UPLOADS_FOLDER_ID`, scope `drive.file`); the browser sends the file
+  straight to Google. Logged on the new **Upload Log** tab (made on first upload); pictures also join the Image Library.
+  The older Make route (`/api/ops/social/image`) still serves single-picture upload and crop.
+- **Instagram sync:** `lib/ops/igsync.js`, cron `/api/ops/social-sync` hourly at :40 (runs only with `OPS_LIVE=1`). Needs `META_ACCESS_TOKEN`,
+  `META_IG_USER_ID`; optional `META_APP_ID` + `META_APP_SECRET` for the token expiry check. By hand:
+  `/api/ops/social-sync?key=CRON_SECRET` (`&dry=1` shows what it would do, `&from=2026-10-01` backfills from that day).
+  It only reads Instagram. Last run and errors are kept in `ops_social_health` (Neon) for the Health panel (phase 2).
+- Tests: `scripts/ops-test/content-v2-api.sh` (roles, delete, carousels, sync) and `content-v2.cjs` (browser).

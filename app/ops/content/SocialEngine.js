@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { VIEWS, colType, PLAN_EDITABLE, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
+import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
 import Cropper, { shrink } from './Cropper';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
 const time = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/); if (!m) return t || ''; const h = +m[1]; return `${h % 12 || 12}${m[2] === '00' ? '' : ':' + m[2]}${h >= 12 ? 'pm' : 'am'}`; };
-const isStory = p => !isFeed(p);
+const isStory = p => p.media_kind === 'story' || !isFeed(p);
+const kindLabel = p => p.media_kind === 'carousel' ? `Carousel · ${readSlides(p).length}` : p.media_kind === 'reel' ? 'Reel' : isStory(p) ? 'Story' : '';
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 const ago = d => { if (!d) return ''; const n = daysBetween(d, today()); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n < 14 ? `${n} days ago` : n < 60 ? `${Math.round(n / 7)} weeks ago` : `${Math.round(n / 30)} months ago`; };
 const api = async (body) => {
@@ -18,14 +19,16 @@ const api = async (body) => {
 // Content → Social: the whole EP Social Engine. Make still publishes Approved posts at their date and time.
 export default function SocialEngine({ director, initial = 'plan' }) {
   const [view, setView] = useState(initial);
+  const [seed, setSeed] = useState(null); // "Use in a post": a picture or words from a library, carried to a new post
   const views = VIEWS.filter(v => !v.director || director);
+  const useIn = s => { setSeed(s); go('plan'); };
   const go = k => { setView(k); try { history.replaceState(null, '', k === 'plan' ? '/ops/content?tab=social' : `/ops/content?tab=social&s=${k}`); } catch {} };
   return (
     <section className="ops-se">
       <nav className="ops-filters ops-site-tabs" aria-label="Social">
         {views.map(v => <a key={v.key} href={`/ops/content?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
       </nav>
-      {view === 'plan' ? <Plan /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} />}
+      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>
   );
 }
@@ -43,24 +46,33 @@ function useView(view, q = '', offset = 0, extra = '') {
 
 // ---------- Plan: the feed, and each post edited where it shows ----------
 const weekOf = p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') ? mondayOf(p.publish_date) : p.week_of || '';
-function Plan() {
+function Plan({ seed, clearSeed }) {
   const [data, reload] = useView('plan');
-  const [open, setOpen] = useState(null); // a row number, or 'new'
+  const [open, setOpen] = useState(seed ? 'new' : null); // a row number, or 'new'
   const [msg, setMsg] = useState('');
   const [mode, setMode] = useState('list'); // list | grid
   const [type, setType] = useState('');
   if (!data) return <p className="ops-empty">Loading the plan…</p>;
   if (data.error) return <p className="ops-empty">{data.error}</p>;
-  const all = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
-  const pastPosts = (data.past || []).map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  // `status` is what the screen shows (Proposed past its time reads Expired); the sheet's own value stays in _raw
+  const all = data.rows.map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const pastPosts = (data.past || []).map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
   const posts = type ? all.filter(p => (p.pillar || 'No type') === type) : all;
   const typeNames = [...new Set([...POST_TYPES, ...Object.keys(data.types || {}), ...all.map(p => p.pillar).filter(Boolean)])];
   const proposed = posts.filter(p => p.status === 'Proposed');
+  const expired = all.filter(p => p.status === 'Expired');
   const weeks = [...new Set(posts.map(weekOf))];
   const approveAll = async () => {
     if (!confirm(`Approve all ${proposed.length} proposed posts? Make publishes each at its date and time.`)) return;
     const j = await api({ view: 'plan', approve: proposed.map(p => ({ row: p._row, before: p._raw })) });
     setMsg(j.ok ? `${j.approved} approved.` : j.error); reload();
+  };
+  const clearExpired = async what => {
+    const verb = what === 'delete' ? 'Delete' : 'Archive';
+    if (!confirm(`${verb} ${expired.length} post${expired.length === 1 ? '' : 's'} that weren’t approved in time?${what === 'delete' ? ' They disappear from the plan.' : ' They move to Skip and stay in the sheet.'}`)) return;
+    const list = expired.map(p => ({ row: p._row, before: p._raw }));
+    const j = await api(what === 'delete' ? { view: 'plan', delete: list } : { view: 'plan', skip: list });
+    setMsg(j.ok ? `${j.deleted ?? j.skipped} ${what === 'delete' ? 'deleted' : 'archived'}.` : j.error); reload();
   };
   const count = s => posts.filter(p => p.status === s).length;
   const pool = [...posts, ...pastPosts.filter(p => !posts.some(x => x._row === p._row))];
@@ -73,11 +85,16 @@ function Plan() {
           <button className={`chip${mode === 'list' ? ' on' : ''}`} aria-pressed={mode === 'list'} onClick={() => setMode('list')}>By week</button>
           <button className={`chip${mode === 'grid' ? ' on' : ''}`} aria-pressed={mode === 'grid'} onClick={() => setMode('grid')}>Grid preview</button>
         </span>
-        <span className="pills">{['Proposed', 'Approved', 'Needs edit', 'Posted', 'Failed'].filter(count).map(s => <span key={s} className={`pill s-${s.replace(/\s/g, '')}`}>{count(s)} {s}</span>)}</span>
+        <span className="pills">{['Proposed', 'Approved', 'Unconfirmed', 'Needs edit', 'Manual', 'Posted', 'Failed', 'Expired'].filter(count).map(s => <span key={s} className={`pill s-${s.replace(/\s/g, '')}`}>{count(s)} {s}</span>)}</span>
         {data.canEdit && <button className="chip" onClick={() => setOpen('new')}>New post</button>}
         {data.canEdit && proposed.length > 0 && <button className="chip primary" onClick={approveAll}>Approve all proposed ({proposed.length})</button>}
         {msg && <span className="hint">{msg}</span>}
       </div>
+      {data.canEdit && expired.length > 0 && (
+        <div className="ops-se-expired" role="status">
+          <p><b>{expired.length} post{expired.length === 1 ? ' wasn’t' : 's weren’t'} approved in time</b> and {expired.length === 1 ? 'is' : 'are'} marked Expired. They didn’t go out.</p>
+          <span><button className="chip" onClick={() => clearExpired('skip')}>Archive all</button> <button className="chip" onClick={() => clearExpired('delete')}>Delete all</button></span>
+        </div>)}
       <TypeStrip names={typeNames} stats={data.types || {}} counts={all} type={type} setType={setType} />
       {!posts.length && <p className="ops-empty">{type ? `Nothing planned as “${type}”.` : 'Nothing planned from last week on.'}</p>}
       {mode === 'grid' && !type && <GridPreview posts={posts} past={pastPosts} canEdit={data.canEdit}
@@ -93,19 +110,20 @@ function Plan() {
                   <span className="pic">
                     {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
                     <span className={`st s-${String(p.status || 'Proposed').replace(/\s/g, '')}`}>{p.status || 'Proposed'}</span>
-                    {isStory(p) && <span className="kind">Story</span>}
+                    {kindLabel(p) && <span className="kind">{kindLabel(p)}</span>}
                   </span>
                   <span className="meta">{day(p.publish_date)} · {time(p.publish_time_ET)}{p.pillar && <span className="tag">{p.pillar}</span>}</span>
                   <span className="cap">{p.caption || <i>No caption yet</i>}</span>
+                  {p.created_by && <span className="by">by {p.created_by.split(' ')[0]}</span>}
                 </button>
               </li>
             ))}
           </ul>
         </div>
       ))}
-      {open === 'new' && <Composer key="new" p={blankPost()} events={data.events || []} types={typeNames} canEdit={data.canEdit} onSaved={reload} close={() => setOpen(null)}
-        onAdded={id => { setOpen(null); setMsg(`Added ${id}.`); }} />}
-      {i >= 0 && <Composer key={pool[i]._row} p={pool[i]} events={data.events || []} types={typeNames} canEdit={data.canEdit} onSaved={reload}
+      {open === 'new' && <Composer key="new" p={blankPost(seed)} events={data.events || []} types={typeNames} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload} close={() => { setOpen(null); clearSeed?.(); }}
+        onAdded={id => { setOpen(null); clearSeed?.(); setMsg(`Added ${id}.`); }} />}
+      {i >= 0 && <Composer key={pool[i]._row} p={pool[i]} events={data.events || []} types={typeNames} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
         prev={i > 0 ? () => setOpen(pool[i - 1]._row) : null} next={i < pool.length - 1 ? () => setOpen(pool[i + 1]._row) : null} close={() => setOpen(null)} />}
     </div>
   );
@@ -210,17 +228,22 @@ export function NextPosts({ n = 9 }) {
 }
 
 const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
-const blankPost = () => { const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', pillar: '', status: 'Proposed' }; return { ...v, _row: null, _raw: v, _new: true }; };
+const blankPost = seed => {
+  const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', media_kind: 'single', pillar: '', status: 'Proposed',
+    ...(seed?.caption && { caption: seed.caption }), ...(seed?.image_id && { image_id: seed.image_id, image_url: '' }) };
+  return { ...v, _row: null, _raw: v, _new: true, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
+};
+const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], ['carousel', 'Carousel', 'IG Feed, Facebook', 'Carousel'], ['reel', 'Video / Reel', 'IG Reel, Facebook', 'Reel'], ['story', 'Story frame', 'IG Story', 'Story']];
 
 // One post, laid out like it will appear: the picture on one side, its words and settings on the other.
 // Everything about the post is edited here; one Save writes all the changes.
-function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdded, prev, next, close }) {
+function Composer({ p, events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
   const [vals, setVals] = useState(p._raw);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState(null); // null | 'library' | 'crop'
-  const [pic, setPic] = useState(null); // { preview, src } once the picture changes here
+  const [pic, setPic] = useState(p._seedPic || null); // { preview, src } once the picture changes here
   const [picMsg, setPicMsg] = useState('');
   const isNew = !!p._new;
   const changed = PLAN_EDITABLE.filter(k => k !== 'status' && String(vals[k] ?? '') !== String(p._raw[k] ?? ''));
@@ -235,7 +258,23 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdde
     setVals(v => ({ ...v, caption: before + glue + text + (after && !/^\n/.test(after) ? '\n\n' : '') + after }));
     if (el) el.dataset.at = (before + glue + text).length; // the next insert goes after this one
   };
-  const locked = ['Posted', 'Manual'].includes(p.status), dis = !canEdit || locked || busy;
+  const kind = vals.media_kind || 'single';
+  const slides = readSlides(vals);
+  const setSlides = list => { setVals(v => ({ ...v, slides_json: list.length ? JSON.stringify(list) : '' })); setErrors(x => ({ ...x, slides_json: undefined })); };
+  const setKind = k => {
+    const [, , platforms, format] = KINDS.find(x => x[0] === k);
+    setVals(v => ({ ...v, media_kind: k, ...(isNew && { platforms, format }) }));
+  };
+  // Manual only locks a plain picture post: carousels, Reels and Stories wait there to be posted by hand
+  const locked = p.status === 'Posted' || (p.status === 'Manual' && kind === 'single'), dis = !canEdit || locked || busy;
+  const canDelete = canEdit && !isNew && ['Proposed', 'Needs edit', 'Skip', 'Expired'].includes(p.status);
+  const remove = async () => {
+    if (!confirm('Delete this post? It disappears from the plan. A post that has already gone out can’t be deleted here.')) return;
+    setBusy(true);
+    const j = await api({ view: 'plan', delete: [{ row: p._row }] });
+    setBusy(false);
+    if (j.ok && j.deleted) { onSaved(); close(); } else setMsg(j.error || 'That post can’t be deleted (it may be approved or published).');
+  };
   const leave = go => () => { if (!(isNew ? String(vals.caption || '').trim() || vals.image_id : changed.length) || confirm('Leave without saving your changes?')) go(); };
   useEffect(() => {
     const key = e => {
@@ -303,7 +342,7 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdde
       <div className="ops-se-comp">
         <div className="top">
           <span className={`pill s-${status.replace(/\s/g, '')}`}>{isNew ? 'New post' : status}</span>
-          <span className="when">{day(isNew ? vals.publish_date : p.publish_date)} · {time(p.publish_time_ET)} ET · {isStory(p) ? 'Story' : p.platforms || 'Feed'}</span>
+          <span className="when">{day(isNew ? vals.publish_date : p.publish_date)} · {time(p.publish_time_ET)} ET · {kindLabel(p) || p.platforms || 'Feed'}</span>
           <span className="nav">
             {!isNew && <button className="chip" disabled={!prev} onClick={leave(prev)} aria-label="Previous post">←</button>}
             {!isNew && <button className="chip" disabled={!next} onClick={leave(next)} aria-label="Next post">→</button>}
@@ -312,6 +351,12 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdde
         </div>
         <div className="cols">
           <div className="media">
+            {(isNew || (!locked && canEdit)) && (
+              <div className="ops-kinds" role="radiogroup" aria-label="What kind of post">
+                {KINDS.map(([k, l]) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={`chip${kind === k ? ' on' : ''}`} disabled={dis} onClick={() => setKind(k)}>{l}</button>)}
+              </div>)}
+            {kind !== 'single' ? <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} />
+            : <>
             {mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
               : <div className="pic">{thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}</div>}
             {!dis && mode !== 'crop' && (
@@ -324,21 +369,22 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdde
             {picMsg ? <p className="hint">{picMsg}</p> : (vals.image_id !== p._raw.image_id || vals.image_url !== p._raw.image_url) && <p className="hint">New picture chosen. Save to use it.</p>}
             {(errors.image_id || errors.image_url) && <p className="hint">{errors.image_id || errors.image_url}</p>}
             {mode === 'library' && <ImagePicker onPick={(id, t, drive) => { setVals(s => ({ ...s, image_id: id, image_url: '' })); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined })); setPic({ preview: t, src: drive ? `/api/ops/social/image?id=${drive}` : '' }); setPicMsg(''); setMode(null); }} />}
+            </>}
             {p.quote_text && <p className="quo">“{p.quote_text}”{p.quote_source ? ` — ${p.quote_source}` : ''} <span className={p.quote_check === 'Verbatim' ? 'ok' : 'warn'}>{p.quote_check || 'not checked'}</span></p>}
             {p.error && <p className="err">Make: {p.error}</p>}
             {p.post_links && <p className="ev"><a href={p.post_links.split(/\s|,/)[0]} target="_blank" rel="noopener">View the post ↗</a></p>}
           </div>
           <form className="words ops-edit" onSubmit={async e => { e.preventDefault(); await save(); }}>
             {locked && <p className="hint">Already {status.toLowerCase()}: shown as it went out.</p>}
-            {field('caption', <textarea id="c-caption" ref={capRef} className="capbox" rows={10} value={vals.caption || ''} disabled={dis} onChange={set('caption')}
+            {kind !== 'story' && field('caption', <textarea id="c-caption" ref={capRef} className="capbox" rows={10} value={vals.caption || ''} disabled={dis} onChange={set('caption')}
               onBlur={e => { e.target.dataset.at = e.target.selectionStart; }} placeholder="Write the caption…" />, 'Caption')}
-            <div className="capbar">
+            {kind !== 'story' && <div className="capbar">
               {!dis && <>
                 <button type="button" className={`chip${inserting === 'captions' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'captions' ? null : 'captions')}>Insert a snippet</button>
                 <button type="button" className={`chip${inserting === 'quotes' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'quotes' ? null : 'quotes')}>Insert a quote</button>
               </>}
               <span className="count">{String(vals.caption || '').length} / 2,200</span>
-            </div>
+            </div>}
             {inserting && <Inserter kind={inserting} onPick={t => { insert(t); setInserting(null); }} />}
             {field('hashtags', <textarea id="c-hashtags" rows={2} value={vals.hashtags || ''} disabled={dis} onChange={set('hashtags')} />)}
             {hashtagCount(vals.hashtags) + hashtagCount(vals.caption) > MAX_HASHTAGS && <p className="hint warnline">That’s {hashtagCount(vals.hashtags) + hashtagCount(vals.caption)} hashtags. Instagram now allows {MAX_HASHTAGS} per post, so trim it before approving.</p>}
@@ -360,20 +406,26 @@ function Composer({ p, events = [], types = POST_TYPES, canEdit, onSaved, onAdde
             {field('jake_notes', <textarea id="c-jake_notes" rows={2} value={vals.jake_notes || ''} disabled={dis} onChange={set('jake_notes')} placeholder="What should the planner change?" />)}
             {canEdit && isNew && (
               <div className="bar">
-                <button type="button" className="chip primary" disabled={busy} onClick={() => save({ status: 'Approved' })}>Add and approve</button>
+                {canPublish && <button type="button" className="chip primary" disabled={busy} onClick={() => save({ status: 'Approved' })}>Add and approve</button>}
                 <button type="submit" className="chip" disabled={busy}>Add as proposed</button>
                 <button type="button" className="chip" onClick={leave(close)}>Cancel</button>
               </div>
             )}
+            {!isNew && (p.created_by || p.approved_by || p.updated_by) && (
+              <p className="hint by">{[p.created_by && `Added by ${p.created_by}`, p.approved_by && `approved by ${p.approved_by}`, p.updated_by && p.updated_by !== p.created_by && `last changed by ${p.updated_by}`].filter(Boolean).join(' · ')}</p>)}
+            {status === 'Unconfirmed' && <p className="hint">Approved, but Instagram hasn’t confirmed it went out. The hourly check marks it Posted once it finds it.</p>}
+            {status === 'Expired' && <p className="hint">This wasn’t approved before its time, so it didn’t go out. Move it to a new date and approve it, or delete it.</p>}
+            {kind !== 'single' && canPublish && <p className="hint">{process.env.NEXT_PUBLIC_META_PUBLISH === 'live' ? '' : 'Approving a carousel, Reel or Story marks it “Manual”: it is ready to post by hand. Automatic posting for these starts with the next update.'}</p>}
             {canEdit && !locked && !isNew && (
               <div className="bar">
-                {status !== 'Approved'
+                {!canPublish ? <span className="hint">You can edit and save. Someone who schedules posts will approve it.</span> : status !== 'Approved'
                   ? <button type="button" className="chip primary" disabled={busy} onClick={async () => { if (await save({ status: 'Approved' })) next ? next() : close(); }}>{changed.length ? 'Save and approve' : 'Approve'}</button>
                   : <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Proposed' })}>Unapprove</button>}
                 <button type="submit" className={`chip${status === 'Approved' ? ' primary' : ''}`} disabled={busy || !changed.length}>{changed.length ? `Save ${changed.length} change${changed.length === 1 ? '' : 's'}` : 'No changes'}</button>
-                <button type="button" className="chip" disabled={busy || !String(vals.jake_notes || '').trim()} onClick={() => save({ status: 'Needs edit' })}>Send back with my notes</button>
+                {canPublish && <button type="button" className="chip" disabled={busy || !String(vals.jake_notes || '').trim()} onClick={() => save({ status: 'Needs edit' })}>Send back with my notes</button>}
                 {status !== 'Skip' ? <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Skip' })}>Skip</button>
                   : <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Proposed' })}>Back to proposed</button>}
+                {canDelete && <button type="button" className="chip danger" disabled={busy} onClick={remove}>Delete</button>}
               </div>
             )}
             {msg && <p className="hint">{msg}</p>}
@@ -423,7 +475,7 @@ function ImagePicker({ onPick }) {
       <label className="hint fresh"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> Hide pictures used in the last 2 months</label>
       {data?.error ? <p className="hint">{data.error}</p> : !rows.length && !data ? <p className="hint">Loading…</p> : !rows.length ? <p className="hint">No pictures match.</p> : (<>
         <ul className="grid">{shown.map(r => (
-          <li key={r.row}><button type="button" onClick={() => onPick(r.values.image_id, r.thumb, r.values.drive_file_id)} title={r.used ? `${r.values.file_name} · used ${ago(r.used)}` : r.values.file_name}>
+          <li key={r.row}><button type="button" onClick={() => onPick(r.values.image_id, r.thumb, r.values.drive_file_id, r.values.public_url)} title={r.used ? `${r.values.file_name} · used ${ago(r.used)}` : r.values.file_name}>
             {r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">{r.values.file_name}</span>}
             {r.used && <span className={`usedtag${recent(r) ? ' recent' : ''}`}>Used {ago(r.used)}</span>}
           </button></li>))}
@@ -474,7 +526,7 @@ function Pager({ data, setOffset }) {
 }
 
 // ---------- Libraries: quotes, images, captions, rules, categories, archive folders ----------
-function Library({ view }) {
+function Library({ view, onUse }) {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [data, reload] = useView(view.key, q, offset);
@@ -492,7 +544,7 @@ function Library({ view }) {
         {view.images ? (
           <ul className="ops-se-imgs">{data.rows.map(r => (
             <li key={r.row} className={String(r.values.hidden).toUpperCase() === 'TRUE' ? 'off' : ''}>
-              {sel === r.row ? <Row view={view} head={data.head} locked={data.locked} row={r.row} values={r.values} canEdit={data.canEdit} onDone={c => { setSel(null); if (c) reload(); }} /> : (
+              {sel === r.row ? <Row view={view} head={data.head} locked={data.locked} row={r.row} values={r.values} thumb={r.thumb} onUse={data.canEdit && onUse} canEdit={data.canEdit} onDone={c => { setSel(null); if (c) reload(); }} /> : (
                 <button onClick={() => setSel(r.row)} title={r.values.file_name}>
                   {r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">{r.values.file_name}</span>}
                   <span className="cap">{r.values.category || r.values.type}{String(r.values.reuse_ok).toUpperCase() !== 'TRUE' ? ' · not for reuse' : ''}</span>
@@ -500,10 +552,10 @@ function Library({ view }) {
             </li>))}</ul>
         ) : (
           <ul className="ops-site-rows">{data.rows.map(r => (
-            <li key={r.row}>{sel === r.row ? <Row view={view} head={data.head} locked={data.locked} row={r.row} values={r.values} canEdit={data.canEdit} onDone={c => { setSel(null); if (c) reload(); }} /> : (
+            <li key={r.row}>{sel === r.row ? <Row view={view} head={data.head} locked={data.locked} row={r.row} values={r.values} onUse={data.canEdit && onUse} canEdit={data.canEdit} onDone={c => { setSel(null); if (c) reload(); }} /> : (
               <button className="ops-site-row" onClick={() => setSel(r.row)}>
-                <span className="n">{String(view.name(r.values) || `Row ${r.row}`).slice(0, 160)}</span>
-                {view.sub?.(r.values) && <span className="s">{String(view.sub(r.values)).slice(0, 140)}</span>}
+                <span className="n">{String(view.name(r.values) || `Row ${r.row}`).slice(0, view.key === 'rules' ? 600 : 160)}</span>
+                {view.sub?.(r.values) && <span className="s">{String(view.sub(r.values)).slice(0, view.key === 'rules' ? 1200 : 140)}</span>}
               </button>)}</li>))}</ul>
         )}
         <Pager data={data} setOffset={setOffset} />
@@ -512,13 +564,19 @@ function Library({ view }) {
   );
 }
 
-function Row({ view, head, locked, row, values, canEdit, onDone }) {
+function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone }) {
   const [vals, setVals] = useState(values);
   const [orig, setOrig] = useState(values);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const changed = head.filter(h => h && String(vals[h] ?? '') !== String(orig[h] ?? ''));
+  const T = x => String(x ?? '').toUpperCase() === 'TRUE';
+  // "Use in a post": a picture that may be reused, a verified quote (copied exactly), or an approved snippet
+  const useSeed = !onUse ? null
+    : view.key === 'art' ? { label: 'Use in a post', ok: T(values.reuse_ok) && !T(values.hidden) && !T(values.has_text), why: 'This picture isn’t marked OK to reuse', seed: { image_id: values.image_id, thumb, drive: values.drive_file_id } }
+    : view.key === 'quotes' ? { label: 'Start a post from this quote', ok: T(values.verified), why: 'Only verified quotes can be used', seed: { caption: `“${values.quote}”\n— ${[values.author, values.work].filter(Boolean).join(', ')}` } }
+    : view.key === 'captions' ? { label: 'Start a post with this', ok: T(values.approved), why: 'Only approved snippets can be used', seed: { caption: values.text } } : null;
   const save = async e => {
     e.preventDefault(); setBusy(true); setErrors({}); setMsg('');
     const j = await api(row == null ? { view: view.key, add: true, values: Object.fromEntries(changed.map(h => [h, vals[h]])) }
@@ -543,10 +601,116 @@ function Row({ view, head, locked, row, values, canEdit, onDone }) {
         );
       })}
       <div className="bar">
+        {useSeed && row != null && <button type="button" className="chip primary" disabled={!useSeed.ok} title={useSeed.ok ? '' : useSeed.why} onClick={() => onUse(useSeed.seed)}>{useSeed.label}</button>}
         {canEdit && <button type="submit" className="chip primary" disabled={busy || !changed.length}>{row == null ? 'Add' : changed.length ? `Save ${changed.length} change${changed.length === 1 ? '' : 's'}` : 'No changes'}</button>}
         <button type="button" className="chip" onClick={() => onDone(false)}>{canEdit ? 'Cancel' : 'Close'}</button>
         {msg && <span className="hint">{msg}</span>}
       </div>
     </form>
+  );
+}
+
+// ---------- Carousel, Reel and Story media ----------
+// The slides of one post, in order. Drag a slide (or use the arrows) to reorder; add pictures from the library
+// or upload pictures and video straight to Drive.
+const slideThumb = sl => sl.drive_file_id ? `https://lh3.googleusercontent.com/d/${sl.drive_file_id}=w240` : sl.url && sl.kind !== 'video' ? sl.url : '';
+function SlidesEditor({ kind, slides, onChange, disabled, error }) {
+  const [picking, setPicking] = useState(false);
+  const [drag, setDrag] = useState(null);
+  const [note, setNote] = useState(''); // what the last upload said (kept here: the upload button goes away once a Reel or Story has its one file)
+  const max = kind === 'carousel' ? MAX_SLIDES : 1;
+  const full = slides.length >= max;
+  const move = (i, j) => { if (j < 0 || j >= slides.length || i === j) return; const a = slides.slice(); a.splice(j, 0, a.splice(i, 1)[0]); onChange(a); };
+  const add = sl => onChange(kind === 'carousel' ? [...slides, sl] : [sl]);
+  const noun = kind === 'reel' ? 'video' : kind === 'story' ? 'frame' : 'slide';
+  return (
+    <div className="ops-slides">
+      <p className="hint">{kind === 'carousel' ? `Slides in the order people swipe: ${MIN_SLIDES} to ${MAX_SLIDES}. Pictures and video can be mixed.` : kind === 'reel' ? 'One vertical video (9:16), up to 90 seconds.' : 'One designed 9:16 frame. Stories can’t carry a link sticker through the website: post by hand when it needs one.'}</p>
+      {slides.length === 0 && <p className="ops-empty">No {noun}s yet.</p>}
+      <ol>
+        {slides.map((sl, i) => (
+          <li key={i} draggable={!disabled} onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => { if (drag != null) move(drag, i); setDrag(null); }} className={drag === i ? 'drag' : ''}>
+            <span className="n">{i + 1}</span>
+            <span className="t">{slideThumb(sl) ? <img src={slideThumb(sl)} alt="" referrerPolicy="no-referrer" /> : <span className="none">{sl.kind === 'video' ? 'Video' : 'Picture'}</span>}</span>
+            <span className="l">{sl.kind === 'video' ? 'Video' : sl.image_id || 'Picture'}</span>
+            {!disabled && <span className="a">
+              {kind === 'carousel' && <><button type="button" className="chip" disabled={i === 0} onClick={() => move(i, i - 1)} aria-label={`Move slide ${i + 1} earlier`}>↑</button>
+                <button type="button" className="chip" disabled={i === slides.length - 1} onClick={() => move(i, i + 1)} aria-label={`Move slide ${i + 1} later`}>↓</button></>}
+              <button type="button" className="chip" onClick={() => onChange(slides.filter((_, k) => k !== i))} aria-label={`Remove slide ${i + 1}`}>Remove</button>
+            </span>}
+          </li>))}
+      </ol>
+      {!disabled && !full && (
+        <div className="picacts">
+          {kind !== 'reel' && <button type="button" className={`chip${picking ? ' on' : ''}`} onClick={() => setPicking(x => !x)}>{picking ? 'Close the library' : kind === 'carousel' ? '+ Picture from the library' : 'Choose from the library'}</button>}
+          <UploadBox kind={kind} onDone={(f, warn) => { add({ kind: f.kind, drive_file_id: f.id, ...(f.image_id && { image_id: f.image_id }) }); setNote(`Uploaded to Drive.${warn.length ? ' ' + warn.join(' ') : ''}`); }} />
+        </div>)}
+      {note && <p className="hint note" role="status">{note}</p>}
+      {full && !disabled && kind === 'carousel' && <p className="hint">That’s the most Instagram allows ({MAX_SLIDES}).</p>}
+      {picking && <ImagePicker onPick={(id, t, drive, url) => { add({ kind: 'image', ...(drive ? { drive_file_id: drive } : { url }), image_id: id }); setPicking(false); }} />}
+      {error && <p className="hint err">{error}</p>}
+    </div>
+  );
+}
+
+// Reads a picture's or video's size (and a video's length) in the browser, to warn before anything uploads
+function probe(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), isVideo = file.type.startsWith('video/');
+    const el = isVideo ? document.createElement('video') : new Image();
+    const done = v => { URL.revokeObjectURL(url); resolve(v); };
+    el.onerror = () => { URL.revokeObjectURL(url); isVideo ? done({ kind: 'video', width: 0, height: 0, duration: 0, unread: true }) : reject(new Error('That picture couldn’t be read')); };
+    if (isVideo) { el.preload = 'metadata'; el.onloadedmetadata = () => done({ kind: 'video', width: el.videoWidth, height: el.videoHeight, duration: Math.round(el.duration * 10) / 10 }); }
+    else el.onload = () => done({ kind: 'image', width: el.naturalWidth, height: el.naturalHeight, duration: 0 });
+    el.src = url;
+  });
+}
+// Plain-language checks against what Instagram accepts. Warnings only: the post can still be made.
+export function specWarnings(m, file, postKind) {
+  const w = [], r = m.width && m.height ? m.width / m.height : 0, vertical = postKind === 'reel' || postKind === 'story';
+  if (vertical && r && Math.abs(r - 9 / 16) > 0.03) w.push(`This is ${m.width}×${m.height}. ${postKind === 'reel' ? 'Reels' : 'Stories'} are vertical, 9:16 (1080×1920).`);
+  if (!vertical && r && (r < 0.79 || r > 1.92)) w.push(`This shape (${m.width}×${m.height}) will be cropped. Feed posts work best at 4:5 or 1:1.`);
+  if (m.kind === 'video' && postKind === 'reel' && m.duration > 90) w.push(`This video runs ${Math.round(m.duration)} seconds. Reels can be up to 90.`);
+  if (m.kind === 'video' && /quicktime/.test(file.type)) w.push('This is a .mov file. MP4 (H.264 video, AAC sound) is the safest format for Instagram.');
+  return w;
+}
+
+function UploadBox({ kind, onDone }) {
+  const [msg, setMsg] = useState('');
+  const [pct, setPct] = useState(null);
+  const accept = kind === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
+  const post = async body => {
+    const res = await fetch('/api/ops/social/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
+    const j = await res?.json().catch(() => ({})) || {};
+    if (!res?.ok) throw new Error(j.error || 'The upload didn’t work. Try again.');
+    return j;
+  };
+  // One PUT straight to Google's upload address: the file never passes through our server
+  const put = (url, file) => new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', url); x.setRequestHeader('Content-Type', file.type);
+    x.upload.onprogress = e => e.lengthComputable && setPct(Math.round(100 * e.loaded / e.total));
+    x.onload = () => { try { const j = JSON.parse(x.responseText); x.status < 300 && j.id ? resolve(j.id) : reject(new Error('Drive didn’t accept the file')); } catch { reject(new Error('Drive didn’t accept the file')); } };
+    x.onerror = () => reject(new Error('The connection dropped. Try again.'));
+    x.send(file);
+  });
+  const pick = async file => {
+    if (!file) return;
+    setMsg(''); setPct(0);
+    try {
+      const m = await probe(file), warn = specWarnings(m, file, kind);
+      const { url } = await post({ step: 'start', name: file.name, size: file.size, type: file.type });
+      const id = await put(url, file);
+      const d = await post({ step: 'done', id, name: file.name, kind: m.kind, width: m.width, height: m.height, duration: m.duration, codec_ok: !/quicktime/.test(file.type) });
+      setMsg('');
+      onDone({ id, kind: m.kind, image_id: d.image_id }, warn);
+    } catch (e) { setMsg(e.message); } finally { setPct(null); }
+  };
+  return (
+    <>
+      <label className="chip upl">{pct != null ? `Uploading… ${pct}%` : kind === 'reel' ? 'Upload a video' : 'Upload a picture or video'}
+        <input type="file" accept={accept} disabled={pct != null} onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} /></label>
+      {msg && <span className="hint" role="status">{msg}</span>}
+    </>
   );
 }

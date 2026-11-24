@@ -135,14 +135,16 @@ async function Overview({ canReview }) {
     canReview ? readPlain('Course Pages', { light: true }).catch(() => null) : null,
   ]);
   const posts = social && !social.error ? social.posts : null;
-  const needImages = posts ? posts.filter(p => flagOf(p)).length : 0;
+  const noImage = posts ? posts.filter(p => !p.thumb).length : 0;
+  const notReviewed = posts ? posts.filter(p => p.thumb && flagOf(p)).length : 0;
+  const needImages = noImage + notReviewed;
   const behind = promo?.kit ? promo.rows.filter(r => r.ready < r.want.length) : [];
   const late = behind.filter(r => r.want[r.ready]?.due < todayET()).length;
   const review = canReview && bios && pages ? [...bios.rows, ...pages.rows].filter(r => lower(r.values.status) === 'submitted').length : null;
   // [lane, level (green|amber|red|none), status word, next action, link]
   const lanes = [
-    ['Social', !posts ? 'none' : needImages ? 'amber' : 'green', !posts ? 'Not connected' : needImages ? 'Needs images' : 'On track',
-      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? `${needImages} of the next ${posts.length} posts need images` : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/content?tab=social'],
+    ['Social', !posts ? 'none' : needImages ? 'amber' : 'green', !posts ? 'Not connected' : needImages ? (noImage ? 'Needs images' : 'To check') : 'On track',
+      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? [noImage && `${noImage} of the next ${posts.length} posts ${noImage === 1 ? 'has' : 'have'} no image`, notReviewed && `${notReviewed} ${notReviewed === 1 ? 'image hasn’t' : 'images haven’t'} been checked yet`].filter(Boolean).join(', ') : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/content?tab=social'],
     ['Email', !promo?.kit ? 'none' : late ? 'red' : behind.length ? 'amber' : 'green', !promo?.kit ? 'Not connected' : late ? 'Late' : behind.length ? 'Behind' : 'On track',
       !promo?.kit ? 'Kit isn’t connected, so promo emails can’t be checked.' : behind.length ? `${behind.length} event${behind.length === 1 ? '' : 's'} short of promo emails` : 'Every upcoming event has its promo emails', '/ops/content?tab=email'],
     ['Media', replays === null ? 'none' : replays.length ? 'amber' : 'green', replays === null ? 'Not connected' : replays.length ? 'Waiting' : 'On track',
