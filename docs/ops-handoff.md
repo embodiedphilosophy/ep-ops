@@ -202,3 +202,17 @@ Brief: the "EP Ops · Content & Social v2" handoff (Jake, 24 Nov 2026). Phase 1 
   `/api/ops/social-sync?key=CRON_SECRET` (`&dry=1` shows what it would do, `&from=2026-10-01` backfills from that day).
   It only reads Instagram. Last run and errors are kept in `ops_social_health` (Neon) for the Health panel (phase 2).
 - Tests: `scripts/ops-test/content-v2-api.sh` (roles, delete, carousels, sync) and `content-v2.cjs` (browser).
+
+### Content & Social v2, phase 2 (part)
+- `lib/ops/socialrules.js`: feed-rhythm rules (`max_text_heavy_run` 2, `max_promo_run` 1), "a week ahead", and `guardrails()`:
+  **blocked** = facts missing (no picture/caption, event not on the Master Schedule, caption over 2,200); **flags** = sign-offs
+  (Sanskrit/educational clearance, Meet the teacher, unchecked quote or picture). Settings are read from the Rules tab with code defaults
+  (feed posts per week now defaults to 7 when the row is missing; the sheet's own row is unchanged until someone edits it).
+- Social → **Review**: tick posts, exact count on the button, a reason is required for flagged ones and saved in `override_reason`; the server
+  enforces both. Social → **Health**: Instagram check, Meta token expiry, unconfirmed/failed/expired posts, posts without pictures, broken columns.
+- Tests: `content-v2-phase2-api.sh`, `content-v2-phase2.cjs`.
+
+### Content & Social v2, calendar and day categories
+- Social → **Calendar**: Week (7 columns, post cards, "Open feed slot 11:00", drag a card to another day to reschedule; posts already out can't be moved, nor can a post be moved into the past) and Month (counts per day, click a day for its week).
+- **Day categories** live on the new **Day Categories** tab (made on first save): `weekday, category, scope (standing | week_of), week_of, updated_by`. "This week only" beats the standing row (`categoryFor`, `lib/ops/socialrules.js`). Each day shows Filled · approved / awaiting approval / Filled but blocked / Not filled ("has X instead") / Missed / No category (`dayState`). Editors, approvers and directors can change categories.
+- Test: `scripts/ops-test/content-v2-calendar.cjs` (start from a fresh `run.sh`).

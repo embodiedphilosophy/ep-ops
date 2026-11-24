@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
+import { rhythmWarnings, weekAhead, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
 import Cropper, { shrink } from './Cropper';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
@@ -28,7 +29,7 @@ export default function SocialEngine({ director, initial = 'plan' }) {
       <nav className="ops-filters ops-site-tabs" aria-label="Social">
         {views.map(v => <a key={v.key} href={`/ops/content?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
       </nav>
-      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
+      {view === 'plan' ? <Plan seed={seed} clearSeed={() => setSeed(null)} /> : view === 'calendar' ? <Calendar /> : view === 'review' ? <Review /> : view === 'health' ? <Health /> : view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>
   );
 }
@@ -90,6 +91,7 @@ function Plan({ seed, clearSeed }) {
         {data.canEdit && proposed.length > 0 && <button className="chip primary" onClick={approveAll}>Approve all proposed ({proposed.length})</button>}
         {msg && <span className="hint">{msg}</span>}
       </div>
+      <RhythmCards posts={all} rules={data.rules} />
       {data.canEdit && expired.length > 0 && (
         <div className="ops-se-expired" role="status">
           <p><b>{expired.length} post{expired.length === 1 ? ' wasn’t' : 's weren’t'} approved in time</b> and {expired.length === 1 ? 'is' : 'are'} marked Expired. They didn’t go out.</p>
@@ -712,5 +714,186 @@ function UploadBox({ kind, onDone }) {
         <input type="file" accept={accept} disabled={pct != null} onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} /></label>
       {msg && <span className="hint" role="status">{msg}</span>}
     </>
+  );
+}
+
+// ---------- Feed rhythm and "a week ahead" (on the Plan) ----------
+function RhythmCards({ posts, rules }) {
+  const r = { ...DEFAULT_RULES, ...(rules || {}) };
+  const t = today();
+  const warn = rhythmWarnings(posts.filter(p => p.publish_date >= t), r);
+  const ahead = weekAhead(posts, t, r.plan_ahead_days);
+  const short = ahead.covered < ahead.total;
+  return (
+    <div className="ops-rhythm">
+      <div className={`card${short ? ' warn' : ' ok'}`}>
+        <b>A week ahead</b>
+        <span>{ahead.covered} of the next {ahead.total} days have a feed post{short ? `. Still open: ${ahead.missing.map(day).join(', ')}.` : '.'}</span>
+      </div>
+      <div className={`card${warn.length ? ' warn' : ' ok'}`}>
+        <b>Feed rhythm</b>
+        {warn.length ? <ul>{warn.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul> : <span>No more than {r.max_text_heavy_run} text-heavy or {r.max_promo_run} promotional post{r.max_promo_run === 1 ? '' : 's'} in a row.</span>}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Review & approve: exactly what you tick is what is approved ----------
+function Review() {
+  const [data, reload] = useView('review');
+  const [sel, setSel] = useState({});       // row → true
+  const [why, setWhy] = useState({});       // row → reason, for posts with flags
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!data) return <p className="ops-empty">Loading…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const rows = data.rows, picked = rows.filter(r => sel[r.row]);
+  const missingReason = picked.filter(r => r.flags.length && !String(why[r.row] || '').trim());
+  const ready = rows.filter(r => !r.blocked.length && !r.flags.length);
+  const go = async () => {
+    setBusy(true); setMsg('');
+    const j = await api({ view: 'plan', approve: picked.map(r => ({ row: r.row, before: r.values, reason: why[r.row] })) });
+    setBusy(false);
+    setMsg(j.ok ? `${j.approved} approved.${j.skipped?.length ? ` ${j.skipped.length} left alone: ${j.skipped.map(x => x.why).join('; ')}` : ''}` : j.error);
+    setSel({}); reload();
+  };
+  return (
+    <div className="ops-review">
+      <p className="ops-empty">Every proposed post from {day(data.window.from)} to {day(data.window.to)}. Tick the ones to approve. A post with missing facts can’t be ticked until they’re fixed. A flag is a reminder, not a lock: tick it, say why, and it goes through.</p>
+      <div className="ops-se-bar">
+        {data.canPublish && <>
+          <button className="chip" onClick={() => setSel(Object.fromEntries(ready.map(r => [r.row, true])))} disabled={!ready.length}>Tick the {ready.length} with nothing flagged</button>
+          <button className="chip" onClick={() => setSel({})} disabled={!picked.length}>Clear</button>
+          <button className="chip primary" disabled={busy || !picked.length || missingReason.length > 0} onClick={go}>{picked.length ? `Approve ${picked.length} post${picked.length === 1 ? '' : 's'}` : 'Approve'}</button>
+        </>}
+        {missingReason.length > 0 && <span className="hint">{missingReason.length} ticked post{missingReason.length === 1 ? ' needs' : 's need'} a reason first.</span>}
+        {msg && <span className="hint">{msg}</span>}
+      </div>
+      {data.rhythm?.length > 0 && <div className="ops-rhythm"><div className="card warn"><b>Feed rhythm</b><ul>{data.rhythm.map(w => <li key={w.rule + w.from}>{w.text}</li>)}</ul></div></div>}
+      {!rows.length && <p className="ops-empty">Nothing is waiting for approval.</p>}
+      <ul className="ops-rev-list">
+        {rows.map(r => { const v = r.values, blocked = r.blocked.length > 0; return (
+          <li key={r.row} className={blocked ? 'blocked' : ''}>
+            <label className="pick"><input type="checkbox" disabled={blocked || !data.canPublish} checked={!!sel[r.row]} onChange={e => setSel(s => ({ ...s, [r.row]: e.target.checked }))} aria-label={`Approve ${day(v.publish_date)} ${time(v.publish_time_ET)}`} /></label>
+            <span className="t">{r.thumb ? <img src={r.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">None</span>}</span>
+            <span className="b">
+              <b>{day(v.publish_date)} · {time(v.publish_time_ET)}</b> <span className="hint">{[v.media_kind && v.media_kind !== 'single' ? v.media_kind : '', v.pillar].filter(Boolean).join(' · ')}</span>
+              <span className="cap">{String(v.caption || '').slice(0, 140) || 'No caption yet'}</span>
+              <span className="chips">
+                {r.blocked.map(x => <span key={x} className="gchip bad">{x}</span>)}
+                {r.flags.map(x => <span key={x} className="gchip flag">{x}</span>)}
+                {!r.blocked.length && !r.flags.length && <span className="gchip ok">Ready</span>}
+              </span>
+              {sel[r.row] && r.flags.length > 0 && <input className="why" placeholder="Why is it OK to approve? (one line, saved on the post)" value={why[r.row] || ''} onChange={e => setWhy(s => ({ ...s, [r.row]: e.target.value }))} />}
+            </span>
+          </li>); })}
+      </ul>
+    </div>
+  );
+}
+
+// ---------- Health: what to look at first ----------
+function Health() {
+  const [data] = useView('health');
+  if (!data) return <p className="ops-empty">Checking…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  return (
+    <div className="ops-health">
+      <p className="ops-empty">Checked just now from the sheet and Instagram; the Instagram check itself runs every hour. Most urgent first.</p>
+      <ul>{data.items.map((i, k) => (
+        <li key={k} className={i.level}><span className="lv">{i.level}</span><span className="b"><b>{i.title}</b><span>{i.detail}</span></span></li>))}</ul>
+    </div>
+  );
+}
+
+// ---------- Calendar: a week of seven days (or the month), each with its category, and drag to reschedule ----------
+const addD = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const monOf = d => addD(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
+const out = p => ['Posted', 'Manual'].includes(p.status);
+function Calendar() {
+  const [data, reload] = useView('plan');
+  const [mode, setMode] = useState('week');
+  const [start, setStart] = useState(monOf(today()));
+  const [editing, setEditing] = useState(false);
+  const [scope, setScope] = useState('standing');
+  const [open, setOpen] = useState(null);
+  const [drag, setDrag] = useState(null);
+  const [msg, setMsg] = useState('');
+  if (!data) return <p className="ops-empty">Loading the calendar…</p>;
+  if (data.error) return <p className="ops-empty">{data.error}</p>;
+  const posts = [...data.rows, ...(data.past || [])].filter((r, i, a) => a.findIndex(x => x.row === r.row) === i)
+    .map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
+  const cats = data.dayCategories || [], t = today();
+  const labels = new Set(data.events || []);
+  const blockedOf = p => guardrails(p._raw, { eventLabels: labels }).blocked.length > 0;
+  const days = mode === 'week' ? Array.from({ length: 7 }, (_, i) => addD(start, i)) : (() => { const first = start.slice(0, 7) + '-01', from = monOf(first); return Array.from({ length: 42 }, (_, i) => addD(from, i)); })();
+  const step = n => setStart(mode === 'week' ? addD(start, 7 * n) : (() => { const d = new Date(start.slice(0, 7) + '-01T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); })());
+  const move = async (row, date) => {
+    const p = posts.find(x => x._row === row);
+    if (!p || p.publish_date === date) return;
+    if (out(p)) return setMsg('A post that is already out can’t be moved.');
+    if (date < t) return setMsg('Pick today or a day ahead.');
+    const j = await api({ view: 'plan', row, changes: { publish_date: date }, before: p._raw });
+    setMsg(j.ok ? `Moved to ${day(date)}.` : j.error); reload();
+  };
+  const setCat = async (weekday, category) => {
+    const j = await api({ view: 'plan', dayCategory: { weekday, category, scope, week_of: start } });
+    setMsg(j.ok ? `${weekday}: ${category || 'no category'}${scope === 'week' ? ' (this week only)' : ' (every week)'}.` : j.error); reload();
+  };
+  const dayCell = d => {
+    const ps = posts.filter(p => p.publish_date === d && p.status !== 'Deleted').sort((a, b) => timeKey(a.publish_time_ET).localeCompare(timeKey(b.publish_time_ET)));
+    const cat = categoryFor(d, cats), st = dayState({ date: d, today: t, posts: ps, category: cat, blockedOf });
+    return { d, ps, cat, st };
+  };
+  const i = open != null ? posts.findIndex(p => p._row === open) : -1;
+  return (
+    <div className="ops-cal">
+      <div className="ops-se-bar">
+        <span className="ops-se-mode" role="group" aria-label="Calendar view">
+          <button className={`chip${mode === 'week' ? ' on' : ''}`} aria-pressed={mode === 'week'} onClick={() => setMode('week')}>Week</button>
+          <button className={`chip${mode === 'month' ? ' on' : ''}`} aria-pressed={mode === 'month'} onClick={() => setMode('month')}>Month</button>
+        </span>
+        <button className="chip" onClick={() => step(-1)} aria-label="Earlier">←</button>
+        <b className="when">{mode === 'week' ? `${day(start)} to ${day(addD(start, 6))}` : new Date(start.slice(0, 7) + '-01T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</b>
+        <button className="chip" onClick={() => step(1)} aria-label="Later">→</button>
+        <button className="chip" onClick={() => setStart(monOf(t))}>Today</button>
+        {data.canCategory && <button className={`chip${editing ? ' on' : ''}`} onClick={() => setEditing(x => !x)}>Edit day categories</button>}
+        {msg && <span className="hint" role="status">{msg}</span>}
+      </div>
+      {editing && (
+        <div className="ops-cal-cats">
+          <p className="hint">Each weekday can have a standing type of post. A day shows whether that post is in the plan yet.</p>
+          <div role="radiogroup" aria-label="How long this lasts">
+            <label><input type="radio" name="scope" checked={scope === 'standing'} onChange={() => setScope('standing')} /> Every week from now on</label>{' '}
+            <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only ({day(start)})</label>
+          </div>
+          <div className="grid">{WEEKDAYS.map((w, k) => { const dd = addD(start, k); return (
+            <label key={w}>{w}<select value={categoryFor(dd, cats)} onChange={e => setCat(w, e.target.value)}>
+              <option value="">No category</option>{[...new Set([...POST_TYPES, categoryFor(dd, cats)].filter(Boolean))].map(c => <option key={c}>{c}</option>)}</select></label>); })}</div>
+        </div>)}
+      <div className={`ops-cal-grid ${mode}`}>
+        {mode === 'month' && WEEKDAYS.map(w => <div key={w} className="head">{w.slice(0, 3)}</div>)}
+        {days.map(d => { const { ps, cat, st } = dayCell(d), other = mode === 'month' && d.slice(0, 7) !== start.slice(0, 7); return (
+          <div key={d} className={`day s-${st.state}${d === t ? ' today' : ''}${other ? ' other' : ''}`}
+            onDragOver={e => { if (drag != null) e.preventDefault(); }} onDrop={() => { if (drag != null) move(drag, d); setDrag(null); }}>
+            <div className="dh"><b>{mode === 'week' ? day(d) : Number(d.slice(8))}</b>
+              {mode === 'month' && ps.length > 0 && <span className="n">{ps.length}</span>}</div>
+            {cat && <div className="cat" title={STATE_LABEL[st.state]}>{cat}</div>}
+            {cat && <div className={`sl ${st.state}`}>{STATE_LABEL[st.state]}{st.state === 'not-filled' && st.instead ? ` · has ${st.instead} instead` : ''}</div>}
+            {mode === 'week' && ps.map(p => (
+              <button key={p._row} className={`post s-${String(p.status).replace(/\s/g, '')}`} draggable={!out(p) && data.canEdit} onDragStart={() => setDrag(p._row)} onClick={() => setOpen(p._row)}
+                aria-label={`${time(p.publish_time_ET)} ${p.status}: ${String(p.caption || '').slice(0, 60)}`}>
+                {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="ph" />}
+                <span className="m"><b>{time(p.publish_time_ET)}</b> {kindLabel(p) || 'Feed'}<span className={`pill s-${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></span>
+                <span className="c">{p.caption || 'No caption yet'}</span>
+                {p.created_by && <span className="by">by {p.created_by.split(' ')[0]}</span>}
+              </button>))}
+            {mode === 'week' && !ps.some(p => isFeed(p)) && d >= t && <div className="slot">Open feed slot 11:00</div>}
+            {mode === 'month' && <button className="more" onClick={() => { setMode('week'); setStart(monOf(d)); }} aria-label={`Open the week of ${day(d)}`}>{ps.length ? `${ps.length} post${ps.length === 1 ? '' : 's'}` : ' '}</button>}
+          </div>); })}
+      </div>
+      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} types={POST_TYPES} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
+        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
+    </div>
   );
 }
