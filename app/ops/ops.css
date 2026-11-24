@@ -945,3 +945,32 @@
 .ops-shell .ops-slides .t img { width: 100%; height: 100%; object-fit: cover; display: block }
 .ops-shell .ops-slides .l { font-size: 13px; overflow-wrap: anywhere }
 .ops-shell .ops-slides .a { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end }
+
+/* Content v2 phase 2: rhythm cards, review list, health */
+.ops-shell .ops-rhythm { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin: 8px 0 12px }
+.ops-shell .ops-rhythm .card { border: 1px solid var(--hair); border-left: 3px solid #4F7B5C; border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px }
+.ops-shell .ops-rhythm .card.warn { border-left-color: #D99A22 }
+.ops-shell .ops-rhythm ul { margin: 0; padding-left: 18px }
+.ops-shell .ops-rev-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hair) }
+.ops-shell .ops-rev-list li { display: grid; grid-template-columns: 32px 64px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--hair); align-items: start }
+.ops-shell .ops-rev-list li.blocked { opacity: .8 }
+.ops-shell .ops-rev-list .pick { min-height: 44px; display: flex; align-items: center; justify-content: center }
+.ops-shell .ops-rev-list .pick input { width: 20px; height: 20px }
+.ops-shell .ops-rev-list .t { width: 64px; height: 80px; background: #e9e3d8; border-radius: 3px; overflow: hidden; display: block }
+.ops-shell .ops-rev-list .t img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .ops-rev-list .b { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 14px }
+.ops-shell .ops-rev-list .cap { color: var(--soft); overflow-wrap: anywhere }
+.ops-shell .ops-rev-list .chips { display: flex; flex-wrap: wrap; gap: 4px }
+.ops-shell .gchip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #e9e3d8 }
+.ops-shell .gchip.bad { background: var(--risk); color: #fff }
+.ops-shell .gchip.flag { background: #D99A22; color: #fff }
+.ops-shell .gchip.ok { background: #4F7B5C; color: #fff }
+.ops-shell .ops-rev-list .why { width: 100%; max-width: 520px }
+.ops-shell .ops-health ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hair) }
+.ops-shell .ops-health li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px }
+.ops-shell .ops-health .lv { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em }
+.ops-shell .ops-health li.High .lv { color: var(--risk) }
+.ops-shell .ops-health li.Medium .lv { color: #B07A12 }
+.ops-shell .ops-health li.Low .lv { color: #4F7B5C }
+.ops-shell .ops-health .b { display: flex; flex-direction: column; gap: 2px }
+.ops-shell .ops-health .b span { color: var(--soft) }
