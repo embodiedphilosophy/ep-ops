@@ -17,6 +17,10 @@ const team = [
   ['Floss Harry', ex('Floss'), 'projects', 'Project Manager, Course Host', 'TRUE', '', ''],
   ['Ichha Nihalani', ex('Ichha'), '', 'Customer Happiness Manager', 'TRUE', '', ''],
   ['Rebecka Oberg', ex('Rebecka'), 'marketing', 'Marketing Assistant, Marketing, Media, Social, Ads', 'TRUE', '', ''],
+  ['Carolyn Boucher', ex('Carolyn'), 'contractor', 'Publisher', 'TRUE', '', ''],
+  ['Stephanie Corigliano', ex('Stephanie'), 'contractor', 'Approver', 'TRUE', '', ''],
+  ['Creator Cleo', ex('Cleo'), 'contractor', 'Creator', 'TRUE', '', ''],
+  ['Viewer Vera', ex('Vera'), 'contractor', 'Viewer', 'TRUE', '', ''],
   ['Abha Rajbhandari', ex('Abha'), 'teacher', 'Teacher', 'TRUE', '2026-09-01', ''],
   ['Mary Reilly Nichols', ex('Mary'), 'teacher', 'Teacher', 'TRUE', '', ''],
   ['Ryan LeMere', ex('Ryan'), 'teacher', 'Teacher', 'TRUE', '', ''],
@@ -88,10 +92,11 @@ const resources = [['group', 'title', 'url', 'teachers'],
   ['Handbooks', 'Teacher guide', 'https://example.com/teacher-guide', 'TRUE'],
   ['Brand', 'Logo and colours', 'https://example.com/brand', 'FALSE'],
   ['Tools', 'Motion', 'https://app.usemotion.com', 'FALSE']];
+const dayNow = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10); // relative to the real today (the social plan's window)
 const day = n => { const d = new Date('2026-10-08T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const WP = ['post_id', 'week_of', 'publish_date', 'publish_time_ET', 'platforms', 'pillar', 'format', 'linked_event', 'quote_id', 'quote_text', 'quote_source', 'image_id', 'image_url', 'preview', 'caption', 'hashtags', 'link', 'status', 'jake_notes', 'posted_at', 'post_links', 'error', 'quote_check', 'ig_feed_id', 'ig_story_id', 'facebook_id', 'linkedin_id', 'image_review'];
 const ST = ['Posted', 'Approved', 'Proposed', 'Proposed', 'Needs edit', 'Proposed', 'Skip', 'Proposed', 'Failed', 'Proposed'];
-const weekly = [WP, ...Array.from({ length: 10 }, (_, i) => { const o = { post_id: `P${100 + i}`, week_of: i < 5 ? '2026-10-05' : '2026-10-12', publish_date: day(i - 3), publish_time_ET: i % 3 ? '11:00' : '09:00',
+const weekly = [WP, ...Array.from({ length: 10 }, (_, i) => { const o = { post_id: `P${100 + i}`, week_of: i < 5 ? '2026-10-05' : '2026-10-12', publish_date: dayNow(i - 3), publish_time_ET: i % 3 ? '11:00' : '09:00',
   platforms: i % 3 ? 'IG Feed, FB' : 'IG Story', pillar: ['Content', 'Practice', 'Marketing'][i % 3], format: 'Single image', linked_event: i % 4 === 2 ? 'The Nine Nights — Śāradīya Navaratri  (Oct 11–Oct 19) — 2026-10-11' : '',
   quote_id: i % 2 ? `Q${i}` : '', quote_text: i % 2 ? 'The Self is the light by which all is seen.' : '', quote_source: i % 2 ? 'Kṣemarāja' : '', image_id: `IMG${i % 4}`, image_url: '', caption: ['Nine nights of the Goddess begin on Sunday.\n\nJoin us live.', 'What is recognition?', 'A verse for tonight.', 'Meditation Mondays: join us at noon.'][i % 4],
   hashtags: '#tantra #yoga', link: 'https://embodiedphilosophy.com/events', status: ST[i], jake_notes: ST[i] === 'Needs edit' ? 'Shorter please' : '', quote_check: i % 2 ? 'Verbatim' : '', error: ST[i] === 'Failed' ? 'Instagram rejected the image size' : '', image_review: i % 3 ? 'Kept' : '' };
@@ -145,7 +150,7 @@ const menteeBooks = [['month', 'starts', 'theme', 'kind', 'title', 'author', 'au
   ['2', '2026-11-16', 'Modern Yoga', 'required', 'The Truth of Yoga', 'Daniel Simpson', '', 'Starts after the first immersion weekend.', '', '', 'TRUE'],
   ['2', '2026-11-16', 'Modern Yoga', 'suggested', 'Yoga Body', 'Mark Singleton', '', '', '', '', 'TRUE']];
 const tabs = { 'Mentee Step Status': stepStatus, 'Mentee Books': menteeBooks, 'Entries': kbEntries, 'Handoffs': kbHandoffs, 'catalog': [['offering_id', 'status', 'programme', 'card_label', 'kind', 'format', 'depth', 'topics', 'title', 'teachers', 'cover_url', 'price_label', 'checkout_url', 'access', 'requires', 'unlock_note', 'length', 'next_date', 'next_session', 'ce_hours', 'description', 'included', 'sessions', 'published_at', 'updated_at']], ...siteTabs, 'Ops Note': undefined, 'Team': team, 'Track Defaults': defaults, 'Master Schedule': schedule, 'Task Templates': templates, 'Weekly Plan': weekly, 'Image Library': imgLib,
-  'Post History': [['ig_media_id', 'posted_at', 'media_type', 'caption', 'permalink', 'like_count', 'comments_count', 'archived_image_id', 'pillar', 'notes'], ...Array.from({ length: 70 }, (_, i) => [`M${i}`, day(-i * 3) + 'T15:00:00Z', 'IMAGE', `Post number ${i}: a verse and a painting.`, 'https://instagram.com/p/x' + i, String(200 - i), String(i % 9), '', 'Content', ''])],
+  'Post History': [['ig_media_id', 'posted_at', 'media_type', 'caption', 'permalink', 'like_count', 'comments_count', 'archived_image_id', 'pillar', 'notes'], ...Array.from({ length: 70 }, (_, i) => [`M${i}`, dayNow(-i * 3 - 1) + 'T15:00:00Z', 'IMAGE', `Post number ${i}: a verse and a painting.`, 'https://instagram.com/p/x' + i, String(200 - i), String(i % 9), '', 'Content', ''])],
   'Quote Library': [['quote_id', 'quote', 'author', 'work', 'publication', 'location', 'source_link', 'themes', 'pillar_fit', 'verified', 'added_by', 'times_used', 'last_used'], ['Q1', 'The Self is the light by which all is seen.', 'Kṣemarāja', 'Pratyabhijñāhṛdayam', '', '', '', 'recognition', 'Content', 'TRUE', 'Jacob', '3', '2026-09-01'], ['Q2', 'Consciousness is the world.', 'Abhinavagupta', 'Tantrāloka', '', '', '', 'nondual', 'Practice', 'FALSE', 'Jacob', '0', '']],
   'Caption Bank': [['snippet_id', 'type', 'program', 'text', 'source', 'approved', 'notes'], ['C1', 'cta', 'sadhana', 'Join us live this week.', '', 'TRUE', '']],
   'Rules': [['setting', 'value', 'notes'], ['Feed posts per week', '5', 'Instagram feed'], ['Approval deadline', 'Sunday 18:00 ET', '']],
@@ -320,6 +325,32 @@ http.createServer(async (req, res) => {
       log('GITHUB DISPATCH', p.split('/').slice(3, 5).join('/'), b.event_type, JSON.stringify(b.client_payload), req.headers.authorization === 'Bearer mock-gh' ? 'token ok' : 'token WRONG');
       res.writeHead(204); return res.end();
     }
+    // Instagram (Graph API, read only): META_GRAPH_URL=$M/graph. Five known posts with new like counts, plus two new ones
+    // that match the plan (same day and caption as P101, and one tomorrow with no plan row).
+    if (p.startsWith('/graph/')) {
+      if (req.method !== 'GET') { log('BLOCKED graph', req.method, p); return send(res, 403, {}); }
+      if (p.endsWith('/debug_token')) return send(res, 200, { data: { is_valid: true, data_access_expires_at: Math.floor(Date.now() / 1000) + 40 * 86400 } });
+      if (p.endsWith('/media')) {
+        const known = Array.from({ length: 5 }, (_, i) => ({ id: `M${i}`, timestamp: dayNow(-i * 3 - 1) + 'T15:00:00+0000', media_type: 'IMAGE', media_product_type: 'FEED', caption: `Post number ${i}: a verse and a painting.`, permalink: 'https://instagram.com/p/x' + i, like_count: 500 + i, comments_count: 7 }));
+        const fresh = [{ id: 'NEW2', timestamp: dayNow(1) + 'T15:00:00+0000', media_type: 'VIDEO', media_product_type: 'REELS', caption: 'A new reel.', permalink: 'https://instagram.com/reel/new2', like_count: 3, comments_count: 0 },
+          { id: 'NEW1', timestamp: dayNow(-2) + 'T16:00:00+0000', media_type: 'IMAGE', media_product_type: 'FEED', caption: 'What is recognition?', permalink: 'https://instagram.com/p/new1', like_count: 12, comments_count: 1 }];
+        log('GRAPH media read'); return send(res, 200, { data: [...fresh, ...known].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), paging: {} });
+      }
+      return send(res, 404, {});
+    }
+    // Google Drive resumable upload: the app opens a session, the browser PUTs the file to it (CORS), then the file is shared
+    if (p.startsWith('/gdrive/upload/drive/v3/files') && req.method === 'POST') {
+      const b = await body(req); const sid = 'S' + Date.now(); log('DRIVE session', JSON.stringify(b), 'origin=' + req.headers.origin);
+      res.writeHead(200, { Location: `http://localhost:${PORT}/gdrive-session/${sid}` }); return res.end('{}');
+    }
+    if (p.startsWith('/gdrive-session/')) {
+      const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': 'PUT,OPTIONS' };
+      if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+      let n = 0; for await (const c of req) n += c.length;
+      const id = 'DRV' + Date.now() + 'abcdefghij'; log('DRIVE FILE', id, n, 'bytes', req.headers['content-type']);
+      res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ id }));
+    }
+    if (p.startsWith('/gdrive/drive/v3/files/') && p.endsWith('/permissions')) { log('DRIVE shared', p.split('/')[5]); return send(res, 200, { id: 'perm' }); }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);
       if (b.action === 'get') {
