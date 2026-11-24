@@ -974,3 +974,43 @@
 .ops-shell .ops-health li.Low .lv { color: #4F7B5C }
 .ops-shell .ops-health .b { display: flex; flex-direction: column; gap: 2px }
 .ops-shell .ops-health .b span { color: var(--soft) }
+
+/* Content v2: calendar */
+.ops-shell .ops-cal .when { font-size: 14px }
+.ops-shell .ops-cal-cats { border: 1px solid var(--hair); border-radius: 4px; padding: 10px 12px; margin: 8px 0; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ops-cal-cats .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px }
+.ops-shell .ops-cal-cats label { display: flex; flex-direction: column; gap: 2px; font-size: 13px }
+.ops-shell .ops-cal-grid { display: grid; gap: 8px; margin-top: 8px }
+.ops-shell .ops-cal-grid.week { grid-template-columns: repeat(7, minmax(0, 1fr)) }
+.ops-shell .ops-cal-grid.month { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px }
+.ops-shell .ops-cal-grid .head { font-size: 12px; font-weight: 700; color: var(--soft); text-transform: uppercase; letter-spacing: .06em }
+.ops-shell .ops-cal-grid .day { border: 1px solid var(--hair); border-radius: 4px; padding: 6px; min-height: 90px; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: #fff }
+.ops-shell .ops-cal-grid.week .day { min-height: 260px }
+.ops-shell .ops-cal-grid .day.today { box-shadow: inset 0 0 0 2px var(--pine) }
+.ops-shell .ops-cal-grid .day.other { opacity: .45 }
+.ops-shell .ops-cal-grid .dh { display: flex; justify-content: space-between; font-size: 12.5px }
+.ops-shell .ops-cal-grid .dh .n { background: #e9e3d8; border-radius: 999px; padding: 0 7px; font-size: 11px }
+.ops-shell .ops-cal-grid .cat { font-size: 12px; font-weight: 600; overflow-wrap: anywhere }
+.ops-shell .ops-cal-grid .sl { font-size: 11px; padding: 1px 6px; border-radius: 3px; align-self: flex-start; background: #e9e3d8 }
+.ops-shell .ops-cal-grid .sl.filled-approved { background: #4F7B5C; color: #fff }
+.ops-shell .ops-cal-grid .sl.filled-awaiting { background: #D99A22; color: #fff }
+.ops-shell .ops-cal-grid .sl.filled-blocked, .ops-shell .ops-cal-grid .sl.missed { background: var(--risk); color: #fff }
+.ops-shell .ops-cal-grid .sl.not-filled { background: #f1d9c9 }
+.ops-shell .ops-cal-grid .post { display: flex; flex-direction: column; gap: 3px; text-align: left; border: 1px solid var(--hair); background: var(--ivory, #FAF5EB); border-radius: 4px; padding: 4px; cursor: pointer; font: inherit; color: inherit; min-width: 0 }
+.ops-shell .ops-cal-grid .post[draggable=true] { cursor: grab }
+.ops-shell .ops-cal-grid .post img, .ops-shell .ops-cal-grid .post .ph { width: 100%; aspect-ratio: 4/5; object-fit: cover; background: #e9e3d8; border-radius: 3px; display: block }
+.ops-shell .ops-cal-grid .post .m { font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center }
+.ops-shell .ops-cal-grid .post .pill { margin: 0; font-size: 10.5px; padding: 1px 6px }
+.ops-shell .ops-cal-grid .post .c { font-size: 12px; color: var(--soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere }
+.ops-shell .ops-cal-grid .post .by { font-size: 11px; color: var(--soft) }
+.ops-shell .ops-cal-grid .slot { border: 1px dashed var(--hair); border-radius: 4px; font-size: 12px; color: var(--soft); padding: 8px 6px; text-align: center }
+.ops-shell .ops-cal-grid .more { border: 0; background: none; text-align: left; font-size: 11.5px; color: var(--soft); padding: 2px 0; cursor: pointer; margin-top: auto; min-height: 24px }
+@media (max-width: 860px) {
+  .ops-shell .ops-cal-grid.week { grid-template-columns: 1fr }
+  .ops-shell .ops-cal-grid.week .day { min-height: 0 }
+  .ops-shell .ops-cal-grid.month .day { min-height: 56px; padding: 3px }
+  .ops-shell .ops-cal-grid.month .cat, .ops-shell .ops-cal-grid.month .sl { display: none }
+}
+.ops-shell .ops-cal-cats [role=radiogroup] { display: flex; flex-wrap: wrap; gap: 6px 18px }
+.ops-shell .ops-cal-cats [role=radiogroup] label { flex-direction: row; align-items: center; gap: 6px }
+.ops-shell .ops-cal-cats input[type=radio] { width: auto; min-height: 0; margin: 0 }
