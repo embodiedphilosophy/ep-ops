@@ -143,7 +143,11 @@ const zdComments = { 9101: [{ id: 1, author_id: 1, public: true, created_at: zdT
 const stepStatus = [['email', 'circle_member_id', 'step_id', 'status', 'done_at', 'note', 'updated_by', 'updated_at'],
   ...['maya', 'sam', 'lee'].map(n => [n + '@mentee.test', '', 's-2026-11-start-your-project-notebook', 'done', '2026-11-27T19:00:00Z', '', 'mentee', '2026-11-27T19:00:00Z']),
   ['priya@mentee.test', '', 'r-q1-1', 'done', '2026-11-20T10:00:00Z', '', 'mentee', '2026-11-20T10:00:00Z'],
-  ['maya@mentee.test', '', '1to1-2026-11', 'summary', '', 'I want to work on how I open a class.', 'mentee', '2026-11-21T10:00:00Z']];
+  ['maya@mentee.test', '', '1to1-2026-11', 'summary', '', 'I want to work on how I open a class.', 'mentee', '2026-11-21T10:00:00Z'],
+  // "This month" ticks and skips (m:<YYYY-MM>:<key>): the Progress tab and the student reports
+  ['maya@mentee.test', '', 'm:2026-11:buddy', 'skipped', '', '', 'mentee', '2026-11-24T10:00:00Z'],
+  ['sam@mentee.test', '', 'm:2026-11:buddy', 'done', '2026-11-23T10:00:00Z', '', 'mentee', '2026-11-23T10:00:00Z'],
+  ['lee@mentee.test', '', 'm:2026-11:reflection', 'done', '2026-11-22T10:00:00Z', 'auto', 'mentee', '2026-11-22T10:00:00Z']];
 // Mentee Books: the reading list (Ops → Mentee year edits these rows from the month list)
 const menteeBooks = [['month', 'starts', 'theme', 'kind', 'title', 'author', 'audio', 'note', 'search', 'asin', 'publish'],
   ['1', '2026-10-21', 'The Condition of Education', 'required', 'Education’s End', 'Anthony Kronman', '', '', '', '', 'TRUE'],
