@@ -9,5 +9,5 @@ export const metadata = { title: 'Email calendar — Embodied Philosophy', robot
 
 export default async function Page() {
   const user = await opsUser(isStaff);
-  return <Shell user={user} current="email-calendar"><EmailCalendar /></Shell>;
+  return <Shell user={user} current="email-emails"><EmailCalendar /></Shell>;
 }

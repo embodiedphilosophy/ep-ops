@@ -24,10 +24,11 @@ export default async function Page() {
   const how = String(rules.rows.find(r => /how.?to.?video/i.test(r.values.setting))?.values.value || '');
   const people = team.filter(t => canEditSocial(t) || t.director).map(t => ({ name: t.name, roles: t.roles.join(', '), create: canEditSocial(t), approve: canApproveSocial(t), publish: canPublishSocial(t) }));
   return (
-    <Shell user={user} current="social-team">
+    <Shell user={user} current="social-review">
       <div className="soc">
         <header className="soc-head"><div><span className="eyebrow">Content · Social</span><h1>Team &amp; <em>roles</em></h1>
-          <p>Who can make, approve and schedule posts. Roles come from the Team tab; ask a director to change someone’s roles in Settings.</p></div></header>
+          <p>Who can make, approve and schedule posts. Roles come from the Team tab; ask a director to change someone’s roles in Settings.</p></div>
+          <div className="soc-act"><a className="soc-btn" href="/ops/social/review">← Review &amp; approve</a></div></header>
         <section className="soc-panel" aria-label="People">
           <div className="ph"><h2>People</h2></div>
           <div style={{ overflowX: 'auto' }}><table className="ops-table"><thead><tr><th>Name</th><th>Roles</th><th>Makes posts</th><th>Approves</th><th>Schedules and publishes</th></tr></thead>
