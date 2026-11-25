@@ -176,6 +176,13 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
     setBusy(false);
     if (j.ok && j.deleted) { onSaved(); close(); } else setMsg(j.error || 'That post can’t be deleted (it may be approved or published).');
   };
+  const [live, setLive] = useState(false);
+  useEffect(() => { if (canPublish) fetch('/api/ops/social?view=plan&flags=1').then(r => r.json()).then(j => setLive(!!j.publishLive)).catch(() => {}); }, [canPublish]);
+  const postNow = async () => {
+    if (!confirm('Post this to Instagram now? It goes out straight away and can’t be undone from here.')) return;
+    setBusy(true); const j = await api({ view: 'plan', publishNow: { row: p._row } }); setBusy(false);
+    if (j.ok) { onSaved(); setMsg('Posted to Instagram.'); } else { onSaved(); setMsg(j.error || 'Couldn’t post it'); }
+  };
   const markPosted = async () => {
     setBusy(true); const j = await api({ view: 'plan', markPosted: { row: p._row } }); setBusy(false);
     if (j.ok) { onSaved(); setMsg('Marked posted.'); } else setMsg(j.error || 'Couldn’t mark it posted');
@@ -379,7 +386,8 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
             {thread}
             {status === 'Unconfirmed' && <p className="hint">Approved, but Instagram hasn’t confirmed it went out. The hourly check marks it Posted once it finds it.</p>}
             {status === 'Expired' && <p className="hint">This wasn’t approved before its time, so it didn’t go out. Move it to a new date and approve it, or delete it.</p>}
-            {kind !== 'single' && canPublish && <p className="hint">Approving a carousel, Reel or Story marks it “Manual”: it is ready to post by hand. Automatic posting for these starts with the next update.</p>}
+            {live && canPublish && !isNew && ['Approved', 'Manual', 'Failed'].includes(p.status) && <button type="button" className="chip primary" disabled={busy} onClick={postNow}>Post to Instagram now</button>}
+            {!live && kind !== 'single' && canPublish && <p className="hint">Approving a carousel, Reel or Story marks it “Manual”: it is ready to post by hand. Automatic posting for these starts with the next update.</p>}
             {canEdit && isNew && (
               <div className="bar">
                 {canPublish && <button type="button" className="chip primary" disabled={busy} onClick={() => save({ status: 'Approved' })}>Add and approve</button>}

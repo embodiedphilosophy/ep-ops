@@ -247,8 +247,15 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 ## Coming up & campaigns, clip requests, Team & roles (Content v2)
 - **Pages**: `/ops/social/campaigns` (`app/ops/social/Campaigns.js`, API `app/api/ops/social/campaigns/route.js`) and `/ops/social/team` (read-only: people from the Team tab, sign-off rules, how-to video link).
 - **Tabs in the EP Social Engine sheet**, made on first use by `lib/ops/socialdata.js`: Coming Up (Promote / Campaign / Skip per Master Schedule event; unset = Promote), Campaigns, Campaign Steps, Clip Requests.
-- **Campaign** = a countdown of N days (default 5) ending two days before the event, plus a launch step on the day. Dates, times, themes and teacher are editable per step; defaults are a guess to confirm with Jake (open item: which teacher takes which day, and whether day 1 is two days out).
+- **Campaign** = a countdown of N days (default 5) ending the day before the event, plus a launch step on the day. Day 1 is the day before the event (Jake: 31 Dec for Meditation Resolution on 1 Jan). Dates, times, themes and teacher are editable per step; a teacher is optional on any day: if one does a social media takeover that day, add them and request their clip.
 - **Add to the calendar** writes one *Proposed* Weekly Plan row per step (Reel for countdown days, feed post for launch), linked to the event. Nothing is approved or posted.
 - **Clip requests**: steps with a teacher get a request (status Requested, due a week before the post, owner = the Creator in Team). Statuses: Not requested, Requested, In edit, Ready. No email is sent yet; the owner sees them on the page.
 - **How-to video**: add a Rules-tab row called "How-to video" with the URL; the Team page links to it.
 - Test: `scripts/ops-test/campaigns-api.sh` (17, fresh run.sh) and `campaigns.cjs` (browser, desktop and phone).
+
+## Posting straight to Instagram (Content v2)
+- `lib/ops/igpublish.js` posts one Weekly Plan row through the Graph API: single picture, carousel (children then parent), Reel (waits for Instagram to process the video), Story; then the first comment. Pictures and videos are the Drive links Instagram downloads itself.
+- **Off until `META_PUBLISH=live`** (with `META_ACCESS_TOKEN` + `META_IG_USER_ID`, the same as the sync). While off, carousels, Reels and Stories still approve to "Manual" and are posted by hand.
+- When on: the post editor shows "Post to Instagram now" for Approved / Manual / Failed posts (people who schedule only). The row is set to Publishing first (a second click can't double-post), then Posted with its link, or Failed with the reason in the notes. Approving a carousel/Reel/Story no longer makes it Manual.
+- Not built yet: posting at the scheduled time. Only "Post now" exists; Make still publishes single pictures at their time.
+- Test: `scripts/ops-test/ig-publish.sh off|live` against the mock Graph API (see the script header). A real test post needs Jacob's explicit OK.

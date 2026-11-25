@@ -20,11 +20,11 @@ t "campaign made" "$C" "C001"
 t "second campaign for the same event refused" "$(P $J "{\"action\":\"campaign\",\"event_id\":\"$E\"}" | q "'error' in d")" "True"
 r=$(G $J); t "six steps (5 to 1 and launch)" "$(echo "$r" | q "len(d['campaigns'][0]['steps'])")" "6"
 t "event now shows Campaign" "$(echo "$r" | q "[e for e in d['events'] if e['id']=='$E'][0]['state']")" "Campaign"
-t "day 5 is six days out, day 1 two days out" "$(echo "$r" | python3 -c "
+t "day 5 is five days out, day 1 the day before" "$(echo "$r" | python3 -c "
 import sys,json,datetime as D
 d=json.load(sys.stdin); ev=[e for e in d['events'] if e['date'] and e['id']=='$E'][0]; ed=D.date.fromisoformat(ev['date'])
 s={x['step']:D.date.fromisoformat(x['date']) for x in d['campaigns'][0]['steps']}
-print((ed-s['5']).days,(ed-s['1']).days,(ed-s['0']).days)")" "6 2 0"
+print((ed-s['5']).days,(ed-s['1']).days,(ed-s['0']).days)")" "5 1 0"
 P $J "{\"action\":\"step\",\"campaign_id\":\"$C\",\"step\":\"5\",\"changes\":{\"teacher\":\"Nataraj\"}}" >/dev/null
 P $J "{\"action\":\"step\",\"campaign_id\":\"$C\",\"step\":\"4\",\"changes\":{\"teacher\":\"Onika\"}}" >/dev/null
 t "apply adds six proposals" "$(P $J "{\"action\":\"apply\",\"campaign_id\":\"$C\"}" | q "d['added']")" "6"
