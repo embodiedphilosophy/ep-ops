@@ -133,6 +133,7 @@ const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimon
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
 const kitDrafts = [];
+const kitTags = [{ id: 1, name: 'Navaratri 2026' }, { id: 2, name: 'Member: Wisdom School' }, { id: 3, name: 'Enrolled · Fall 2026' }];
 // Weekly Scaffolding issues relative to today: two went out (published in Kit), one never did
 const sunday = k => { const d = new Date(Date.now() + (((7 - new Date().getUTCDay()) % 7) + 7 * k) * 864e5); return d.toISOString().slice(0, 10); };
 const scaffIssues = [[sunday(-3), 'Sent', '7', 'Gathering the threads', 'A quiet week', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'https://app.kit.com/campaigns/301/draft'],
@@ -453,6 +454,7 @@ http.createServer(async (req, res) => {
     if (p.startsWith('/kit/')) {
       // Promo-email drafts (Publish → Email): logged, never real. Anything else written to Kit is refused.
       if (req.method === 'POST' && p.endsWith('/broadcasts')) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks', JSON.stringify(b.content_tree).length, 'chars'); const id = 900 + (kitDrafts.length); kitDrafts.push({ id, ...b }); log('KIT DRAFT CREATED', id, b.subject, '|', b.description, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
+      if (req.method === 'POST' && p.endsWith('/tags')) { const b = await body(req); const t = { id: 100 + kitTags.length, name: b.name }; kitTags.push(t); log('KIT TAG CREATED', t.name); return send(res, 200, { tag: t }); }
       if (req.method === 'PUT' && /\/broadcasts\/(2\d\d)$/.test(p)) { // description-only write (attach an email to an event)
         const b = await body(req), x = kitExtra.find(k => k.id === Number(p.split('/').pop())); if (!x) return send(res, 404, {});
         if (Object.keys(b).join() !== 'description') { log('BLOCKED kit', 'PUT wrote more than the description', Object.keys(b).join()); return send(res, 403, {}); }
@@ -463,7 +465,7 @@ http.createServer(async (req, res) => {
       if (p.endsWith('/segments')) return send(res, 200, { segments: [{ id: 5, name: 'Hold: Not yet welcomed' }], pagination: {} });
       if (req.method === 'PUT' && /\/broadcasts\/\d+$/.test(p)) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks'); const id = Number(p.split('/').pop()); const dr = kitDrafts.find(x => x.id === id); if (dr) Object.assign(dr, b); log('KIT DRAFT UPDATED', id, b.subject, '| send_at', b.send_at, '| keys', Object.keys(b).join()); return send(res, 200, { broadcast: { id, ...(dr || b) } }); }
       if (req.method !== 'GET') { log('BLOCKED kit', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
-      if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }, { id: 2, name: 'Member: Wisdom School' }, { id: 3, name: 'Enrolled · Fall 2026' }], pagination: {} });
+      if (req.method === 'GET' && p.endsWith('/tags')) return send(res, 200, { tags: kitTags, pagination: {} });
       if (/\/tags\/\d+\/subscribers/.test(p)) return send(res, 200, { subscribers: ['Maya', 'Sam', 'Lee', 'Priya', 'Noor', 'Tomas', 'Wen'].map((n, i) => ({ id: 100 + i, first_name: n, email_address: n.toLowerCase() + '@mentee.test' })), pagination: { has_next_page: false, total_count: 7 } });
       if (/\/broadcasts\/\d+$/.test(p)) { const id = Number(p.split('/').pop()); const d = kitDrafts.find(x => x.id === id); return send(res, d ? 200 : 404, d ? { broadcast: { send_at: null, ...d } } : { error: 'not found' }); }
       if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }, { id: 2, name: 'Member: Wisdom School' }, { id: 3, name: 'Enrolled · Fall 2026' }], pagination: {} });

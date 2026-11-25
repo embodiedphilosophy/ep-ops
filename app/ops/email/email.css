@@ -41,3 +41,7 @@
 .soc .em-rule-h { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; } .soc .em-rule-h .b { flex: 1 1 240px; min-width: 0; }
 .soc .em-sw { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; } .soc .em-rule-f { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line, #e4ddcc); border-radius: 6px; background: #fffdf8; }
 .soc .em-verse { margin: 8px 0; padding: 10px 14px; border-left: 3px solid #9C7E1E; background: #fbf7ee; } .soc .em-verse div { margin: 3px 0; }
+.soc .em-tl { overflow-x: auto; border: 1px solid var(--line, #e4ddcc); border-radius: 6px; background: #fffdf8; } .soc .em-tl-in { padding-bottom: 6px; }
+.soc .em-tl-head { display: flex; font: 10px 'JetBrains Mono', monospace; color: #6b6450; height: 22px; border-bottom: 1px solid var(--line, #e4ddcc); } .soc .em-tl-head span { flex: none; overflow: visible; white-space: nowrap; } .soc .em-tl-head .now { color: #A5432A; font-weight: 700; }
+.soc .em-tl-lane { display: flex; align-items: flex-start; min-height: 46px; border-bottom: 1px solid var(--line, #f0e9d8); } .soc .em-tl-l { flex: none; width: 110px; padding: 8px; font-size: 12px; }
+.soc .em-tl-t { position: relative; flex: none; min-height: 46px; } .soc .em-tl-i { position: absolute; top: 6px; max-width: 160px; padding: 2px 6px; border-radius: 3px; color: #fff; font: 500 11px/1.4 Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
