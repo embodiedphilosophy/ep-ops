@@ -16,7 +16,7 @@ export function Teachers() {
 
 function Home({ tab }) {
   const [d, setD] = useState(null); const [rev, setRev] = useState(null); const [err, setErr] = useState(''); const [msg, setMsg] = useState(''); const [show, setShow] = useState('all'); const [panel, setPanel] = useState(false); const side = useSide(panel);
-  const [nu, setNu] = useState({ name: '', email: '' });
+  const [nu, setNu] = useState({ name: '', email: '', onboard: true });
   const load = useCallback(async () => {
     const get = async u => { const res = await fetch(u).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the teachers'); return null; } return j; };
     setD(await get(API)); setRev(await get(`${API}?what=review`));
@@ -48,7 +48,9 @@ function Home({ tab }) {
         </section>
         {d.canEdit && <section className="soc-panel" aria-label="Add a teacher"><div className="ph"><h2>Add a teacher</h2></div>
           <div className="em-two"><label className="em-f"><span className="cap">Name</span><input value={nu.name} onChange={e => setNu({ ...nu, name: e.target.value })} /></label><label className="em-f"><span className="cap">Email</span><input value={nu.email} onChange={e => setNu({ ...nu, email: e.target.value })} /></label></div>
-          <button className="soc-btn small" disabled={!nu.name.trim() || !nu.email.trim()} onClick={() => run(async () => { await post({ action: 'create', ...nu }); setNu({ name: '', email: '' }); }, 'Added.')}>Add</button></section>}
+          <label className="em-sw"><input type="checkbox" checked={nu.onboard} onChange={e => setNu({ ...nu, onboard: e.target.checked })} /> Email them their onboarding link now (this also lets them sign in as a teacher)</label>
+          <p className="sub">Without it, this only starts a profile here: nothing is sent. To ask them to teach something, use <a href="/ops/team?tab=invitations">Faculty → Invitations</a>.</p>
+          <button className="soc-btn small" disabled={!nu.name.trim() || !nu.email.trim()} onClick={() => run(async () => { const j = await post({ action: 'create', ...nu }); setNu({ name: '', email: '', onboard: true }); return j; }, j => j?.message || 'Added.')}>Add</button></section>}
       </>}
     </Layout>);
 }

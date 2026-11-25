@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { signContract, decline } from '@/lib/ops/faculty';
+import { signContract, decline, accept } from '@/lib/ops/faculty';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +11,7 @@ export async function POST(req) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
   try {
     if (b.action === 'decline') { await decline(b.token, base); return NextResponse.json({ ok: true }); }
+    if (b.action === 'accept') { const inv = await accept(b.token, { base }); return NextResponse.json({ ok: true, status: inv.status }); }
     if (b.action === 'sign') { const inv = await signContract(b.token, { name: b.name, agree: !!b.agree }, { ip, base }); return NextResponse.json({ ok: true, status: inv.status }); }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (e) {

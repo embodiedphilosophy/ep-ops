@@ -11,6 +11,7 @@ const post = async body => {
 export function InviteForm({ offerings, templates, kinds, units }) {
   const router = useRouter();
   const [f, setF] = useState({ name: '', email: '', kind: kinds[0], offering: '', title: '', fee: '', fee_unit: 'session', message: '', template: templates[0] || '', terms: '' });
+  const noAgreement = !f.template;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [preview, setPreview] = useState('');
@@ -46,12 +47,13 @@ export function InviteForm({ offerings, templates, kinds, units }) {
           <select aria-label="Fee is" value={f.fee_unit} onChange={set('fee_unit')}>{units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}</select></div>
         <span className="hint">Goes into the agreement and, once taught, into Finance → To pay.</span></div>
       <div className="row"><label htmlFor="iv-msg">Personal note</label><textarea id="iv-msg" rows={4} value={f.message} onChange={set('message')} placeholder="A few warm lines from you (blank: a short standard invitation)" /></div>
-      <div className="row"><label htmlFor="iv-tpl">Agreement</label><select id="iv-tpl" value={f.template} onChange={set('template')}>{templates.map(t => <option key={t}>{t}</option>)}</select></div>
-      <div className="row"><label htmlFor="iv-terms">Course-specific terms</label><textarea id="iv-terms" rows={3} value={f.terms} onChange={set('terms')} placeholder="Fills {{terms}} in the agreement, e.g. recording rights, number of sessions" /></div>
+      <div className="row"><label htmlFor="iv-tpl">Agreement</label><select id="iv-tpl" value={f.template} onChange={set('template')}>{templates.map(t => <option key={t}>{t}</option>)}<option value="">No agreement: they just accept</option></select>
+        <span className="hint">{noAgreement ? <>They say yes, go on the sessions and get their onboarding link. {!templates.length && <>To have them sign an agreement, add one in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</>}</> : 'They read and sign it online before onboarding.'}</span></div>
+      {!noAgreement && <div className="row"><label htmlFor="iv-terms">Course-specific terms</label><textarea id="iv-terms" rows={3} value={f.terms} onChange={set('terms')} placeholder="Fills {{terms}} in the agreement, e.g. recording rights, number of sessions" /></div>}
       {preview && <div className="row"><span className="hint">The agreement as they will read it</span><pre className="ops-contract">{preview}</pre></div>}
       <div className="bar">
         <button className="chip primary" disabled={busy}>{busy ? 'Working…' : 'Send invitation'}</button>
-        <button type="button" className="chip" disabled={busy} onClick={() => run('preview')}>Preview the agreement</button>
+        {!noAgreement && <button type="button" className="chip" disabled={busy} onClick={() => run('preview')}>Preview the agreement</button>}
         {err && <span className="hint">{err}</span>}
       </div>
     </form>
@@ -74,6 +76,53 @@ export function InviteActions({ id, status, link, contract }) {
       {status === 'sent' && <button className="chip" onClick={copy}>Copy link</button>}
       {status === 'sent' && <button className="chip" onClick={() => act('resend')}>Send again</button>}
       {status === 'sent' && <button className="chip" onClick={() => act('cancel', 'Cancel this invitation? Its link stops working.')}>Cancel</button>}
+      {msg && <small>{msg}</small>}
+    </span>
+  );
+}
+
+// Faculty → People: add someone, take them off (they can't sign in; nothing is deleted), bring them back,
+// and send a teacher their onboarding link
+export function AddPerson({ types, director }) {
+  const router = useRouter();
+  const [f, setF] = useState({ name: '', email: '', type: 'teacher', roles: '', onboard: true });
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
+  const set = k => e => setF(s => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const t = types.find(x => x.value === f.type);
+  const submit = async e => {
+    e.preventDefault(); setBusy(true); setErr(''); setMsg('');
+    const j = await post({ action: 'addPerson', ...f, onboard: f.type === 'teacher' && f.onboard });
+    setBusy(false);
+    if (j.error) return setErr(j.error);
+    setMsg(j.message); setF(s => ({ ...s, name: '', email: '', roles: '' })); router.refresh();
+  };
+  return (
+    <form className="ops-edit ops-add" onSubmit={submit} aria-label="Add someone">
+      <div className="row"><label htmlFor="pp-name">Name</label><input id="pp-name" value={f.name} onChange={set('name')} required /></div>
+      <div className="row"><label htmlFor="pp-email">Email</label><input id="pp-email" type="email" value={f.email} onChange={set('email')} required /></div>
+      <div className="row"><label htmlFor="pp-type">They are</label>
+        <select id="pp-type" value={f.type} onChange={set('type')}>{types.filter(x => director || !x.director).map(x => <option key={x.value} value={x.value}>{x.label}</option>)}</select>
+        {t && <span className="hint">{t.note}</span>}</div>
+      {f.type !== 'teacher' && <div className="row"><label htmlFor="pp-roles">Roles</label><input id="pp-roles" value={f.roles} onChange={set('roles')} placeholder="e.g. Social, Marketing, Course Host" /><span className="hint">Comma-separated. Social, Marketing, Media, Editor, Approver and Publisher open those parts of Ops.</span></div>}
+      {f.type === 'teacher' && <div className="row"><label className="inline"><input type="checkbox" checked={f.onboard} onChange={set('onboard')} /> Email them their onboarding link now</label></div>}
+      <div className="bar"><button className="chip primary" disabled={busy}>{busy ? 'Adding…' : 'Add to the team'}</button>{err && <span className="hint">{err}</span>}{msg && <span className="hint">{msg}</span>}</div>
+    </form>
+  );
+}
+
+export function PersonActions({ email, name, active, teacher, self }) {
+  const router = useRouter();
+  const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const act = async (action, confirmText) => {
+    if (confirmText && !confirm(confirmText)) return;
+    setBusy(true); const j = await post({ action, email, name }); setBusy(false);
+    setMsg(j.error || j.message || ''); if (!j.error && action !== 'onboardingLink') router.refresh();
+  };
+  return (
+    <span className="acts">
+      {active && teacher && <button className="chip" disabled={busy} onClick={() => act('onboardingLink')}>Send onboarding link</button>}
+      {active && !self && <button className="chip" disabled={busy} onClick={() => act('removePerson', `Take ${name} off the team?\n\nThey won’t be able to sign in to Ops any more. Nothing is deleted, and you can bring them back.`)}>Remove</button>}
+      {!active && <button className="chip" disabled={busy} onClick={() => act('restorePerson')}>Bring back</button>}
       {msg && <small>{msg}</small>}
     </span>
   );
