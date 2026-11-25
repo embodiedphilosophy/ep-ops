@@ -58,14 +58,14 @@ export async function POST(req) {
       else await add('Coming Up', { event_id: ev.id, title: ev.title, date: ev.date, kind: 'event', ...v }, me);
       refreshSite(); return NextResponse.json({ ok: true });
     }
-    if (b.action === 'campaign') { // start a campaign for an event: a countdown of N days ending two days before, and the launch on the day
+    if (b.action === 'campaign') { // start a campaign for an event: a countdown of N days ending the day before, and the launch on the day
       const ev = (await loadCalendar()).find(e => e.id === b.event_id); if (!ev) return bad('That event isn’t on the Master Schedule');
       const camps = await rowsOf('Campaigns');
       if (camps.some(c => c.values.event_id === ev.id)) return bad('This event already has a campaign');
       const n = Math.min(10, Math.max(1, Number(b.days) || 5)), id = nextId(camps, 'id', 'C');
       await add('Campaigns', { id, name: String(b.name || ev.title).slice(0, 120), event_id: ev.id, link_url: String(b.link_url || ''), status: 'Planning', updated_by: me }, me);
       const rows = [];
-      for (let i = n; i >= 1; i--) rows.push({ campaign_id: id, step: String(i), date: addDays(ev.date, -(i + 1)), time_et: '11:00', theme: `${i} ${i === 1 ? 'day' : 'days'} to go`, teacher: '' });
+      for (let i = n; i >= 1; i--) rows.push({ campaign_id: id, step: String(i), date: addDays(ev.date, -i), time_et: '11:00', theme: `${i} ${i === 1 ? 'day' : 'days'} to go`, teacher: '' });
       rows.push({ campaign_id: id, step: '0', date: ev.date, time_et: '09:00', theme: 'Doors open', teacher: '' });
       for (const r of rows) await add('Campaign Steps', r, me);
       const cur = (await rowsOf('Coming Up')).find(r => r.values.event_id === ev.id);
