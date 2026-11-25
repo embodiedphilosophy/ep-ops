@@ -78,6 +78,9 @@ const schedule = [H,
   ev('2026-12-05', 'SSWW', 'SS Weekend Workshop — Winter on-ramp', T('Jacob Kyle')),
   ev('2026-11-14', 'EVENT', 'Spanda Intensive  (Nov 14–Nov 15)', { ...T('Tova Olsson'), Time: '10am ET', 'Public Title': 'Spanda Intensive', Summary: 'Two mornings with the Spanda Kārikās.' }),
   ev(soon(37), 'EVENT', 'Meditation Resolution 2027', { ...T('Floss Harry'), Time: '12pm ET', Website: 'TRUE', 'Registration URL': 'https://enroll.embodiedphilosophy.com/resolution', Price: '$0' }),
+  // Media: two Meditation Mondays that have happened in the last month, so there are recordings to post
+  ev(soon(-3), 'MM', 'Meditation Monday', { ...T('Floss Harry'), Time: '12pm ET', Website: 'TRUE' }),
+  ev(soon(-10), 'MM', 'Meditation Monday', { ...T('Floss Harry'), Time: '12pm ET', Website: 'TRUE' }),
   // Reminder rules (Teachers & Email phase 3): sessions with and without a Zoom link
   ev(soon(3), 'SS', 'Sādhana School — Fall 2026 wk 7', { ...T('Jacob Kyle'), Time: '12pm ET', Website: 'TRUE', 'Zoom Link': 'https://us02web.zoom.us/j/81234567890' }),
   ev(soon(5), 'EVENT', 'Open Session 3 — Tasting the Real', { ...T('Floss Harry'), Time: '6pm ET', Website: 'TRUE', 'Zoom Link': 'https://us02web.zoom.us/j/82345678901' }),

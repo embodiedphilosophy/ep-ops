@@ -22,7 +22,7 @@ import { flagOf } from '../SocialGrid';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Content — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const TABS = [['email', 'Promo emails'], ['media', 'Media']];
+const TABS = [['email', 'Promo emails']];
 
 // Is everything we publish moving? Social, Email and Media, and Review: what teachers sent for the website.
 // The website's own tables live in Settings.
@@ -39,6 +39,7 @@ export default async function Content({ searchParams }) {
   if (sp?.tab === 'website') redirect(`/ops/settings${sp?.t ? `?t=${encodeURIComponent(sp.t)}` : ''}`);
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   // The old Overview (status board, Next posts) is gone: This week is the new front page, and Next posts lives in Social
+  if (sp?.tab === 'media') redirect('/ops/email/media'); // Media moved into Teachers & Email
   if (sp?.tab === 'review') redirect('/ops/email/teachers?tab=review'); // teacher bios and course pages are reviewed under Teachers now
   if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/email');
   const tab = sp.tab;
