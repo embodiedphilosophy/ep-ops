@@ -67,6 +67,8 @@ export default function ReviewPage({ closes }) {
               <li key={k} className={i.level}>
                 <span className="lv">{i.level}</span>
                 <span className="t"><b>{i.title}</b><span>{i.detail}</span></span>
+                {i.action?.kind === 'deleteExpired' && <button type="button" className="soc-btn small danger" disabled={busy}
+                  onClick={async () => { if (!confirm(`Delete all ${i.action.n} expired posts?\n\nThey were never approved or posted. They are hidden from the plan; nothing is wiped from the sheet.`)) return; setBusy(true); const j = await api({ view: 'plan', deleteExpired: true }); setBusy(false); setMsg(j.ok ? `${j.deleted} expired posts deleted.` : j.error); reload(); }}>Delete all {i.action.n}</button>}
                 {i.link && <a className="soc-btn small" href={i.link}>Open</a>}
               </li>))}</ul>)}
         </aside>
