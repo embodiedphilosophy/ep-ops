@@ -48,3 +48,10 @@
 .soc .em-av { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #eadfc6; font-weight: 600; flex: none; }
 .soc .em-diff .add { background: #dcefd9; } .soc .em-diff .del { background: #f6d9d3; text-decoration: line-through; } .soc .em-diff { line-height: 1.6; }
 .soc .em-crops { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin: 8px 0; } .soc .em-crops figure { margin: 0; text-align: center; } .soc .em-crops img { display: block; max-width: 100%; height: auto; }
+/* This week: each event's emails, each linked to where it is edited */
+.soc .em-evmails { flex: 1 1 100%; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding-left: 2px; }
+.soc .em-evmails ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.soc .em-evmails li { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.soc .em-evmails .meta { font-size: 12px; color: var(--ink-soft); }
+.soc .em-evmails a:not(.soc-btn) { color: var(--terra, #A5432A); white-space: nowrap; }
+.soc .em-evmails .sub { font-size: 12px; color: var(--ink-soft); }

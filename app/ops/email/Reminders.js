@@ -57,7 +57,7 @@ export function Reminders() {
         </section>
         <section className="soc-panel" aria-label="Handled elsewhere">
           <div className="ph"><h2>Handled elsewhere</h2><span className="sub">Not rules here, on purpose.</span></div>
-          <ul className="em-list">{d.builtIn.map(b => <li key={b.key} className="em-row"><div className="b"><b>{b.name}</b><br /><span className="sub">{b.how}</span></div></li>)}</ul>
+          <ul className="em-list">{d.builtIn.map(b => <li key={b.key} id={`builtin-${b.key}`} className="em-row"><div className="b"><b>{b.name}</b><br /><span className="sub">{b.how}</span></div></li>)}</ul>
         </section></>}
     </Layout>);
 }
