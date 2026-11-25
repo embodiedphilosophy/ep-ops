@@ -45,7 +45,7 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   // the lock: a forged request cannot claim Verbatim for words that are not a verified quote
   const forged = execSync(`curl -s -H "Cookie: ep_ops=${C}" -H 'Content-Type: application/json' -X POST http://localhost:3100/api/ops/social -d '${JSON.stringify({ view: 'plan', row: row.row, before: row.values, changes: { quote_id: 'Q2', quote_check: 'Verbatim' } })}'`).toString();
   t('an unverified quote id is refused', /verified/.test(forged), forged.slice(0, 120));
-  const lib = JSON.parse(execSync(`curl -s -H "Cookie: ep_ops=${C}" "http://localhost:3100/api/ops/social?view=promo"`).toString());
+  const lib = JSON.parse(execSync(`curl -s -H "Cookie: ep_ops=${C}" "http://localhost:3100/api/ops/social?view=designs"`).toString());
   t('exports are in the Library as Designs', lib.rows.filter(r => r.values.type === 'Design').length >= 3, String(lib.rows.filter(r => r.values.type === 'Design').length));
   await b.close(); console.log('page errors:', errs.length ? errs : 'none'); process.exit(fails ? 1 : 0);
 })();

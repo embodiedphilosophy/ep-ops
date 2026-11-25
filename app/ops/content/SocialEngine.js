@@ -46,7 +46,7 @@ export function useView(view, q = '', offset = 0, extra = '') {
     const j = await res?.json().catch(() => ({}));
     setData(res?.ok ? j : { error: j?.error || 'Couldn’t load the Social Engine' });
   };
-  useEffect(() => { setData(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [view, q, offset]);
+  useEffect(() => { setData(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [view, q, offset, extra]);
   return [data, load];
 }
 
@@ -131,7 +131,7 @@ const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLoca
 export const blankPost = seed => {
   const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', media_kind: 'single', pillar: '', status: 'Proposed',
     ...(seed?.caption && { caption: seed.caption }), ...(seed?.image_id && { image_id: seed.image_id, image_url: '' }) };
-  return { ...v, _row: null, _raw: v, _new: true, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
+  return { ...v, _row: null, _raw: v, _new: true, _openCard: !!seed?.openCard, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
 };
 export const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], ['carousel', 'Carousel', 'IG Feed, Facebook', 'Carousel'], ['reel', 'Video / Reel', 'IG Reel, Facebook', 'Reel'], ['story', 'Story frame', 'IG Story', 'Story']];
 
@@ -142,7 +142,7 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState(null); // null | 'library' | 'crop'
+  const [mode, setMode] = useState(p._openCard ? 'card' : null); // null | 'library' | 'crop' | 'card'
   const [pic, setPic] = useState(p._seedPic || null); // { preview, src } once the picture changes here
   const [picMsg, setPicMsg] = useState('');
   const [pv, setPv] = useState('4:5'); // the phone preview's shape for a feed post
@@ -294,7 +294,7 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
             <PhonePreview size={sizeShown} kind={kind} thumb={thumb} slides={slides} caption={vals.caption} />
           </div>
           <div className="cmp-media media">
-            {mode === 'card' ? <TemplatePanel kind={kind === 'carousel' ? 'carousel' : 'single'} value={card && { ...card, template: vals.template_id, colourway: vals.colourway }} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
+            {mode === 'card' ? <TemplatePanel kind={kind === 'carousel' ? 'carousel' : 'single'} value={card ? { ...card, template: vals.template_id, colourway: vals.colourway } : p._openCard ? { template: 'quoteart', art: vals.image_id } : null} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
               : kind === 'single' ? (<>
                 <span className="lbl">Template</span>
                 <div className="cmp-card"><span><b>{vals.template_id ? (TEMPLATES[vals.template_id]?.name || vals.template_id) : 'No template'}</b><small>{vals.template_id ? `${vals.colourway || ''} · text locked to its source` : 'Make a card from a verified quote, an event or a teacher, or use a picture.'}</small></span>
@@ -583,7 +583,7 @@ function Library({ view, onUse }) {
   );
 }
 
-function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone }) {
+export function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone }) {
   const [vals, setVals] = useState(values);
   const [orig, setOrig] = useState(values);
   const [errors, setErrors] = useState({});
@@ -695,36 +695,39 @@ export function specWarnings(m, file, postKind) {
   return w;
 }
 
-function UploadBox({ kind, onDone }) {
-  const [msg, setMsg] = useState('');
-  const [pct, setPct] = useState(null);
-  const accept = kind === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
+// One file straight to Drive: the server opens the upload, the browser sends the file to Google, the server records it.
+// → { id, kind, image_id, warn: [plain-language spec warnings] }
+export async function driveUpload(file, postKind, onPct = () => {}) {
   const post = async body => {
     const res = await fetch('/api/ops/social/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
     const j = await res?.json().catch(() => ({})) || {};
     if (!res?.ok) throw new Error(j.error || 'The upload didn’t work. Try again.');
     return j;
   };
-  // One PUT straight to Google's upload address: the file never passes through our server
-  const put = (url, file) => new Promise((resolve, reject) => {
+  const put = (url, f) => new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open('PUT', url); x.setRequestHeader('Content-Type', file.type);
-    x.upload.onprogress = e => e.lengthComputable && setPct(Math.round(100 * e.loaded / e.total));
+    x.open('PUT', url); x.setRequestHeader('Content-Type', f.type);
+    x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(100 * e.loaded / e.total));
     x.onload = () => { try { const j = JSON.parse(x.responseText); x.status < 300 && j.id ? resolve(j.id) : reject(new Error('Drive didn’t accept the file')); } catch { reject(new Error('Drive didn’t accept the file')); } };
     x.onerror = () => reject(new Error('The connection dropped. Try again.'));
-    x.send(file);
+    x.send(f);
   });
+  const m = await probe(file), warn = specWarnings(m, file, postKind);
+  const { url } = await post({ step: 'start', name: file.name, size: file.size, type: file.type });
+  const id = await put(url, file);
+  const d = await post({ step: 'done', id, name: file.name, kind: m.kind, width: m.width, height: m.height, duration: m.duration, codec_ok: !/quicktime/.test(file.type) });
+  return { id, kind: m.kind, image_id: d.image_id, warn };
+}
+
+function UploadBox({ kind, onDone }) {
+  const [msg, setMsg] = useState('');
+  const [pct, setPct] = useState(null);
+  const accept = kind === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
   const pick = async file => {
     if (!file) return;
     setMsg(''); setPct(0);
-    try {
-      const m = await probe(file), warn = specWarnings(m, file, kind);
-      const { url } = await post({ step: 'start', name: file.name, size: file.size, type: file.type });
-      const id = await put(url, file);
-      const d = await post({ step: 'done', id, name: file.name, kind: m.kind, width: m.width, height: m.height, duration: m.duration, codec_ok: !/quicktime/.test(file.type) });
-      setMsg('');
-      onDone({ id, kind: m.kind, image_id: d.image_id }, warn);
-    } catch (e) { setMsg(e.message); } finally { setPct(null); }
+    try { const r = await driveUpload(file, kind, setPct); setMsg(''); onDone({ id: r.id, kind: r.kind, image_id: r.image_id }, r.warn); }
+    catch (e) { setMsg(e.message); } finally { setPct(null); }
   };
   return (
     <>
