@@ -12,10 +12,6 @@
   "pinned": [],
   "windows": [
     {
-      "from": "2026-10-26",
-      "to": "2026-10-30"
-    },
-    {
       "from": "2026-11-23",
       "to": "2026-11-27"
     },
@@ -42,6 +38,18 @@
     {
       "from": "2027-05-24",
       "to": "2027-05-28"
+    },
+    {
+      "from": "2027-06-07",
+      "to": "2027-06-11"
+    },
+    {
+      "from": "2027-06-21",
+      "to": "2027-06-25"
+    },
+    {
+      "from": "2027-07-26",
+      "to": "2027-07-30"
     }
   ],
   "immersions": [
@@ -89,7 +97,7 @@
     },
     {
       "n": 8,
-      "title": "The Spectre of Authenticity",
+      "title": "The Practice (& Spectre) of Authenticity",
       "sat": "2027-05-29",
       "sun": "2027-05-30"
     }
@@ -99,7 +107,7 @@
   "workbook_space_id": 2900305,
   "questions_space_id": null,
   "reflections_url": "https://ss.embodiedphilosophy.com/c/reflections",
-  "articulation_target": 2,
+  "articulation_target": 1,
   "rotations": [
     {
       "n": 1,
