@@ -37,3 +37,8 @@ When you add a sheet tab or column the dashboard reads, add it to the synthetic 
 | `cards2.sh` / `cards-programs.cjs` | Event promo (facts, refusals), Meet the teacher, educational / story / keyword carousels (slide counts, limits, art rules, export), and This Week at EP (week list, standing post, slides). Start from a fresh `run.sh`. |
 | `composer.cjs` | The Composer page: phone preview shapes, Reel and Story views, structured selects, London time, DRAFT block and guardrail checks, saving type / pillar / assignee, comments, Request changes needs a note, viewer can comment but not edit, phone width. Start from a fresh `run.sh`. |
 | `library-v2.cjs` | The Library: tabs with counts, filters that run on the whole table (licence, deity), provenance, Use in a post, Open in a template, hide, bulk edit, viewer sees no edit controls, phone width. Start from a fresh `run.sh`. |
+| `campaigns-api.sh` / `campaigns.cjs` | Coming up & campaigns, clip requests (API checks; browser at desktop and phone width) and the Team & roles page. Fresh run.sh. |
+| `ig-publish.sh` | "Post now" against the mock Graph API. Run `off` after a fresh `run.sh`, then `META_PUBLISH=live bash run.sh --no-build` and run `live`. |
+| `email-phase1.sh` / `email-phase1.cjs` | Teachers & Email phase 1: Kit sync, matching, attach, put away (API), and the screens in a browser. Mock Kit; each needs a fresh run.sh. |
+| `email-phase2.sh` / `email-phase2.cjs` | Teachers & Email phase 2: plan, Kit drafts, conflicts, pre-send checks, schedule, reschedule (API) and the editor and calendar in a browser. Mock Kit; each needs a fresh run.sh. |
+| `delete-expired.sh` | "Delete all expired" in the Health panel: who sees it, the count, that approved posts are untouched. Fresh run.sh. |

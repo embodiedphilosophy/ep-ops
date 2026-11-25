@@ -260,6 +260,10 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 - Not built yet: posting at the scheduled time. Only "Post now" exists; Make still publishes single pictures at their time.
 - Test: `scripts/ops-test/ig-publish.sh off|live` against the mock Graph API (see the script header). A real test post needs Jacob's explicit OK.
 
+## Delete all expired posts (Review & approve → Health)
+- The Health card "N expired posts" has a **Delete all N** button (people who schedule or approve only). It asks first, then sets every expired post (Proposed, past its time, never approved) to Deleted. Rows stay in the sheet, hidden; approved and posted posts are never touched. API: `POST /api/ops/social { view: 'plan', deleteExpired: true }` → `{ deleted }`. It works on the whole plan, not just the weeks on screen.
+- Test: `scripts/ops-test/delete-expired.sh` (8 checks; fresh `run.sh`).
+
 ## Teachers & Email, phase 1 (Content v2 second handoff)
 - **Content is now "Teachers & Email"** (eyebrow "Teachers · Email · Launches"). `/ops/content` with no tab goes to `/ops/email` (the old Overview status board and Next posts strip are gone; Next posts lives in Social). The old tabs stay: Promo emails, Media, Site copy review. Sidebar so far: This week, Emails, Promo emails, Media, Site copy review. Email calendar, Launches, Reminders, Newsletter and Teachers join as their phases land.
 - **Kit read sync** (`lib/ops/emailkit.js`): every broadcast from the last 60 days to the next 90, plus every undated draft, read from Kit API v4 (`lib/kit.js`, `KIT_API_KEY`), cached two minutes ("Read Kit again" skips the cache). Matching: an `[E0xx]` in the subject or internal description, or a link saved in Ops; `[MM-REMINDER …]` counts as an automatic reminder; Scaffolding counts as the newsletter. Everything else is **Not matched**.
