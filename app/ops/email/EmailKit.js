@@ -105,7 +105,7 @@ export function Emails() {
   });
   const canEdit = d?.canEdit;
   const attach = x => { const ev = d.events.find(e => e.id === pick[x.kit_id]); if (!ev) return; 
-    if (!confirm(`Put “${x.subject}” under ${ev.title} (${ev.id})?\n\nThis adds [${ev.id}] to the email’s internal description in Kit. Nothing else in Kit changes, and nothing is sent.`)) return;
+    if (!confirm(`Put “${x.subject}” under ${ev.title} (${ev.id})?\n\n${x.state === 'sent' ? 'It’s already been sent, so the match is kept in Ops only. Kit isn’t changed' : `This adds [${ev.id}] to the email’s internal description in Kit. Nothing else in Kit changes`}, and nothing is sent.`)) return;
     run('a' + x.kit_id, { action: 'attach', kit_id: x.kit_id, event_id: ev.id, confirm: true }, `Matched to ${ev.title}`)(); };
   const away = () => { const n = sel.size; if (!n || !confirm(`Put away ${n} email${n === 1 ? '' : 's'}?\n\nThey are hidden here. Nothing is deleted, and nothing in Kit changes: you can bring them back, or archive them in Kit yourself.`)) return;
     run('away', { action: 'archive', kit_ids: [...sel], confirm: true }, j => `${j.changed} put away`)(); };
