@@ -80,8 +80,8 @@ function Editor({ date }) {
           {field('reflection_headline', 'Headline')}
           {field('reflection_body', 'Reflection', { area: true, rows: 9 })}{field('reflection_url', 'Link to the full reflection (optional)')}
         </section>
-        <section className="soc-panel" aria-label="Pilgrimage Weekly">
-          <div className="ph"><h2>Pilgrimage Weekly</h2><span className="sub">Only Wisdom School members see this. Leave it blank to leave it out.</span></div>
+        <section className="soc-panel" aria-label="Wisdom School Weekly">
+          <div className="ph"><h2>Wisdom School Weekly</h2><span className="sub">Only Wisdom School members see this. Leave it blank to leave it out.</span></div>
           {field('pilgrimage_title', 'Title')}{field('pilgrimage_body', 'Piece (with its sign-off)', { area: true, rows: 9 })}
           <div className="em-two">{field('pilgrimage_url', 'Button link')}{field('pilgrimage_button', 'Button text (default: Continue the journey →)')}</div>
         </section>
