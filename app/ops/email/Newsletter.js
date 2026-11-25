@@ -49,7 +49,7 @@ function Editor({ date }) {
   const run = async (key, fn, ok) => { setBusy(key); setErr(''); setMsg(''); try { await fn(); if (ok) setMsg(ok); } catch (e) { setErr(e.message); if (e.checks) setDlg(x => x && { ...x, checks: e.checks, needNote: true }); } setBusy(''); };
   if (!d) return <Layout title="Issue" intro="" panel={false} setPanel={() => {}} d={null}>{err ? <p className="hint err" role="alert">{err}</p> : <p className="ops-empty">Opening…</p>}</Layout>;
   const i = d.issue, dis = !d.canEdit || !d.editable || !!busy;
-  const keys = ['subject', 'preview_text', 'events_intro', 'reflection_headline', 'reflection_body', 'reflection_url', 'ps'];
+  const keys = ['subject', 'preview_text', 'events_intro', 'reflection_headline', 'reflection_body', 'reflection_url', 'ps', 'featured_offer_title', 'featured_offer_text', 'featured_offer_url', 'featured_offer_button'];
   const changed = Object.fromEntries(keys.filter(k => (f[k] || '') !== (i.values[k] || '')).map(k => [k, f[k] || '']));
   const save = () => run('save', async () => { await post({ action: 'save', date, changes: changed }); await load(); }, 'Saved.');
   const field = (k, label, extra = {}) => <label className="em-f"><span className="cap">{label}</span>{extra.area ? <textarea rows={extra.rows || 5} value={f[k] || ''} disabled={dis} onChange={e => setF({ ...f, [k]: e.target.value })} /> : <input value={f[k] || ''} disabled={dis} onChange={e => setF({ ...f, [k]: e.target.value })} />}</label>;
@@ -67,6 +67,9 @@ function Editor({ date }) {
           {field('reflection_body', 'Reflection', { area: true, rows: 7 })}{field('reflection_url', 'Reflection link')}
           {field('events_intro', 'Line above “This week at EP”')}{field('ps', 'P.S.', { area: true, rows: 3 })}
         </section>
+        <section className="soc-panel" aria-label="Featured offer"><div className="ph"><h2>Featured offer</h2><span className="sub">Optional. One offer between the week’s events and “Study With Us”. Leave it blank for none.</span></div>
+          {field('featured_offer_title', 'Offer title')}{field('featured_offer_text', 'A few lines about it', { area: true, rows: 3 })}
+          <div className="em-two">{field('featured_offer_url', 'Link')}{field('featured_offer_button', 'Button text (default: Learn more →)')}</div></section>
         <section className="soc-panel" aria-label="Verse">
           <div className="ph"><h2>Sanskrit verse</h2><span className="sub">Chosen from the verified Quote Library. The diacritics are copied, never typed.</span></div>
           {hasVerse && <blockquote className="em-verse"><div lang="sa">{f.sanskrit_devanagari}</div><div><i>{f.sanskrit_iast}</i></div><div>{f.sanskrit_translation}</div><div className="sub">{f.sanskrit_source}</div></blockquote>}
