@@ -243,3 +243,58 @@
 .ops-shell .tw-strip { display: flex; flex-direction: column; gap: 10px }
 .ops-shell .tw-strip img { width: 100%; height: auto; display: block; box-shadow: 0 0 0 1px var(--line2) }
 .ops-shell .soc-rev input { margin-top: 2px }
+
+/* The Composer (design: "Post composer"): phone preview · media and checks · details */
+.ops-shell .cmp { max-width: none }
+.ops-shell .cmp-bar { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin-bottom: 14px }
+.ops-shell .cmp-cols { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start }
+.ops-shell .cmp-phone { position: sticky; top: 12px }
+.ops-shell .phone { width: 300px; max-width: 100%; background: #fff; border: 1px solid var(--line2); border-radius: 30px; padding: 14px 8px 12px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .phone .who { display: flex; align-items: center; gap: 8px; padding: 0 6px; font-size: 12px }
+.ops-shell .phone .who i { width: 28px; height: 28px; border-radius: 14px; background: var(--pine) }
+.ops-shell .phone .who span { margin-left: auto; font-size: 11px; color: var(--ink-soft) }
+.ops-shell .phone .frame { position: relative; width: 100%; background: var(--sand); overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center }
+.ops-shell .phone .frame img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .phone .frame .empty { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .phone .frame .badge { position: absolute; left: 10px; bottom: 12px; font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(0,0,0,.65); color: #fff }
+.ops-shell .phone .frame .bar { position: absolute; top: 8px; left: 8px; right: 8px; height: 2px; background: rgba(255,255,255,.5) }
+.ops-shell .phone .dots { display: flex; justify-content: center; gap: 4px }
+.ops-shell .phone .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line2) }
+.ops-shell .phone .dots i.on { background: #2E3F7F }
+.ops-shell .phone .pcap { margin: 0; padding: 0 6px; font-size: 11px; line-height: 1.45 }
+.ops-shell .cmp-media, .ops-shell .cmp-details { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.ops-shell .cmp .lbl { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .cmp-card { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card) }
+.ops-shell .cmp-card > span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; min-width: 0 }
+.ops-shell .cmp-card small { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .cmp-card .th { width: 56px; height: 70px; flex: none; background: var(--sand); border-radius: 4px; overflow: hidden; display: block }
+.ops-shell .cmp-card .th img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .cmp-guard { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 10px; background: var(--sand2) }
+.ops-shell .cmp-guard .g { font-size: 12.5px } .ops-shell .cmp-guard .g.ok { color: #2B5A33 } .ops-shell .cmp-guard .g.warn { color: #8a5a00 } .ops-shell .cmp-guard .g.bad { color: var(--terra-d) }
+.ops-shell .cmp-story { padding: 14px; border: 1px solid #2E3F7F; border-radius: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; font-size: 13px }
+.ops-shell .cmp-story b { color: #2E3F7F }
+.ops-shell .cmp-spec { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-soft) } .ops-shell .cmp-spec .ok { color: #2B5A33 }
+.ops-shell .cmp-details .grp { display: flex; flex-direction: column; gap: 8px }
+.ops-shell .cmp-details .row { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .cmp-details .grp .row { flex-direction: row; flex-wrap: wrap; gap: 8px }
+.ops-shell .cmp-details .tog { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); font-size: 13px }
+.ops-shell .cmp-details .tog input { width: auto; min-height: 0 }
+.ops-shell .cmp-details .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.ops-shell .cmp-details select, .ops-shell .cmp-details input:not([type=checkbox]), .ops-shell .cmp-details textarea { width: 100%; box-sizing: border-box }
+.ops-shell .capwrap { position: relative } .ops-shell .capwrap .count { position: absolute; right: 8px; top: 0; font-size: 11px; color: var(--ink-soft) }
+.ops-shell .cmp-parts { display: flex; flex-direction: column; gap: 6px }
+.ops-shell .cmp-parts .blk { padding: 8px 10px; border-radius: 6px; background: var(--sand2); font-size: 13px }
+.ops-shell .cmp-parts .blk span { display: block; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .cmp-parts .blk.draft { border: 1px solid var(--terra); background: #FFF7F3 } .ops-shell .cmp-parts .blk.draft span { color: var(--terra) }
+.ops-shell .cmp-thread { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line2); padding-top: 10px }
+.ops-shell .cmp-thread ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .cmp-thread li p { margin: 2px 0 0; font-size: 13px }
+.ops-shell .cmp-thread .send { display: flex; gap: 8px; align-items: flex-end }
+@media (max-width: 1100px) { .ops-shell .cmp-cols { grid-template-columns: 300px minmax(0, 1fr) } .ops-shell .cmp-details { grid-column: 1 / -1 } }
+@media (max-width: 760px) { .ops-shell .cmp-cols { grid-template-columns: minmax(0, 1fr) } .ops-shell .cmp-phone { position: static } .ops-shell .cmp-details .two { grid-template-columns: 1fr } }
+.ops-shell .cmp-cols > * { min-width: 0; max-width: 100% }
+.ops-shell .cmp .picacts { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .cmp .chip.upl { max-width: 100% }
+.ops-shell .cmp { overflow-x: clip }
+.ops-shell .cmp .chip.upl { position: relative; overflow: hidden }
+.ops-shell .cmp .chip.upl input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 0; cursor: pointer; min-height: 0 }

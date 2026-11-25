@@ -92,7 +92,7 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await go(p, 'social/library'); t('library opens on Art', /Art/.test(await p.locator('.ops-soc-tabs a[aria-current=page]').innerText()));
   await p.locator('.ops-se-imgs li button').first().click(); await p.waitForTimeout(400);
   await p.locator('button:text-is("Use in a post")').click(); await p.waitForTimeout(1800);
-  t('Use in a post opens the composer page with that picture', /\/ops\/social\/compose/.test(p.url()) && await p.locator('.ops-se-comp .media .pic img').count() === 1, p.url());
+  t('Use in a post opens the composer page with that picture', /\/ops\/social\/compose/.test(p.url()) && await p.locator('.phone .frame img').count() === 1, p.url());
   for (const [old, now] of [['content?tab=social', '/ops/social'], ['content?tab=social&s=review', '/ops/social/review'], ['content?tab=social&s=history', '/ops/social/published'], ['content?tab=social&s=quotes', '/ops/social/sources']]) {
     await p.goto('http://localhost:3100/ops/' + old, { waitUntil: 'networkidle' }); t(`old link ${old} → ${now}`, new URL(p.url()).pathname === now.split('?')[0], p.url());
   }

@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/ops/auth';
 import { isStaff, canEditSocial, canPublishSocial, canDeleteSocial, canApproveSocial } from '@/lib/ops/nav';
 import { readPlain, updatePlain, addPlain, ensureColumns, createTab, ConflictError } from '@/lib/ops/store';
 import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText, timeKey, isFeed, displayStatus, V2_COLS, MIN_SLIDES } from '@/lib/ops/socialengine';
-import { loadCalendar } from '@/lib/calendar';
+import { loadCalendar, loadTeam } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
 import { driveIdOf } from '@/lib/ops/socialimages';
@@ -29,6 +29,11 @@ export async function GET(req) {
   if (v.director && !user.director) return NextResponse.json({ error: 'Directors only' }, { status: 403 });
   const q = String(url.searchParams.get('q') || '').trim().toLowerCase(), offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   try {
+    if (url.searchParams.get('view') === 'comments') {
+      const post = String(url.searchParams.get('post') || '');
+      const rows = (await readPlain('Comments', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values).filter(c => c.post_id === post).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      return NextResponse.json({ comments: rows });
+    }
     if (v.key === 'review') return NextResponse.json(await reviewData(user));
     if (v.key === 'health') return NextResponse.json(await healthData(user));
     // The Upload Log tab is made on the first upload; until then there are no videos
@@ -57,7 +62,7 @@ export async function GET(req) {
       }
       // The grid preview: the last twelve feed posts that went out, for context beneath the upcoming ones
       const past = live.filter(r => r.values.publish_date <= today && ['Posted', 'Manual'].includes(r.values.status) && isFeed(r.values)).sort(order).reverse().slice(0, 12).map(mine);
-      extra = { types, past, rules: await rulesOf(), dayCategories: (await readPlain('Day Categories', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values) };
+      extra = { types, past, team: (await loadTeam().catch(() => [])).filter(m => !/^teacher$/i.test(m.type)).map(m => m.name).filter(Boolean), rules: await rulesOf(), dayCategories: (await readPlain('Day Categories', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values) };
       rows = rows.filter(r => r.values.status !== 'Deleted' && ((r.values.publish_date || '9') >= from || r.values.status === 'Draft')).sort(order).map(mine);
     } else if (v.images && url.searchParams.get('pick')) {
       // The post editor's picker: only Art (no words on the picture) that may be used, newest first (uploads are added at the bottom)
@@ -107,12 +112,23 @@ export async function GET(req) {
 //      { view: 'plan', approve: [{ row, before }] }        approve several posts at once
 export async function POST(req) {
   const user = await currentUser();
-  if (!canEditSocial(user)) return NextResponse.json({ error: 'Only the social team can change posts' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
+  // Everyone on staff can comment on a post; changing posts is for the social team
+  if (!canEditSocial(user) && !(isStaff(user) && body.comment)) return NextResponse.json({ error: 'Only the social team can change posts' }, { status: 403 });
   const v = viewOf(body.view);
   if (!v || v.key === 'history') return NextResponse.json({ error: 'Unknown view' }, { status: 400 });
   if (v.director && !user.director) return NextResponse.json({ error: 'Directors only' }, { status: 403 });
   const who = user.name || user.email;
+  // A comment on a post (with @mentions kept as typed); the Comments tab is made on the first one
+  if (body.comment) {
+    const c = body.comment, text = String(c.body || '').trim().slice(0, 1000), post = String(c.post_id || '').trim();
+    if (!text || !post) return NextResponse.json({ error: 'Write a comment' }, { status: 400 });
+    try {
+      if (!(await readPlain('Comments', SHEET).catch(() => null))) await createTab('Comments', ['post_id', 'author', 'body', 'created_at', 'mentions'], [], SHEET);
+      await addPlain('Comments', { post_id: post, author: who, body: text, created_at: new Date().toISOString(), mentions: (text.match(/@[\p{L}][\p{L}'’-]*/gu) || []).join(', ') }, { who, ...SHEET });
+      return NextResponse.json({ ok: true });
+    } catch (e) { console.error('Comment failed', e.message); return NextResponse.json({ error: 'Couldn’t save the comment' }, { status: 502 }); }
+  }
   const clean = obj => {
     const out = {}, errors = {};
     for (const [col, raw] of Object.entries(obj || {})) {
@@ -193,6 +209,15 @@ export async function POST(req) {
       for (const a of body.skip) n += (await updatePlain(v.tab, Number(a.row), { status: 'Skip', updated_by: who, updated_at: now() }, { before: { status: a.before?.status }, who, ...SHEET })).length ? 1 : 0;
       refreshSite();
       return NextResponse.json({ ok: true, skipped: n });
+    }
+    // A story or other post made by hand: the person who posted it marks it Posted
+    if (v.key === 'plan' && body.markPosted) {
+      if (!canPublishSocial(user)) return NextResponse.json({ error: 'Only people who schedule posts can mark one posted' }, { status: 403 });
+      const cur = (await readPlain(v.tab, SHEET)).rows.find(r => r.row === Number(body.markPosted.row))?.values;
+      if (!cur || cur.status !== 'Manual') return NextResponse.json({ error: 'Only a post waiting to be posted by hand can be marked posted' }, { status: 400 });
+      await updatePlain(v.tab, Number(body.markPosted.row), { status: 'Posted', updated_by: who, updated_at: now() }, { before: { status: 'Manual' }, who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true });
     }
     // Delete: Proposed, Needs edit, Skip or Expired posts only. The row stays (so no row numbers move) and is hidden.
     if (v.key === 'plan' && Array.isArray(body.delete)) {
