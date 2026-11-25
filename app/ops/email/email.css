@@ -45,3 +45,6 @@
 .soc .em-tl-head { display: flex; font: 10px 'JetBrains Mono', monospace; color: #6b6450; height: 22px; border-bottom: 1px solid var(--line, #e4ddcc); } .soc .em-tl-head span { flex: none; overflow: visible; white-space: nowrap; } .soc .em-tl-head .now { color: #A5432A; font-weight: 700; }
 .soc .em-tl-lane { display: flex; align-items: flex-start; min-height: 46px; border-bottom: 1px solid var(--line, #f0e9d8); } .soc .em-tl-l { flex: none; width: 110px; padding: 8px; font-size: 12px; }
 .soc .em-tl-t { position: relative; flex: none; min-height: 46px; } .soc .em-tl-i { position: absolute; top: 6px; max-width: 160px; padding: 2px 6px; border-radius: 3px; color: #fff; font: 500 11px/1.4 Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+.soc .em-av { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #eadfc6; font-weight: 600; flex: none; }
+.soc .em-diff .add { background: #dcefd9; } .soc .em-diff .del { background: #f6d9d3; text-decoration: line-through; } .soc .em-diff { line-height: 1.6; }
+.soc .em-crops { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin: 8px 0; } .soc .em-crops figure { margin: 0; text-align: center; } .soc .em-crops img { display: block; max-width: 100%; height: auto; }
