@@ -2,7 +2,8 @@ import { loadTeam } from '@/lib/ops/tasks';
 import { loadResources } from '@/lib/ops/resources';
 import { isTeacher, canEditSite, canEditEvents } from '@/lib/ops/nav';
 import { loadInvites, loadTemplates, offerings, KINDS, FEE_UNITS, STATUS_LABEL, inviteUrl } from '@/lib/ops/faculty';
-import { InviteForm, InviteActions } from './Invitations';
+import { InviteForm, InviteActions, AddPerson, PersonActions } from './Invitations';
+import { teamRows, TYPES } from '@/lib/ops/people';
 import Shell, { opsUser } from '../Shell';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,10 @@ export default async function Team({ searchParams }) {
   const sp = await searchParams;
   const teacher = isTeacher(user);
   if (sp?.tab === 'invitations' && canEditEvents(user)) return <Invitations user={user} />;
-  const [team, resources] = await Promise.all([loadTeam().catch(() => []), loadResources()]);
+  const manage = canEditEvents(user);
+  const [team, resources, everyone] = await Promise.all([loadTeam().catch(() => []), loadResources(), manage ? teamRows().catch(() => []) : []]);
+  const gone = everyone.filter(p => !p.active);
+  const acts = m => manage && <PersonActions email={m.email} name={m.name} active teacher={String(m.type).toLowerCase() === 'teacher'} self={m.email === String(user.email).toLowerCase()} />;
   const staff = team.filter(m => String(m.type).toLowerCase() !== 'teacher');
   const teachers = team.filter(m => String(m.type).toLowerCase() === 'teacher');
   const links = (resources || []).filter(r => !teacher || r.teachers);
@@ -34,17 +38,28 @@ export default async function Team({ searchParams }) {
                 <b>{m.name}</b>{m.director ? ' · Director' : ''}
                 <span className="meta">{[m.roles.join(', '), tzOf(m)].filter(Boolean).join(' · ')}</span>
                 <a href={`mailto:${m.email}`}>{m.email}</a>
+                {acts(m)}
               </li>
             ))}
           </ul>
           {!teacher && teachers.length > 0 && (<>
             <h2>Teachers on the Team tab <span>{teachers.length}</span></h2>
             <ul className="ops-dir">
-              {teachers.map(m => <li key={m.email}><b>{m.name}</b><span className="meta">{tzOf(m)}</span><a href={`mailto:${m.email}`}>{m.email}</a></li>)}
+              {teachers.map(m => <li key={m.email}><b>{m.name}</b><span className="meta">{tzOf(m)}</span><a href={`mailto:${m.email}`}>{m.email}</a>{acts(m)}</li>)}
             </ul>
+          </>)}
+          {manage && gone.length > 0 && (<>
+            <h2>Taken off the team <span>{gone.length}</span></h2>
+            <ul className="ops-dir">{gone.map(m => <li key={m.email || m.row}><b>{m.name}</b><span className="meta">{m.type || ''}</span><span>{m.email}</span>
+              <PersonActions email={m.email} name={m.name} active={false} /></li>)}</ul>
           </>)}
         </section>
         <aside className="ops-col">
+          {manage && (<>
+            <h2>Add someone</h2>
+            <AddPerson types={TYPES} director={!!user.director} />
+            <p className="ops-meta" style={{ margin: '8px 0 20px' }}>To ask a teacher to teach something (with a fee and, if you like, an agreement), use <a href="/ops/team?tab=invitations">Invitations</a>: saying yes puts them on the sessions.</p>
+          </>)}
           {teacher ? (<>
             <h2>Your guide</h2>
             <p className="ops-empty">Your bio, course pages, readings and slides all live in <a href="/teach">teacher onboarding</a>.</p>
@@ -82,7 +97,7 @@ function Tabs({ current }) {
 }
 
 const nice = d => d ? new Date(d.length > 10 ? d : `${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: d.length > 10 ? 'America/New_York' : 'UTC' }) : '';
-const DOT = { sent: 'amber', signed: 'green', declined: 'grey', cancelled: 'grey' };
+const DOT = { sent: 'amber', signed: 'green', accepted: 'green', declined: 'grey', cancelled: 'grey' };
 
 // Faculty → Invitations: invite a teacher to an offering; follow each invitation to a signed agreement
 async function Invitations({ user }) {
@@ -104,7 +119,7 @@ async function Invitations({ user }) {
                   <span className="what">
                     <b>{i.name}</b> · {i.offering_title}
                     <small>{i.kind}{i.fee ? ` · $${i.fee} ${i.fee_unit === 'flat' ? 'flat' : 'per session'}` : ''} · invited {nice(i.created_at)} by {i.created_by}
-                      {i.status === 'signed' ? ` · signed ${nice(i.signed_at)}` : i.status === 'sent' && i.email_status ? ` · email ${i.email_status}` : ''}</small>
+                      {i.status === 'signed' ? ` · signed ${nice(i.signed_at)}` : i.status === 'accepted' ? ` · accepted ${nice(i.responded_at)}${i.template ? '' : ' · no agreement'}` : i.status === 'sent' && i.email_status ? ` · email ${i.email_status}` : ''}</small>
                   </span>
                   <InviteActions id={i.id} status={i.status} link={i.status === 'sent' ? inviteUrl(base, i) : ''} contract={i.status === 'signed' ? `/invite/staff/contract?id=${i.id}` : ''} />
                 </li>
@@ -114,10 +129,8 @@ async function Invitations({ user }) {
         </section>
         <aside className="ops-col">
           <h2>Invite a teacher</h2>
-          {templates.length === 0 ? (
-            <p className="ops-empty">First add your standard agreement in <a href="/ops/settings?t=contracts">Settings → Contracts</a>. It can use {'{{teacher_name}}'}, {'{{offering}}'}, {'{{dates}}'}, {'{{fee}}'} and {'{{terms}}'}, which fill themselves in.</p>
-          ) : <InviteForm offerings={offs} templates={templates.map(t => t.name)} kinds={KINDS} units={FEE_UNITS} />}
-          <p className="ops-meta" style={{ marginTop: 16 }}>When they say yes, they read and sign the agreement online; it is countersigned for EP automatically and archived here. They are then added to every session (Teachers and reminder emails), and onboarding takes it from there.</p>
+          <InviteForm offerings={offs} templates={templates.map(t => t.name)} kinds={KINDS} units={FEE_UNITS} />
+          <p className="ops-meta" style={{ marginTop: 16 }}>When they say yes they are added to every session (Teachers and reminder emails) and sent their onboarding link. With an agreement, they read and sign it online first; it is countersigned for EP automatically and archived here. Agreements live in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</p>
         </aside>
       </div>
     </Shell>

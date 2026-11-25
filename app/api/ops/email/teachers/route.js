@@ -55,7 +55,15 @@ export async function POST(req) {
     if (b.action === 'create') {
       const email = lower(b.email); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad('That doesn’t look like an email address');
       if (await find(email)) return bad('There is already a profile for that email');
-      await addPlain('Teachers', { email, name: String(b.name || '').trim().slice(0, 120), role: '', status: 'on file', updated_on: now }, { who: me }); return ok();
+      const name = String(b.name || '').trim().slice(0, 120);
+      await addPlain('Teachers', { email, name, role: '', status: 'on file', updated_on: now }, { who: me });
+      if (!b.onboard) return NextResponse.json({ ok: true, message: `Profile started for ${name}. Nothing was sent.` });
+      // Onboarding: they need to be on the Team tab (as a teacher) to sign in, then they get a link that lands on onboarding
+      const { teamRows, addPerson, sendOnboardingLink } = await import('@/lib/ops/people');
+      const onTeam = (await teamRows()).find(r => r.email === email && r.active);
+      if (!onTeam) await addPerson({ name, email, type: 'teacher' }, user);
+      const mail = await sendOnboardingLink({ name, email }, process.env.OPS_URL || new URL(req.url).origin);
+      return NextResponse.json({ ok: true, message: mail.sent ? `Added. ${name}’s onboarding link is on its way.` : `Added, but the onboarding link wasn’t sent: ${mail.why}` });
     }
     const r = await find(b.email); if (!r) return bad('No such teacher', 404);
     const v = r.values, write = (ch, before) => updatePlain('Teachers', r.row, ch, { before: before ?? Object.fromEntries(Object.keys(ch).map(k => [k, v[k]])), who: me });
