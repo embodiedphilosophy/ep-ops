@@ -43,3 +43,4 @@ When you add a sheet tab or column the dashboard reads, add it to the synthetic 
 | `email-phase1.sh` / `email-phase1.cjs` | Teachers & Email phase 1: Kit sync, matching, attach, put away (API), and the screens in a browser. Mock Kit; each needs a fresh run.sh. |
 | `email-phase2.sh` / `email-phase2.cjs` | Teachers & Email phase 2: plan, Kit drafts, conflicts, pre-send checks, schedule, reschedule (API) and the editor and calendar in a browser. Mock Kit; each needs a fresh run.sh. |
 | `delete-expired.sh` | "Delete all expired" in the Health panel: who sees it, the count, that approved posts are untouched. Fresh run.sh. |
+| `email-launches.sh` / `email-launches.cjs` | Teachers & Email phase 4a: launches (playbooks and their dates, the Meditation Resolution Mondays, the wizard, drafts and tag in Kit, the board) in the API and in a browser. Mock Kit; each needs a fresh run.sh. |
