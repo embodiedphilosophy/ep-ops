@@ -44,7 +44,11 @@ const ev = (date, track, event, o = {}) => {
   return H.map(h => row[h]);
 };
 const T = (who) => ({ Teachers: who, 'Teacher/Host Emails': who.split(',').map(s => ex(s.trim())).join(', ') });
+const soon = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 const schedule = [H,
+  // two upcoming public events with every fact the program cards need, for the template tests
+  ev(soon(2), 'LRL', 'Living Room Lecture: Recognition in practice', { ...T('Jacob Kyle'), Time: '1pm ET', Website: 'TRUE', 'Registration URL': 'https://enroll.embodiedphilosophy.com/lrl-recognition', ID: 'E901' }),
+  ev(soon(4), 'CHIT', 'CHITHEADS Live with Mary Reilly Nichols', { ...T('Mary Reilly Nichols'), Time: '3pm ET', Website: 'TRUE', 'Registration URL': 'https://enroll.embodiedphilosophy.com/chit', ID: 'E902' }),
   ev('2026-09-22', 'LRL', 'Living Room Lecture: Where do I begin?', { ...T('Jacob Kyle'), Time: '9am ET', Website: 'TRUE', Status: 'Done' }),
   ev('2026-09-28', 'MM', 'Meditation Monday'),
   ev('2026-09-30', 'LAUNCH', 'ENROLLMENT OPENS — Fall 2026', { 'Teacher / Owner': 'Marketing' }),
@@ -164,7 +168,7 @@ const tabs = { 'Mentee Step Status': stepStatus, 'Mentee Books': menteeBooks, 'E
   'Rules': [['setting', 'value', 'notes'], ['Feed posts per week', '5', 'Instagram feed'], ['Approval deadline', 'Sunday 18:00 ET', '']],
   'Image Categories': [['category', 'use_in_auto_pick', 'notes'], ['Deity art', 'TRUE', '']],
   'Archive Sources': [['folder_id', 'name', 'include', 'last_synced', 'images_added'], ['F1', 'Ryan graphics', 'TRUE', '2026-10-01', '40']],
-  'Teachers': [['email', 'name', 'role', 'bio', 'photo_url', 'status', 'updated_on', 'onboarded_on'], ['abha@example.com', 'Abha Rajbhandari', 'Guest teacher', 'Abha teaches the Wisdom School monthly lecture and has studied the Devī traditions for twenty years.', 'https://example.com/abha.jpg', 'submitted', '2026-10-05', '']],
+  'Teachers': [['email', 'name', 'role', 'bio', 'photo_url', 'status', 'updated_on', 'onboarded_on'], ['abha@example.com', 'Abha Rajbhandari', 'Guest teacher', 'Abha teaches the Wisdom School monthly lecture and has studied the Devī traditions for twenty years.', 'http://localhost:4555/photo/abha.png', 'submitted', '2026-10-05', '']],
   'Course Pages': [['offering', 'slug', 'track', 'teacher_emails', 'title', 'subtitle', 'summary', 'explore', 'audience', 'status', 'circle_space_id'], ['sadhana-fall-2026', 'heart-of-recognition', 'SS', 'jacob@example.com, abha@example.com', 'The Heart of Recognition', 'Fall Sādhana 2026', 'Kṣemarāja’s little masterpiece, read closely over eight weeks.', 'Weekly live seminar\nRecordings of every session\nReading guide', 'Students of yoga and Indian philosophy', 'submitted', '2002'], ['E003', 'old-course', 'EVENT', 'x@example.com', 'An earlier course', '', '', '', '', 'published', ''], ['mm-nov-2026', 'mm-nov', 'MM', 'abha@example.com', 'Meditation Mondays: November', '', 'A month of Monday practice.', 'Live sit every Monday', '', 'submitted', '']],
   // Circle event sync: which Circle space each program's live sessions go in
   'Circle Groups': [['offering', 'circle_access_group_ids', 'name', 'circle_event_space_id'], ['sadhana-fall-2026', '7', 'SS 26-27 · Fall', '3001'], ['SS', '', 'Sādhana School · Live', '3001']],
@@ -238,6 +242,16 @@ const cgrid = {};
 const colsOf = t => (cgrid[t] ??= Math.max(26, ...(tabs[t] || []).map(r => r.length)));
 const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
 
+const gradientPng = (w = 1200, h = 800) => {
+        const rows = [];
+        for (let y = 0; y < h; y++) { const r = Buffer.alloc(1 + w * 3); for (let x = 0; x < w; x++) { r[1 + x * 3] = (x * 255 / w) | 0; r[2 + x * 3] = (y * 255 / h) | 0; r[3 + x * 3] = ((x / 60 | 0) + (y / 60 | 0)) % 2 ? 200 : 90; } rows.push(r); }
+        const crc = b => { let c, t = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } c = 0xffffffff; for (const x of b) c = t[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+        const chunk = (ty, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(ty), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]); };
+        const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 2;
+        const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih), chunk('IDAT', zlib.deflateSync(Buffer.concat(rows))), chunk('IEND', Buffer.alloc(0))]);
+        
+        return png;
+      };
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
@@ -359,16 +373,11 @@ http.createServer(async (req, res) => {
       res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ id }));
     }
     if (p.startsWith('/gdrive/drive/v3/files/') && p.endsWith('/permissions')) { log('DRIVE shared', p.split('/')[5]); return send(res, 200, { id: 'perm' }); }
+    if (p.startsWith('/photo/')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(gradientPng(400, 400)); }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);
       if (b.action === 'get') {
-        const w = 1200, h = 800, rows = [];
-        for (let y = 0; y < h; y++) { const r = Buffer.alloc(1 + w * 3); for (let x = 0; x < w; x++) { r[1 + x * 3] = (x * 255 / w) | 0; r[2 + x * 3] = (y * 255 / h) | 0; r[3 + x * 3] = ((x / 60 | 0) + (y / 60 | 0)) % 2 ? 200 : 90; } rows.push(r); }
-        const crc = b => { let c, t = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } c = 0xffffffff; for (const x of b) c = t[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-        const chunk = (ty, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(ty), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]); };
-        const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 2;
-        const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih), chunk('IDAT', zlib.deflateSync(Buffer.concat(rows))), chunk('IEND', Buffer.alloc(0))]);
-        log('MAKE GET', b.file_id); res.writeHead(200, { 'Content-Type': 'application/octet-stream' }); return res.end(png);
+        const png = gradientPng(); log('MAKE GET', b.file_id); res.writeHead(200, { 'Content-Type': 'application/octet-stream' }); return res.end(png);
       }
       if (b.action === 'put') { const id = 'MOCKDRIVE' + Date.now() + 'xxxxxxxxxx'; log('MAKE PUT', b.name, String(b.data || '').length, 'chars →', id); return send(res, 200, { id }); }
       return send(res, 200, 'Accepted');

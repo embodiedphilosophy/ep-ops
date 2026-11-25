@@ -243,10 +243,13 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
   const shapeOf = isStory(p) ? '9:16' : '4:5';
   // A card made from a template: its picture becomes the post's picture, its quote the post's quote (the server re-checks it), its credit line joins the caption
   const useCard = r => {
-    setVals(v => ({ ...v, image_id: r.image_id, image_url: r.image_url, template_id: r.template_id, colourway: r.colourway, template_fields: r.template_fields, quote_id: r.quote.quote_id,
+    const slidesJson = r.carousel ? JSON.stringify(r.exports.map(e => ({ kind: 'image', drive_file_id: e.drive_file_id, image_id: e.image_id }))) : undefined;
+    setVals(v => ({ ...v, image_id: r.image_id, image_url: r.image_url, template_id: r.template_id, colourway: r.colourway, template_fields: r.template_fields, quote_id: r.quote?.quote_id || '',
+      ...(r.carousel && { media_kind: 'carousel', slides_json: slidesJson, keyword: r.keyword || '' }),
       caption: r.credit && !String(v.caption || '').includes(r.credit) ? `${String(v.caption || '').trimEnd()}${v.caption ? '\n\n' : ''}${r.credit}` : v.caption }));
-    setPic({ preview: r.preview, src: '' }); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined }));
-    setMode(null); setPicMsg(`Card saved to the Library as ${r.image_id}.${isNew ? '' : ' Save to use it.'}`);
+    if (!r.carousel) setPic({ preview: r.preview, src: '' });
+    setErrors(x => ({ ...x, image_id: undefined, image_url: undefined, slides_json: undefined }));
+    setMode(null); setPicMsg(r.carousel ? `${r.exports.length} slides saved to the Library.${isNew ? '' : ' Save to use them.'}` : `Card saved to the Library as ${r.image_id}.${isNew ? '' : ' Save to use it.'}`);
   };
   const card = (() => { try { return JSON.parse(vals.template_fields || 'null'); } catch { return null; } })();
   const status = p.status || 'Proposed';
@@ -268,10 +271,10 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
               <div className="ops-kinds" role="radiogroup" aria-label="What kind of post">
                 {KINDS.map(([k, l]) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={`chip${kind === k ? ' on' : ''}`} disabled={dis} onClick={() => setKind(k)}>{l}</button>)}
               </div>)}
-            {kind !== 'single' ? <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} />
+            {mode === 'card' ? <TemplatePanel kind={kind === 'carousel' ? 'carousel' : 'single'} value={card && { ...card, template: vals.template_id, colourway: vals.colourway }} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
+            : kind !== 'single' ? <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} onTemplate={kind === 'carousel' ? () => { setMode('card'); setPicMsg(''); } : null} />
             : <>
-            {mode === 'card' ? <TemplatePanel value={card && { ...card, template: vals.template_id, colourway: vals.colourway }} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
-              : mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
+            {mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
               : <div className="pic">{thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}</div>}
             {!dis && mode !== 'crop' && (
               <div className="picacts">
@@ -529,7 +532,7 @@ function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone })
 // The slides of one post, in order. Drag a slide (or use the arrows) to reorder; add pictures from the library
 // or upload pictures and video straight to Drive.
 const slideThumb = sl => sl.drive_file_id ? `https://lh3.googleusercontent.com/d/${sl.drive_file_id}=w240` : sl.url && sl.kind !== 'video' ? sl.url : '';
-function SlidesEditor({ kind, slides, onChange, disabled, error }) {
+function SlidesEditor({ kind, slides, onChange, disabled, error, onTemplate }) {
   const [picking, setPicking] = useState(false);
   const [drag, setDrag] = useState(null);
   const [note, setNote] = useState(''); // what the last upload said (kept here: the upload button goes away once a Reel or Story has its one file)
@@ -557,6 +560,7 @@ function SlidesEditor({ kind, slides, onChange, disabled, error }) {
       </ol>
       {!disabled && !full && (
         <div className="picacts">
+          {onTemplate && <button type="button" className="chip" onClick={onTemplate}>Make slides from a template</button>}
           {kind !== 'reel' && <button type="button" className={`chip${picking ? ' on' : ''}`} onClick={() => setPicking(x => !x)}>{picking ? 'Close the library' : kind === 'carousel' ? '+ Picture from the library' : 'Choose from the library'}</button>}
           <UploadBox kind={kind} onDone={(f, warn) => { add({ kind: f.kind, drive_file_id: f.id, ...(f.image_id && { image_id: f.image_id }) }); setNote(`Uploaded to Drive.${warn.length ? ' ' + warn.join(' ') : ''}`); }} />
         </div>)}

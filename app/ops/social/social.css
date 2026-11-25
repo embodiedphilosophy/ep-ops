@@ -232,3 +232,14 @@
 .ops-shell .ops-tpl .fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px }
 .ops-shell .ops-tpl .fields li { display: flex; justify-content: space-between; gap: 8px; align-items: center }
 .ops-shell .ops-tpl .acts { padding-top: 4px }
+.ops-shell .ops-tpl select, .ops-shell .ops-tpl input:not([type=radio]), .ops-shell .ops-tpl textarea { width: 100%; box-sizing: border-box }
+.ops-shell .ops-tpl .stage.strip { justify-content: flex-start; overflow-x: auto; gap: 8px; align-items: flex-start }
+.ops-shell .ops-tpl .stage.strip img { max-height: 300px; width: auto; flex: none }
+.ops-shell .ops-tpl .slides { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.ops-shell .ops-tpl .slides li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: start; border: 1px solid var(--line2); border-radius: 6px; padding: 8px; background: #fff }
+.ops-shell .ops-tpl .slides .n { font-size: 12px; color: var(--ink-soft); text-align: center; padding-top: 10px }
+.ops-shell .ops-tpl .slides .f { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.ops-shell .ops-tpl .slides .a { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .tw-strip { display: flex; flex-direction: column; gap: 10px }
+.ops-shell .tw-strip img { width: 100%; height: auto; display: block; box-shadow: 0 0 0 1px var(--line2) }
+.ops-shell .soc-rev input { margin-top: 2px }
