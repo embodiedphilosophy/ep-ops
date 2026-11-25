@@ -1099,3 +1099,10 @@
 .ops-shell .pr-check { display: flex !important; flex-direction: row !important; gap: 6px; align-items: center; min-height: 36px; font-size: 13px }
 .ops-shell .pr-check input { width: 18px; height: 18px; min-height: 0 }
 .ops-shell .pr-srate { width: 110px !important }
+.ops-shell .pr-via { margin-top: -6px }
+.ops-shell .pr-via .warn { border-color: var(--ochre) }
+.ops-shell .pr-via-tag { align-self: flex-start; font-size: 11.5px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-soft) }
+.ops-shell .pr-via-tag.gusto { border-color: var(--pine); color: var(--pine) }
+.ops-shell .pr-via-tag.unset { border-color: var(--ochre); color: #8A5A12 }
+.ops-shell .pr-pflags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px }
+.ops-shell .pr-pflags select { width: auto !important; min-height: 32px }
