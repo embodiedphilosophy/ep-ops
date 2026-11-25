@@ -11,7 +11,7 @@ const MANUAL_DOC_URL = 'https://docs.google.com/document/d/1u9O7F59dnj0I6mo0u0wI
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Mentee year — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const TABS = [['now', 'Now'], ['rhythm', 'The rhythm'], ['months', 'Month by month'], ['projects', 'Final projects'], ['one-to-ones', 'One-to-ones'], ['manual', 'The manual']];
+const TABS = [['now', 'Now'], ['progress', 'Progress'], ['rhythm', 'The rhythm'], ['months', 'Month by month'], ['projects', 'Final projects'], ['one-to-ones', 'One-to-ones'], ['manual', 'The manual']];
 const dayFmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '');
 const dayYear = d => `${dayFmt(d)} ${d.slice(0, 4)}`;
 
@@ -53,6 +53,28 @@ function MonthList({ ym, rows, canEdit, today, counts, mentees }) {
   </div>);
 }
 
+// Progress: each row of a month's "This month" list, and where each mentee is with it (ticked, skipped, or still open)
+const markDate = iso => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'America/New_York' }) : '');
+const ST = { done: 'Done', skipped: 'Skipped', open: 'Not yet' };
+function Progress({ ym, rows, mentees, skips, months, monthHref, currentYm }) {
+  return (<>
+    <nav className="ops-filters" aria-label="Month">{months.map(m => <a key={m.id} href={monthHref(m.id)} aria-current={m.id === ym ? 'page' : undefined}>{m.title.split(' ')[0]}{m.id === currentYm ? ' · now' : ''}</a>)}</nav>
+    <p className="ops-empty">What each mentee has ticked or skipped on their “This month” list in Circle. A skip goes on their report below as not completed. Rows the page finished on its own (a reflection posted to Sādhana School, a buddy session logged, a hand-in sent) show as done automatically.</p>
+    {!mentees.length ? <p className="ops-empty">No mentees found in Kit just now.</p> : !rows.length ? <p className="ops-empty">Nothing on this month’s list.</p> : (
+      <ul className="ops-my-steps">{rows.map(r => (
+        <li key={r.id} className="ops-my-step">
+          <span className="when"><b>{r.date ? dayFmt(r.date) : ''}</b><small>{KIND[r.kind] || ''}</small></span>
+          <span className="what"><b><Rich text={r.title} /></b>
+            <details className="ops-my-who"><summary><span className={`ops-my-count ${r.done === r.of && r.of ? 'ok' : r.skipped ? 'risk' : 'none'}`}><i />{r.done} of {r.of} done{r.skipped ? ` · ${r.skipped} skipped` : ''}</span></summary>
+              <ul className="ops-my-grid">{r.by.map(m => <li key={m.email}><span>{m.name}</span><b className={`st ${m.status === 'done' ? 'ready' : m.status === 'skipped' ? 'risk' : ''}`}>{ST[m.status]}{m.at ? ` · ${markDate(m.at)}` : ''}{m.auto ? ' · on its own' : ''}</b></li>)}</ul>
+            </details></span>
+        </li>))}</ul>)}
+    <h2 style={{ marginTop: 28 }}>Student reports: what was skipped</h2>
+    <p className="ops-empty">Everything each mentee has chosen to skip this year, newest month first. If they untick a skip, it comes off.</p>
+    <ul className="ops-my-grid ops-my-report">{skips.map(m => <li key={m.email}><span>{m.name}</span><b className={m.items.length ? 'st risk' : 'ok'}>{m.items.length ? m.items.map(i => `${new Date(`${i.ym}-15T12:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })}: ${i.title.replace(/\*\*|~|_/g, '')}`).join(' · ') : 'Nothing skipped'}</b></li>)}</ul>
+  </>);
+}
+
 function Step({ s, today, detail }) {
   const n = daysUntil(s.date, today);
   return (
@@ -83,6 +105,7 @@ export default async function MenteeYear({ searchParams }) {
     const l = listView(data, year.textRows, base);
     return (<><Tag className={cls}>{l.lines.filter(x => canEdit || !x.removed).map(x => <li key={x.path} className={x.removed ? 'ops-my-off' : ''}><Words v={x} list /></li>)}</Tag>{canEdit && <AddLine path={l.next} />}</>);
   };
+  const pym = data.months.some(m => m.id === sp?.m) ? sp.m : (data.months.find(m => m.id === today.slice(0, 7)) || data.months[0]).id;
   const href = (t, extra = '') => `/ops/mentee-year${t === 'now' && !extra ? '' : `?tab=${t}${extra}`}`;
 
   return (
@@ -116,6 +139,10 @@ export default async function MenteeYear({ searchParams }) {
           {canEdit && <EditMonth month={month.id} theme={month.theme || ''} focus={month.focus || ''} />}
         </section>)}
       </div>)}
+
+      {tab === 'progress' && (<section>
+        <Progress ym={pym} rows={year.progress[pym] || []} mentees={year.mentees} skips={year.skips} months={data.months} monthHref={m => href('progress', `&m=${m}`)} currentYm={today.slice(0, 7)} />
+      </section>)}
 
       {tab === 'rhythm' && (<section>
         <p className="ops-empty">Five layers, from the daily sit to certification. The lower layers are what keep the upper ones from piling up.</p>
