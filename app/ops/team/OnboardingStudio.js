@@ -113,6 +113,11 @@ function ThisTeacher({ d, stepKey, email, reload, setMsg, setErr }) {
       <p><a href={`/ops/email/teachers?email=${encodeURIComponent(email)}`}>Open their profile</a> to write or fix their bio and headshot before they start.</p>
     </section>);
   if ((stepKey === 'course' || stepKey === 'preview') && o) return <Prefill key={o.key} o={o} offs={offs} which={which} setWhich={setWhich} email={email} reload={reload} setMsg={setMsg} setErr={setErr} />;
+  if (stepKey === 'agreement') return (
+    <section className="ob-card"><h3>For this teacher</h3>
+      <p className="sub">They haven’t signed an agreement yet, so they read and sign the General Teaching Agreement here, before their bio. It lists their current offerings; the fee reads “as agreed with EP in writing for each offering”. Jacob countersigns automatically and the signed copy is archived in <a href="/ops/team?tab=invitations">Faculty → Invitations</a>.</p>
+      <p className="sub">Teachers who signed an agreement with their invitation skip this step, and so do staff and contractors on the Team tab. To change the wording, add a row named “General Teaching Agreement” in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</p>
+    </section>);
   if (stepKey === 'circle') return <section className="ob-card"><h3>For this teacher</h3><p className="sub">This step gives them access to their course in Circle. It shows only for Circle tracks (Sādhana School, SSWW, seasonal).</p></section>;
   return null;
 }

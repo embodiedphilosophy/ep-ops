@@ -6,6 +6,8 @@ import { loadCalendar } from '@/lib/calendar';
 import { todayET, emailsOf } from '@/lib/events';
 import Onboarding from './Onboarding';
 import Shell from '../ops/Shell';
+import { signedEmails, generalTemplate } from '@/lib/ops/faculty';
+import { teamRows } from '@/lib/ops/people';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Teacher onboarding — Embodied Philosophy', robots: { index: false, follow: false } };
@@ -28,10 +30,13 @@ async function DirectorView({ user }) {
     if (!people.has(em)) people.set(em, { email: em, next: ev, count: 0 });
     people.get(em).count++;
   }
+  const [signed, general, team] = await Promise.all([signedEmails().catch(() => new Set()), generalTemplate().catch(() => null), teamRows().catch(() => [])]);
+  const toSign = em => !!general && !signed.has(String(em).toLowerCase()) && !team.some(r => r.active && r.email === String(em).toLowerCase() && String(r.type || '').toLowerCase() !== 'teacher');
   const rows = await Promise.all([...people.values()].sort((a, b) => a.next.date.localeCompare(b.next.date)).map(async p => {
     const st = await onboardingState(p.email).catch(() => null);
     const prof = st?.profile || await profileFor(p.email).catch(() => null);
-    return { ...p, name: prof?.name || '', status: !st ? 'unknown' : !st.needed ? 'Done' : prof ? `${st.pending.length} course page${st.pending.length === 1 ? '' : 's'} to go` : 'Not started' };
+    const base = !st ? 'unknown' : !st.needed ? 'Done' : prof ? `${st.pending.length} course page${st.pending.length === 1 ? '' : 's'} to go` : 'Not started';
+    return { ...p, name: prof?.name || '', status: toSign(p.email) ? (base === 'Done' ? 'Agreement to sign' : `${base} · agreement to sign`) : base };
   }));
   return (
     <Shell user={user} current="team" title="Teacher onboarding">
