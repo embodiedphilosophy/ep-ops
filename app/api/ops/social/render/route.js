@@ -58,13 +58,13 @@ async function build(b, t) {
   } else if (t.id === 'thisweek') {
     const w = b.week || {};
     if (!/^\d{4}-\d{2}-\d{2}$/.test(w.monday || '')) throw new Bad('Which week?');
-    const all = await weekEventList(w.monday), want = new Set((w.events || []).map(x => x.id)), lines = Object.fromEntries((w.events || []).map(x => [x.id, clip(x.line, 160)]));
+    const all = await weekEventList(w.monday, { all: true }), want = new Set((w.events || []).map(x => x.id)), lines = Object.fromEntries((w.events || []).map(x => [x.id, clip(x.line, 160)]));
     const chosen = all.filter(e => want.has(e.id));
     if (!chosen.length) throw new Bad('Tick at least one event');
     const bad = chosen.find(e => e.missing.length); if (bad) throw new Bad(`${bad.title || 'An event'} is missing from the Master Schedule: ${bad.missing.join(', ')}.`);
     const f = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
     const sun = new Date(w.monday + 'T12:00:00Z'); sun.setUTCDate(sun.getUTCDate() + 6);
-    out.data = { title: 'This week at Embodied Philosophy', subtitle: `${f(w.monday)} – ${f(sun.toISOString().slice(0, 10))}`, cta: clip(w.cta, 200) || 'Details and registration for every session are at the link in our bio.',
+    out.data = { title: clip(w.title, 80) || 'This week at Embodied Philosophy', subtitle: clip(w.subtitle, 80) || `${f(w.monday)} – ${f(sun.toISOString().slice(0, 10))}`, cta: clip(w.cta, 200) || 'Details and registration for every session are at the link in our bio.',
       events: chosen.map(e => ({ title: e.title, day: e.day, time: e.time, london: e.london, program: e.program, line: lines[e.id] ?? e.line })) };
     out.intro = clip(w.intro, 300);
   } else if (t.carousel) {
@@ -137,7 +137,9 @@ export async function GET(req) {
     if (what === 'week') {
       const monday = u.searchParams.get('monday');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(monday || '')) return NextResponse.json({ error: 'Which week?' }, { status: 400 });
-      return NextResponse.json({ events: await weekEventList(monday) });
+      // events: listed by default · others: on the schedule this week but not listed (with why), to add by hand
+      const list = await weekEventList(monday, { all: true });
+      return NextResponse.json({ events: list.filter(e => e.listed), others: list.filter(e => !e.listed) });
     }
     return NextResponse.json({ error: 'Unknown request' }, { status: 400 });
   } catch (e) { console.error('Card facts failed', e.message); return NextResponse.json({ error: 'Couldn’t read the Master Schedule' }, { status: 502 }); }

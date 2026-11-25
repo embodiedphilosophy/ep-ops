@@ -1,5 +1,5 @@
 import Shell, { opsUser } from '../../Shell';
-import { isStaff, canPublishSocial, canEditSocial } from '@/lib/ops/nav';
+import { isStaff, canPublishSocial, canEditSocial, canEditEvents } from '@/lib/ops/nav';
 import ThisWeek from '../ThisWeek';
 import '../social.css';
 
@@ -11,7 +11,7 @@ export default async function Page() {
   const user = await opsUser(isStaff);
   return (
     <Shell user={user} current="social-thisweek">
-      <ThisWeek canEdit={canEditSocial(user)} canPublish={canPublishSocial(user)} />
+      <ThisWeek canEdit={canEditSocial(user)} canPublish={canPublishSocial(user)} canSchedule={canEditEvents(user)} />
     </Shell>
   );
 }
