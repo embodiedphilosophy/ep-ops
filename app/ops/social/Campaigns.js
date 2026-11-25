@@ -70,9 +70,9 @@ export default function Campaigns() {
                     <b>{s.theme}</b>
                     <span className="chips">
                       {s.plan_post_id ? <a className="gchip" href={`/ops/social?post=${s.plan_post_id}`}>On the calendar · {s.plan_post_id}</a> : <span className="gchip">Not on the calendar yet</span>}
-                      {!launch && (clip ? <span className="gchip">Clip: {clip.status}</span> : <span className="gchip">Clip: {s.teacher ? 'Not requested' : 'Who takes this day?'}</span>)}
+                      {!launch && (clip ? <span className="gchip">Clip: {clip.status}</span> : <span className="gchip">Clip: {s.teacher ? 'Not requested' : 'No teacher'}</span>)}
                     </span>
-                    {!launch && <input aria-label={`Teacher for day ${s.step}`} placeholder="Teacher for this day" defaultValue={s.teacher} disabled={!edit} maxLength={80}
+                    {!launch && <input aria-label={`Teacher for day ${s.step}`} placeholder="Teacher (optional)" defaultValue={s.teacher} disabled={!edit} maxLength={80}
                       onBlur={x => x.target.value !== s.teacher && set('teacher', x.target.value)()} />}
                   </div>
                   {clip && edit && <select aria-label={`Clip status for day ${s.step}`} value={clip.status} onChange={x => run('k' + clip.id, { action: 'clip', id: clip.id, status: x.target.value }, 'Saved')()}>{CLIP.map(o => <option key={o}>{o}</option>)}</select>}
