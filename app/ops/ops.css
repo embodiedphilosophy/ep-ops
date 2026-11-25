@@ -1019,3 +1019,32 @@
 /* Faculty → People: add / remove / onboarding link on each person */
 .ops-shell .ops-dir .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px }
 .ops-shell .ops-dir .acts small { color: var(--ink-soft); font-size: 12px }
+
+/* Faculty → Onboarding: the teacher's onboarding as a live preview, with the edit panel beside it */
+.ops-shell .ob-studio { display: flex; flex-direction: column; gap: 14px }
+.ops-shell .ob-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.ops-shell .ob-pick select { min-width: 280px; max-width: 100%; min-height: 40px }
+.ops-shell .ob-other { display: flex; gap: 6px }
+.ops-shell .ob-other input { min-height: 40px; min-width: 220px }
+.ops-shell .ob-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start }
+.ops-shell .ob-preview { min-width: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--ground) }
+.ops-shell .ob-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 10px 14px; background: var(--pine); color: #FAF5EB; font-size: 13px }
+.ops-shell .ob-bar .sub { color: var(--ochre) }
+.ops-shell .ob-frame { max-height: 78vh; overflow: auto }
+.ops-shell .ob-edit { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto }
+.ops-shell .ob-card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 14px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ob-card h3 { font-size: 18px; margin: 0 }
+.ops-shell .ob-card summary { cursor: pointer; min-height: 32px; display: flex; align-items: center }
+.ops-shell .ob-card .sub, .ops-shell .ob-f .sub { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ob-f { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .ob-f textarea, .ops-shell .ob-f input, .ops-shell .ob-card > input, .ops-shell .ob-card select { width: 100%; font: inherit; font-size: 14px }
+.ops-shell .ob-acts { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .ob-list { margin: 4px 0 8px 18px; font-size: 13px }
+.ops-shell .ob-mail { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px; background: var(--ground) }
+.ops-shell .ob-mail p { margin: 0 }
+.ops-shell .ob-btn { align-self: flex-start; background: var(--accent); color: #fff; padding: 6px 12px; border-radius: 4px; font-weight: 600 }
+/* the onboarding screens inside the preview: narrower step list, no sticky parts */
+.ops-shell .t-embedded .t-shell { grid-template-columns: 180px minmax(0, 1fr); gap: 24px; padding: 0 18px; max-width: none }
+.ops-shell .t-embedded .t-rail { position: static }
+@media (max-width: 1100px) { .ops-shell .ob-grid { grid-template-columns: minmax(0, 1fr) } .ops-shell .ob-edit { position: static; max-height: none } }
+@media (max-width: 700px) { .ops-shell .t-embedded .t-shell { grid-template-columns: minmax(0, 1fr) } .ops-shell .ob-pick select, .ops-shell .ob-other input { min-width: 0; width: 100% } .ops-shell .ob-other { width: 100% } }

@@ -3,6 +3,7 @@ import { loadResources } from '@/lib/ops/resources';
 import { isTeacher, canEditSite, canEditEvents } from '@/lib/ops/nav';
 import { loadInvites, loadTemplates, offerings, KINDS, FEE_UNITS, STATUS_LABEL, inviteUrl } from '@/lib/ops/faculty';
 import { InviteForm, InviteActions, AddPerson, PersonActions } from './Invitations';
+import OnboardingStudio from './OnboardingStudio';
 import { teamRows, TYPES } from '@/lib/ops/people';
 import Shell, { opsUser } from '../Shell';
 
@@ -17,6 +18,12 @@ export default async function Team({ searchParams }) {
   const sp = await searchParams;
   const teacher = isTeacher(user);
   if (sp?.tab === 'invitations' && canEditEvents(user)) return <Invitations user={user} />;
+  // Faculty → Onboarding: see a teacher's onboarding as they will, edit it, send the invitation
+  if (sp?.tab === 'onboarding' && canEditEvents(user)) return (
+    <Shell user={user} current="team" desc="See a teacher’s onboarding exactly as they will, adjust it, then send their invitation." eyebrow="Teacher onboarding" title="Faculty & team">
+      <Tabs current="onboarding" />
+      <OnboardingStudio initial={String(sp?.email || '').toLowerCase()} />
+    </Shell>);
   const manage = canEditEvents(user);
   const [team, resources, everyone] = await Promise.all([loadTeam().catch(() => []), loadResources(), manage ? teamRows().catch(() => []) : []]);
   const gone = everyone.filter(p => !p.active);
@@ -70,7 +77,7 @@ export default async function Team({ searchParams }) {
           </>)}
           {user.director && (<>
             <h2>Teacher onboarding</h2>
-            <p className="ops-empty">Where each teacher on the schedule is in onboarding, and “try it as” them: <a href="/teach">open the pipeline →</a></p>
+            <p className="ops-empty">See each teacher’s onboarding as they will, adjust it and send their invitation: <a href="/ops/team?tab=onboarding">Faculty → Onboarding →</a></p>
           </>)}
           <h2>Resources</h2>
           {resources === null || links.length === 0 ? (
@@ -92,6 +99,7 @@ function Tabs({ current }) {
     <nav className="ops-filters" aria-label="Faculty" style={{ marginBottom: 16 }}>
       <a href="/ops/team" aria-current={current === 'people' ? 'page' : undefined}>People</a>
       <a href="/ops/team?tab=invitations" aria-current={current === 'invitations' ? 'page' : undefined}>Invitations</a>
+      <a href="/ops/team?tab=onboarding" aria-current={current === 'onboarding' ? 'page' : undefined}>Onboarding</a>
     </nav>
   );
 }
