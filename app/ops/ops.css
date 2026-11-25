@@ -1096,3 +1096,6 @@
   .ops-shell .pr-row.head { display: none }
   .ops-shell .pr-more { grid-template-columns: 1fr }
 }
+.ops-shell .pr-check { display: flex !important; flex-direction: row !important; gap: 6px; align-items: center; min-height: 36px; font-size: 13px }
+.ops-shell .pr-check input { width: 18px; height: 18px; min-height: 0 }
+.ops-shell .pr-srate { width: 110px !important }
