@@ -47,7 +47,7 @@ export async function POST(req) {
     if (b.action === 'save') {
       if (['Sent', 'Scheduled'].includes(it.state)) return bad(`This issue is ${it.state.toLowerCase()}, so it can’t be changed here.`, 409);
       const ch = {}, before = {};
-      for (const k of Object.keys(FIELDS)) if (b.changes?.[k] !== undefined) { ch[FIELDS[k]] = String(b.changes[k]).slice(0, 4000); before[FIELDS[k]] = row[k] ?? ''; }
+      for (const k of Object.keys(FIELDS)) if (b.changes?.[k] !== undefined) { ch[FIELDS[k]] = String(b.changes[k]).slice(0, 12000); before[FIELDS[k]] = row[k] ?? ''; }
       if (b.changes?.quote_id) { // the verse is copied from the verified Quote Library, never typed
         const v = (await verses()).find(x => x.quote_id === b.changes.quote_id); if (!v) return bad('That verse isn’t verified in the Quote Library.');
         Object.assign(ch, { [VERSE.sanskrit_devanagari]: v.devanagari, [VERSE.sanskrit_iast]: v.iast, [VERSE.sanskrit_translation]: v.translation, [VERSE.sanskrit_source]: v.source });
