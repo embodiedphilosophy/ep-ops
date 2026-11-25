@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 // by hand, people & their usual rates, then Finalize → Send to the payroll admin. Amount = hours × rate unless an
 // amount is typed (then it's fixed; clearing it goes back to hours × rate).
 const API = '/api/ops/payroll';
+const VIA = [['gusto', 'Gusto (automatic)'], ['manual', 'Pay manually']];
+const viaLabel = v => VIA.find(x => x[0] === v)?.[1] || 'Not set';
 const KINDS = [['faculty', 'Faculty: sessions and modules'], ['salary', 'Salaried staff'], ['hourly', 'Hourly staff'], ['other', 'Other']];
 const nyMonth = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(0, 7);
 const shift = (m, n) => { const [y, mo] = m.split('-').map(Number), d = new Date(Date.UTC(y, mo - 1 + n, 1)); return d.toISOString().slice(0, 7); };
@@ -59,6 +61,11 @@ export default function Payroll({ initialMonth }) {
           {KINDS.map(([k, l]) => <div key={k}><span className="cap">{l.split(':')[0]}</span><b>{usd(sub(k))}</b></div>)}
           <div className="total"><span className="cap">Total</span><b>{usd(d.total)}</b></div>
         </div>
+        <div className="pr-sum pr-via">
+          <div><span className="cap">To pay manually</span><b>{usd(d.byPay?.manual)}</b></div>
+          <div><span className="cap">Paid automatically through Gusto</span><b>{usd(d.byPay?.gusto)}</b></div>
+          {d.byPay?.unset > 0 && <div className="warn"><span className="cap">Pay method not set</span><b>{usd(d.byPay.unset)}</b></div>}
+        </div>
         {d.missing > 0 && !locked && <p className="hint">{d.missing} line{d.missing === 1 ? '' : 's'} still need{d.missing === 1 ? 's' : ''} hours and a rate (or an amount) before the month can be finalized.</p>}
         {KINDS.map(([k, l]) => <Section key={k} kind={k} title={l} lines={byKind(k)} month={month} locked={locked} reload={load} setErr={setErr} />)}
         {!locked && <AddLine month={month} reload={load} setErr={setErr} />}
@@ -68,7 +75,7 @@ export default function Payroll({ initialMonth }) {
           {status !== 'open' && <button className="chip" disabled={!!busy} onClick={() => act('reopen', 'Reopen this month to make changes? You’ll need to finalize it again.')}>Reopen</button>}
           <span className="sub">{d.settings?.admin_email ? <>Goes to <b>{d.settings.admin_name || d.settings.admin_email}</b> ({d.settings.admin_email}): a total per person with names and emails, every line, and a spreadsheet file.</> : <>No payroll admin yet. {d.director ? 'Add one under Settings below.' : 'Ask Jacob to add one.'}</>}</span>
         </section>
-        <People people={d.people} reload={load} setErr={setErr} />
+        <People people={d.people} month={month} reload={load} setErr={setErr} />
         {d.director && <Settings d={d} reload={load} setErr={setErr} setMsg={setMsg} />}
       </>}
     </div>
@@ -98,9 +105,9 @@ function Section({ kind, title, lines, month, locked, reload, setErr }) {
 }
 
 function Line({ l, kind, month, locked, reload, setErr }) {
-  const from = { what: l.what || '', hours: l.hours || '', rate: l.rate || '', amount: l.fixed === 'yes' ? (l.amount || '') : '', note: l.note || '', name: l.name || '', email: l.email || '' };
+  const from = { what: l.what || '', hours: l.hours || '', rate: l.rate || '', amount: l.fixed === 'yes' ? (l.amount || '') : '', note: l.note || '', name: l.name || '', email: l.email || '', pay_via: l.pay_via || '' };
   const [f, setF] = useState(from); const [busy, setBusy] = useState(false); const [open, setOpen] = useState(false);
-  useEffect(() => setF(from), [l.key, l.what, l.hours, l.rate, l.amount, l.fixed, l.note, l.name, l.email]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => setF(from), [l.key, l.what, l.hours, l.rate, l.amount, l.fixed, l.note, l.name, l.email, l.pay_via]); // eslint-disable-line react-hooks/exhaustive-deps
   const dirty = Object.keys(from).some(k => String(f[k]) !== String(from[k]));
   const n = v => { const x = Number(String(v).replace(/[^0-9.]/g, '')); return String(v).trim() === '' || !Number.isFinite(x) ? null : x; };
   const preview = n(f.amount) ?? (n(f.hours) != null && n(f.rate) != null ? Math.round(n(f.hours) * n(f.rate) * 100) / 100 : null);
@@ -114,6 +121,7 @@ function Line({ l, kind, month, locked, reload, setErr }) {
     <div className={`pr-row${removed ? ' removed' : ''}${preview == null && !removed ? ' missing' : ''}`} role="row">
       <span className="pr-what">
         {kind === 'faculty' ? <><span className="mono">{day(l.date)}</span> {l.what}</> : <><b>{l.name}</b> <span className="sub">{l.email}</span><br />{l.what}</>}
+        {!removed && <span className={`pr-via-tag ${l.pay_via || 'unset'}`}>{viaLabel(l.pay_via)}</span>}
         {l.note && <span className="sub pr-note">{l.note}</span>}
         {l.unsaved && <span className="sub pr-note">Worked out, not saved yet</span>}
         {!locked && !removed && <button className="pr-link" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Edit details'}</button>}
@@ -122,6 +130,7 @@ function Line({ l, kind, month, locked, reload, setErr }) {
           <label><span className="cap">Name</span><input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} /></label>
           <label><span className="cap">Email</span><input type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>
           <label><span className="cap">Note (goes to the payroll admin)</span><input value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></label>
+          <label><span className="cap">Paid</span><select value={f.pay_via} onChange={e => setF({ ...f, pay_via: e.target.value })}><option value="">Not set</option>{VIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         </span>}
       </span>
       <input aria-label={`Hours for ${l.what}`} inputMode="decimal" value={f.hours} disabled={locked || removed} onChange={e => setF({ ...f, hours: e.target.value })} />
@@ -138,7 +147,7 @@ function Line({ l, kind, month, locked, reload, setErr }) {
 }
 
 function AddLine({ month, reload, setErr }) {
-  const empty = { kind: 'other', name: '', email: '', what: '', date: '', hours: '', rate: '', amount: '', note: '' };
+  const empty = { kind: 'other', name: '', email: '', what: '', date: '', hours: '', rate: '', amount: '', note: '', pay_via: 'manual' };
   const [f, setF] = useState(empty); const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false);
   const save = async e => {
     e.preventDefault(); setBusy(true); setErr('');
@@ -156,6 +165,7 @@ function AddLine({ month, reload, setErr }) {
       <label><span className="cap">Hours</span><input inputMode="decimal" value={f.hours} onChange={e => setF({ ...f, hours: e.target.value })} /></label>
       <label><span className="cap">Rate $/h</span><input inputMode="decimal" value={f.rate} onChange={e => setF({ ...f, rate: e.target.value })} /></label>
       <label><span className="cap">Or an amount $</span><input inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></label>
+      <label><span className="cap">Paid</span><select value={f.pay_via} onChange={e => setF({ ...f, pay_via: e.target.value })}>{VIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
       <label className="wide"><span className="cap">Note</span><input value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></label>
       <span className="pr-acts"><button className="chip primary" disabled={busy}>{busy ? 'Adding…' : 'Add'}</button><button type="button" className="chip" onClick={() => setOpen(false)}>Cancel</button></span>
     </form>
@@ -163,12 +173,12 @@ function AddLine({ month, reload, setErr }) {
 }
 
 // Usual rates and salaries: what new months fill in from
-function People({ people, reload, setErr }) {
-  const empty = { email: '', name: '', kind: 'faculty', rate: '', monthly: '', session_rate: '', sessions: false, note: '' };
+function People({ people, month, reload, setErr }) {
+  const empty = { email: '', name: '', kind: 'faculty', rate: '', monthly: '', session_rate: '', sessions: false, recurring: true, pay_via: '', note: '' };
   const [f, setF] = useState(empty); const [busy, setBusy] = useState(false);
   const save = async (p, e) => {
     e?.preventDefault(); setBusy(true); setErr('');
-    try { await post({ action: 'person', person: p }); setF(empty); await reload(); } catch (x) { setErr(x.message); }
+    try { await post({ action: 'person', person: { ...p, recurring: p.recurring !== false && p.recurring !== 'no', only_month: p.only_month || month } }); setF(empty); await reload(); } catch (x) { setErr(x.message); }
     setBusy(false);
   };
   return (
@@ -176,7 +186,7 @@ function People({ people, reload, setErr }) {
       <summary><h2>People &amp; usual rates <span>{people.length}</span></h2></summary>
       <p className="sub">What each new month fills in from. Faculty: their usual hourly rate for sessions. Salaried: the same amount every month. Hourly: their rate for clocked hours (otherwise the Team tab’s hourly rate). Staff are paid for sessions only when ticked “Also paid for sessions”, at their session rate; their sessions then appear under Faculty, so leave session time out of their clocked hours. Changing a rate here changes months not yet finalized; lines you’ve already edited keep your numbers.</p>
       <div className="pr-table">
-        {people.map(p => <PersonRow key={p.email} p={p} save={save} reload={reload} setErr={setErr} />)}
+        {people.map(p => <PersonRow key={p.email} p={p} month={month} save={save} reload={reload} setErr={setErr} />)}
       </div>
       <form className="pr-add" onSubmit={e => save(f, e)} aria-label="Add a person">
         <label><span className="cap">Email</span><input type="email" required value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>
@@ -186,18 +196,24 @@ function People({ people, reload, setErr }) {
           : <label><span className="cap">Rate $/h</span><input inputMode="decimal" value={f.rate} onChange={e => setF({ ...f, rate: e.target.value })} /></label>}
         {f.kind !== 'faculty' && <label className="pr-check"><input type="checkbox" checked={f.sessions} onChange={e => setF({ ...f, sessions: e.target.checked })} /> Also paid for sessions they teach or host</label>}
         {f.kind !== 'faculty' && f.sessions && <label><span className="cap">Session rate $/h</span><input inputMode="decimal" value={f.session_rate} onChange={e => setF({ ...f, session_rate: e.target.value })} /></label>}
+        <label><span className="cap">Paid</span><select required value={f.pay_via} onChange={e => setF({ ...f, pay_via: e.target.value })}><option value="">Choose…</option>{VIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+        <label className="pr-check wide"><input type="checkbox" checked={f.recurring} onChange={e => setF({ ...f, recurring: e.target.checked })} /> Show up in every month automatically{f.recurring ? '' : ` (unticked: only in ${label(month)})`}</label>
         <span className="pr-acts"><button className="chip primary" disabled={busy}>{busy ? 'Saving…' : 'Add or update'}</button></span>
       </form>
     </details>
   );
 }
-function PersonRow({ p, save, reload, setErr }) {
-  const start = { ...p, sessions: p.sessions === 'yes' };
-  const [f, setF] = useState(start); const dirty = ['rate', 'monthly', 'name', 'kind', 'session_rate', 'sessions'].some(k => String(f[k] ?? '') !== String(start[k] ?? ''));
+function PersonRow({ p, month, save, reload, setErr }) {
+  const start = { ...p, sessions: p.sessions === 'yes', recurring: p.recurring !== 'no', pay_via: p.pay_via || '' };
+  const [f, setF] = useState(start); const dirty = ['rate', 'monthly', 'name', 'kind', 'session_rate', 'sessions', 'recurring', 'pay_via'].some(k => String(f[k] ?? '') !== String(start[k] ?? ''));
   return (
     <div className="pr-row person">
-      <span><b>{p.name || p.email}</b> <span className="sub">{p.email}</span></span>
-      <select aria-label={`How ${p.name || p.email} is paid`} value={f.kind} onChange={e => setF({ ...f, kind: e.target.value })}><option value="faculty">Faculty</option><option value="salary">Salaried</option><option value="hourly">Hourly</option></select>
+      <span><b>{p.name || p.email}</b> <span className="sub">{p.email}</span>
+        <span className="pr-pflags">
+          <select aria-label={`How ${p.name || p.email} is paid`} value={f.pay_via} onChange={e => setF({ ...f, pay_via: e.target.value })}><option value="">Paid: not set</option>{VIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <label className="pr-check"><input type="checkbox" checked={f.recurring} onChange={e => setF({ ...f, recurring: e.target.checked, only_month: e.target.checked ? '' : month })} /> Every month{!f.recurring ? ` (only ${label(f.only_month || month)})` : ''}</label>
+        </span></span>
+      <select aria-label={`What ${p.name || p.email} is paid as`} value={f.kind} onChange={e => setF({ ...f, kind: e.target.value })}><option value="faculty">Faculty</option><option value="salary">Salaried</option><option value="hourly">Hourly</option></select>
       {f.kind === 'salary' ? <input aria-label="Monthly amount" inputMode="decimal" value={f.monthly} onChange={e => setF({ ...f, monthly: e.target.value })} placeholder="monthly $" />
         : <input aria-label="Rate per hour" inputMode="decimal" value={f.rate} onChange={e => setF({ ...f, rate: e.target.value })} placeholder="$/h" />}
       <span className="pr-acts">
