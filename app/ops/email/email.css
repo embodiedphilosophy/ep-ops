@@ -1,0 +1,16 @@
+/* Teachers & Email: programme chips, Kit banner, side panel. Builds on the .soc workspace styles. */
+.soc .em-chip { display: inline-block; padding: 1px 8px; border-radius: 3px; font: 600 11px/18px 'JetBrains Mono', monospace; letter-spacing: .02em; }
+.soc .em-banner { padding: 10px 14px; border: 1px solid var(--line, #d9d2c3); border-radius: 6px; background: #fbf7ee; font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.soc .em-banner.bad { border-color: #A5432A; background: #fbeee9; }
+.soc .em-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.soc .em-layout.panel { grid-template-columns: minmax(0, 1fr) 300px; }
+.soc .em-side { position: sticky; top: 12px; align-self: start; }
+.soc .em-side li { padding: 8px 0; border-top: 1px solid var(--line, #e4ddcc); list-style: none; font-size: 13px; }
+.soc .em-side ul, .soc .em-list { margin: 0; padding: 0; }
+.soc .em-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line, #e4ddcc); list-style: none; }
+.soc .em-row .b { flex: 1 1 260px; min-width: 0; }
+.soc .em-row.gone { opacity: .55; }
+.soc .em-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.soc .em-attach { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.soc .em-attach select { max-width: 100%; }
+@media (max-width: 860px) { .soc .em-layout.panel { grid-template-columns: minmax(0, 1fr); } .soc .em-side { position: static; } }

@@ -22,7 +22,7 @@ import { flagOf } from '../SocialGrid';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Content — Embodied Philosophy', robots: { index: false, follow: false } };
 
-const TABS = [['overview', 'Overview'], ['email', 'Email'], ['media', 'Media'], ['review', 'Review']];
+const TABS = [['email', 'Promo emails'], ['media', 'Media'], ['review', 'Review']];
 
 // Is everything we publish moving? Social, Email and Media, and Review: what teachers sent for the website.
 // The website's own tables live in Settings.
@@ -38,11 +38,12 @@ export default async function Content({ searchParams }) {
   }
   if (sp?.tab === 'website') redirect(`/ops/settings${sp?.t ? `?t=${encodeURIComponent(sp.t)}` : ''}`);
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
-  const tab = tabs.some(([k]) => k === sp?.tab) ? sp.tab : 'overview';
+  // The old Overview (status board, Next posts) is gone: This week is the new front page, and Next posts lives in Social
+  if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/email');
+  const tab = sp.tab;
   return (
-    <Shell user={user} current="content" desc="Is everything we publish moving? Social posts, promo emails, pictures and review." eyebrow="Email · Media · Review" title="Content"
-      head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={k === 'overview' ? '/ops/content' : `/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
-      {tab === 'overview' && <Overview canReview={canEditSite(user)} />}
+    <Shell user={user} current={`content-${tab}`} desc="Promo emails, media and the website copy teachers sent for review." eyebrow="Teachers · Email · Launches" title="Teachers & Email"
+      head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={`/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'email' && <Email canEdit={canEditSite(user)} />}
       {tab === 'email' && <SiteEditor scope="email" initial="scaffolding" base="/ops/content?tab=email&" />}
       {tab === 'media' && <Media />}
