@@ -67,7 +67,7 @@ export function EmailCalendar() {
   const month = cursor.slice(0, 7);
   const title = view === 'week' ? `${long(from)} – ${long(to)}` : at(cursor).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   return (
-    <Layout title={<>Email <em>calendar</em></>} intro="Every email by the day it goes out, coloured by programme. Drag one to move it. Scheduled emails ask first." panel={panel} setPanel={setPanel} d={side}>
+    <Layout view="calendar" title={<>Email <em>calendar</em></>} intro="Every email by the day it goes out, coloured by programme. Drag one to move it. Scheduled emails ask first." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <div className="soc-act em-bar">
         <button className="soc-btn small" onClick={() => step(-1)} aria-label="Earlier">←</button><b className="mono">{title}</b><button className="soc-btn small" onClick={() => step(1)} aria-label="Later">→</button>
