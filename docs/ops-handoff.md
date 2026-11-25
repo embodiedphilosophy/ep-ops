@@ -259,3 +259,7 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 - When on: the post editor shows "Post to Instagram now" for Approved / Manual / Failed posts (people who schedule only). The row is set to Publishing first (a second click can't double-post), then Posted with its link, or Failed with the reason in the notes. Approving a carousel/Reel/Story no longer makes it Manual.
 - Not built yet: posting at the scheduled time. Only "Post now" exists; Make still publishes single pictures at their time.
 - Test: `scripts/ops-test/ig-publish.sh off|live` against the mock Graph API (see the script header). A real test post needs Jacob's explicit OK.
+
+## Delete all expired posts (Review & approve → Health)
+- The Health card "N expired posts" has a **Delete all N** button (people who schedule or approve only). It asks first, then sets every expired post (Proposed, past its time, never approved) to Deleted. Rows stay in the sheet, hidden; approved and posted posts are never touched. API: `POST /api/ops/social { view: 'plan', deleteExpired: true }` → `{ deleted }`. It works on the whole plan, not just the weeks on screen.
+- Test: `scripts/ops-test/delete-expired.sh` (8 checks; fresh `run.sh`).

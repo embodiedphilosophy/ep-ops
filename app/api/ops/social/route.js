@@ -250,6 +250,15 @@ export async function POST(req) {
       refreshSite();
       return NextResponse.json({ ok: true, changed: updates.length, cells: n, skipped });
     }
+    // Delete every expired post at once (Proposed, past its time, never approved). Hidden, not wiped: the row stays with status Deleted.
+    if (v.key === 'plan' && body.deleteExpired) {
+      if (!canPublishSocial(user)) return NextResponse.json({ error: 'Only people who schedule or approve posts can clear expired posts' }, { status: 403 });
+      const plan = await readPlain(v.tab, SHEET);
+      const gone = plan.rows.filter(r => displayStatus(r.values) === 'Expired').map(r => ({ row: r.row, changes: { status: 'Deleted', updated_by: who, updated_at: now() } }));
+      if (gone.length) await updatePlainMany(v.tab, gone, { who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true, deleted: gone.length });
+    }
     // Post now: straight to Instagram (only when META_PUBLISH=live). The row is marked Publishing first so a second click can't post it twice.
     if (v.key === 'plan' && body.publishNow) {
       if (!canPublishSocial(user)) return NextResponse.json({ error: 'Only people who schedule posts can post' }, { status: 403 });
