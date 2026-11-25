@@ -20,7 +20,7 @@ assert.equal(nov.find(r => r.key === 'reflection').title, 'Write your first refl
 assert.equal(nov.find(r => r.key === 'immersion-1').title, 'Immersion 1 · Beneath the Pose');
 assert.equal(nov.find(r => r.key === 'reflection').date, '2026-11-30', 'last Monday');
 assert.equal(nov.find(r => r.key === 'one-to-one').date, '2026-11-23');
-assert.match(nov.find(r => r.key === 'buddy').hint, /Rotation 1 \(Oct–Nov\): the same buddy/);
+assert.match(nov.find(r => r.key === 'buddy').hint, /choose their own partner each month/);
 // October: no immersion → the mentee-year line; July: the retreat line; December with no books → the mentee-year Read line
 assert.equal(M.monthList({ ym: '2026-10', config, bookRows: books }).find(r => r.kind === 'note').title, 'No immersion');
 assert.equal(M.monthList({ ym: '2027-07', config }).find(r => r.key === 'note-immersion-1').title, 'Retreat practicum');
