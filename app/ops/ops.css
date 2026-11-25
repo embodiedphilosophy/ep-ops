@@ -1015,3 +1015,4 @@
 .ops-shell .ops-cal-cats [role=radiogroup] label { flex-direction: row; align-items: center; gap: 6px }
 .ops-shell .ops-cal-cats input[type=radio] { width: auto; min-height: 0; margin: 0 }
 .ops-shell .ops-my-report li b { text-align: right; max-width: 70% }
+.ops-shell .ops-tasks li.is-handed { color: var(--soft); font-style: italic; background: var(--paper) }

@@ -61,7 +61,7 @@ export default async function Home({ searchParams }) {
   const teamNames = staffNames(allTeam);
   const cutoff = addDays(todayET(), -ESCALATE_DAYS);
   const veryLate = triageOn ? all.filter(t => !t.completed && !needsOwner(t) && t.due && t.due <= cutoff) : [];
-  const listProps = { showWho: false, team: teamNames, roleNames, short: true };
+  const listProps = { showWho: false, team: teamNames, roleNames, short: true, assign: isStaff(user) };
 
   const [programming, meetings, note, social] = await Promise.all([
     meetingsFor(asUser, 6, { all: isStaff(asUser) }).catch(() => []),

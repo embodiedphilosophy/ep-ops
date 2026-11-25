@@ -15,7 +15,7 @@ async function post(body) {
   return j;
 }
 
-// One task's actions: snooze, blocked, comments (and assign, on the director's triage list)
+// One task's actions: assign to someone else, snooze, blocked, comments
 function Actions({ t, team, assign, onChange }) {
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
@@ -44,10 +44,10 @@ function Actions({ t, team, assign, onChange }) {
           <span className="lbl">Assign to</span>
           <select value={to} onChange={e => setTo(e.target.value)}>
             <option value="">Choose…</option>
-            {team.map(n => <option key={n}>{n}</option>)}
+            {team.filter(n => !(t.labels.length === 1 && t.labels[0] === n)).map(n => <option key={n}>{n}</option>)}
           </select>
-          <button className="chip" disabled={!to || !!busy} onClick={() => run('assign', { action: 'assign', who: to }, () => onChange({ assigned: to }))}>Assign</button>
-          <span className="hint">Teachers: add them in the Master Schedule and the task moves to them on the next sync.</span>
+          <button className="chip" disabled={!to || !!busy} onClick={() => run('assign', { action: 'assign', who: to }, j => onChange({ assigned: j.assigned || to }))}>Assign</button>
+          {assign === 'triage' && <span className="hint">Teachers: add them in the Master Schedule and the task moves to them on the next sync.</span>}
         </div>
       ) : null}
       <div className="row">
@@ -94,6 +94,7 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
   const [state, setState] = useState({});
   const [open, setOpen] = useState('');
   const [patch, setPatch] = useState({});
+  const [gone, setGone] = useState({});
   if (!tasks.length) return <p className="ops-empty">{empty}</p>;
   const complete = async id => {
     setState(s => ({ ...s, [id]: 'saving' }));
@@ -115,8 +116,10 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
   const who = labels => labels.map(l => roleNames[l]?.length ? `${l} (${firstNames(roleNames[l])})` : l).join(', ');
   return (
     <ul className="ops-tasks">
-      {tasks.map(t0 => {
+      {tasks.filter(t0 => !gone[t0.id]).map(t0 => {
         const t = { ...t0, ...(patch[t0.id] || {}) };
+        // Handed to someone else: a short note in its place, then it leaves the list
+        if (t.assigned) return <li key={t.id} className="is-moved is-handed"><div className="main"><span className="n">Moved to {t.assigned}: {splitRole(short ? t.name.split(' — ')[0] : t.name)[1]}</span></div></li>;
         const st = done ? (['undone', 'saving', 'error'].includes(state[t.id]) ? state[t.id] : 'done') : state[t.id];
         const moved = t.assigned || (t.due !== t0.due && t.due);
         const [role, rest] = splitRole(short ? t.name.split(' — ')[0] : t.name);
@@ -144,7 +147,10 @@ export default function TaskList({ tasks, empty, showWho, done, team = [], roleN
                 )}
               </span>
             </div>
-            {open === t.id && <Actions t={t} team={team} assign={assign} onChange={p => setPatch(s => ({ ...s, [t.id]: { ...(s[t.id] || {}), ...p } }))} />}
+            {open === t.id && <Actions t={t} team={team} assign={assign} onChange={p => {
+              setPatch(s => ({ ...s, [t.id]: { ...(s[t.id] || {}), ...p } }));
+              if (p.assigned) { setOpen(''); setTimeout(() => setGone(g => ({ ...g, [t.id]: true })), 4000); }
+            }} />}
           </li>
         );
       })}
