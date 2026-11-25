@@ -33,12 +33,16 @@ export async function POST(req) {
       const ev = (await loadCalendar()).find(e => evId(e) === String(b.event_id || '').toUpperCase()); if (!ev) return bad('That event isn’t on the Master Schedule');
       const cur = await getBroadcast(b.kit_id).catch(() => null); if (!cur) return bad('Kit doesn’t have that email any more. Refresh the list.', 404);
       const id = evId(ev), has = new RegExp(`\\[${id}\\]`, 'i').test(`${cur.subject || ''} ${cur.description || ''}`);
-      if (!has) {
-        try { await setDescription(b.kit_id, `[${id}] ${cur.description || ''}`.trim()); }
+      // Kit won't edit an email that has already gone out, so a sent email is matched in Ops only (the Email Links tab,
+      // which the list reads first). Drafts and scheduled emails also get the [E###] tag in Kit's internal description.
+      const sent = !!cur.published_at && new Date(cur.published_at) <= new Date();
+      let wroteKit = false;
+      if (!has && !sent) {
+        try { await setDescription(b.kit_id, `[${id}] ${cur.description || ''}`.trim()); wroteKit = true; }
         catch (e) { console.error('Kit description write failed', e.message); return bad('Kit wouldn’t take the change, so nothing was saved.', 502); }
       }
       await saveLink(b.kit_id, { event_id: id, archived: '' }, me); forgetKit(); refreshSite();
-      return NextResponse.json({ ok: true, wroteKit: !has });
+      return NextResponse.json({ ok: true, wroteKit });
     }
     if (b.action === 'archive' || b.action === 'restore') {
       if (!b.confirm) return bad('Please confirm first');
