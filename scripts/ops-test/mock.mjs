@@ -447,17 +447,17 @@ http.createServer(async (req, res) => {
       if (req.method === 'GET' && /\/broadcasts\/(2\d\d)$/.test(p)) { const x = kitExtra.find(k => k.id === Number(p.split('/').pop())); return send(res, x ? 200 : 404, x ? { broadcast: x } : {}); }
       if (p.endsWith('/sequences')) return send(res, 200, { sequences: [{ id: 1, name: 'Sequence' }, { id: 2, name: 'Welcome' }], pagination: {} });
       if (p.endsWith('/segments')) return send(res, 200, { segments: [{ id: 5, name: 'Hold: Not yet welcomed' }], pagination: {} });
-      if (req.method === 'PUT' && /\/broadcasts\/\d+$/.test(p)) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks'); const id = Number(p.split('/').pop()); log('KIT DRAFT UPDATED', id, b.subject, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
+      if (req.method === 'PUT' && /\/broadcasts\/\d+$/.test(p)) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks'); const id = Number(p.split('/').pop()); const dr = kitDrafts.find(x => x.id === id); if (dr) Object.assign(dr, b); log('KIT DRAFT UPDATED', id, b.subject, '| send_at', b.send_at, '| keys', Object.keys(b).join()); return send(res, 200, { broadcast: { id, ...(dr || b) } }); }
       if (req.method !== 'GET') { log('BLOCKED kit', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
-      if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }], pagination: {} });
-      if (/\/tags\/\d+\/subscribers/.test(p)) return send(res, 200, { subscribers: ['Maya', 'Sam', 'Lee', 'Priya', 'Noor', 'Tomas', 'Wen'].map((n, i) => ({ id: 100 + i, first_name: n, email_address: n.toLowerCase() + '@mentee.test' })), pagination: { has_next_page: false } });
-      if (/\/broadcasts\/\d+$/.test(p)) { const id = Number(p.split('/').pop()); const d = kitDrafts.find(x => x.id === id); return send(res, d ? 200 : 404, d ? { broadcast: { ...d, send_at: null } } : { error: 'not found' }); }
-      if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }], pagination: {} });
+      if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }, { id: 2, name: 'Member: Wisdom School' }, { id: 3, name: 'Enrolled · Fall 2026' }], pagination: {} });
+      if (/\/tags\/\d+\/subscribers/.test(p)) return send(res, 200, { subscribers: ['Maya', 'Sam', 'Lee', 'Priya', 'Noor', 'Tomas', 'Wen'].map((n, i) => ({ id: 100 + i, first_name: n, email_address: n.toLowerCase() + '@mentee.test' })), pagination: { has_next_page: false, total_count: 7 } });
+      if (/\/broadcasts\/\d+$/.test(p)) { const id = Number(p.split('/').pop()); const d = kitDrafts.find(x => x.id === id); return send(res, d ? 200 : 404, d ? { broadcast: { send_at: null, ...d } } : { error: 'not found' }); }
+      if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }, { id: 2, name: 'Member: Wisdom School' }, { id: 3, name: 'Enrolled · Fall 2026' }], pagination: {} });
       if (p.endsWith('/broadcasts')) return send(res, 200, { broadcasts: [
         { id: 11, subject: '[E002] Promo #1: the Goddess', send_at: new Date(Date.now() + 2 * 864e5).toISOString() },
         { id: 12, subject: '[E002] Promo #2', published_at: new Date(Date.now() - 864e5).toISOString() },
         { id: 13, subject: 'Autumn sale', send_at: new Date(Date.now() + 5 * 864e5).toISOString() },
-        { id: 14, subject: '[E005] Draft promo' }, ...kitExtra], pagination: {} });
+        { id: 14, subject: '[E005] Draft promo' }, ...kitExtra, ...kitDrafts.map(d => ({ created_at: new Date().toISOString(), published_at: null, send_at: null, ...d }))], pagination: {} });
       return send(res, 200, {});
     }
     if (p.startsWith('/calendar/v3/')) return send(res, 200, { items: meetings });

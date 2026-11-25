@@ -41,7 +41,14 @@ function Panel({ d }) {
     </aside>);
 }
 
-function Layout({ children, panel, setPanel, d, title, intro }) {
+// The Programming panel's data, read only when the panel is opened
+export function useSide(panel) {
+  const [side, setSide] = useState(null);
+  useEffect(() => { fetch('/api/ops/email/plan?what=plan').then(r => r.json()).then(j => setPlanned((j.plan || []).filter(x => !x.kit_id && x.status !== 'Not needed'))).catch(() => {}); }, []);
+  const adopt = async x => { if (!confirm(`Take “${x.subject}” into the Ops plan?\n\nThen you can edit it here and drag it on the calendar. Kit is not changed.`)) return; setFail(''); try { const r = await fetch('/api/ops/email/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'adopt', kit_id: x.kit_id }) }), j = await r.json(); if (!r.ok) throw new Error(j.error); window.location.href = `/ops/email/edit?id=${j.id}`; } catch (e) { setFail(e.message || 'Couldn’t do that'); } };
+  return side;
+}
+export function Layout({ children, panel, setPanel, d, title, intro }) {
   return (
     <div className="soc">
       <header className="soc-head">
@@ -84,7 +91,7 @@ export function ThisWeek() {
 
 const SHOWS = [['all', 'All'], ['unlinked', 'Not matched'], ['tidy', 'To tidy'], ['draft', 'Drafts'], ['scheduled', 'Scheduled'], ['sent', 'Sent'], ['archived', 'Put away']];
 export function Emails() {
-  const [d, load, err] = useData('emails'); const [side, setSide] = useState(null); const [panel, setPanel] = useState(false);
+  const [d, load, err] = useData('emails'); const [panel, setPanel] = useState(false); const side = useSide(panel); const [planned, setPlanned] = useState([]);
   const [show, setShow] = useState('all'); const [q, setQ] = useState(''); const [pick, setPick] = useState({}); const [sel, setSel] = useState(new Set());
   const [msg, setMsg] = useState(''); const [fail, setFail] = useState(''); const [busy, setBusy] = useState('');
   useEffect(() => { const s = new URLSearchParams(window.location.search).get('show'); if (SHOWS.some(x => x[0] === s)) setShow(s); }, []);
@@ -109,7 +116,9 @@ export function Emails() {
       {d && <>
         <div className="em-filters" role="group" aria-label="Show">{SHOWS.map(([k, l]) => <button key={k} className={`soc-btn small${show === k ? ' primary' : ''}`} aria-pressed={show === k} onClick={() => setShow(k)}>
           {l}{k === 'unlinked' ? ` ${d.counts.unlinked}` : k === 'tidy' ? ` ${d.counts.stale + d.counts.duplicate}` : k === 'archived' ? ` ${d.counts.archived}` : ''}</button>)}
-          <input aria-label="Search emails" placeholder="Search" value={q} onChange={e => setQ(e.target.value)} /></div>
+          <input aria-label="Search emails" placeholder="Search" value={q} onChange={e => setQ(e.target.value)} />{canEdit && <a className="soc-btn small primary" href="/ops/email/edit">New email</a>}</div>
+        {planned.length > 0 && <section className="soc-panel" aria-label="Planned in Ops"><div className="ph"><h2>Planned in Ops</h2><span className="sub">Not in Kit yet</span></div>
+          <ul className="em-list">{planned.map(x => <li className="em-row" key={x.id}><div className="b"><span className="mono meta">{day(x.planned_date)} · {x.status}</span><br /><b>{x.subject || `${x.type || 'Email'} (no subject yet)`}</b></div><a className="soc-btn small" href={`/ops/email/edit?id=${x.id}`}>Open</a></li>)}</ul></section>}
         <section className="soc-panel" aria-label="Emails">
           {canEdit && show === 'tidy' && <div className="soc-act"><button className="soc-btn primary" disabled={!sel.size || !!busy} onClick={away}>Put away {sel.size || ''} selected</button></div>}
           {!rows.length ? <p className="ops-empty">{show === 'unlinked' ? 'Every email is matched to an event.' : 'No emails here.'}</p> : (
@@ -129,7 +138,7 @@ export function Emails() {
                       <option value="">Choose the event…</option>{d.events.map(e => <option key={e.id} value={e.id}>{day(e.date)} · {e.title} ({e.id})</option>)}</select>
                       <button className="soc-btn small" disabled={!pick[x.kit_id] || !!busy} onClick={() => attach(x)}>Attach</button></div>)}
                 </div>
-                <span className="soc-act"><a className="soc-btn small" href={x.url} target="_blank" rel="noreferrer">Open in Kit</a>
+                <span className="soc-act">{canEdit && !x.archived && (x.plan_id ? <a className="soc-btn small" href={`/ops/email/edit?id=${x.plan_id}`}>Edit in Ops</a> : x.state !== 'sent' && <button className="soc-btn small" onClick={() => adopt(x)}>Edit in Ops</button>)}<a className="soc-btn small" href={x.url} target="_blank" rel="noreferrer">Open in Kit</a>
                   {canEdit && x.archived && <button className="soc-btn small" disabled={!!busy} onClick={run('r' + x.kit_id, { action: 'restore', kit_ids: [x.kit_id], confirm: true }, 'Brought back')}>Bring back</button>}</span>
               </li>))}</ul>)}
         </section></>}
