@@ -20,15 +20,23 @@ function List() {
   const load = useCallback(async () => { const res = await fetch(`${API}?fresh=1`).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the newsletter'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
   const make = async day => { try { await post({ action: 'create', date: day }); window.location.href = `/ops/email/newsletter?date=${day}`; } catch (e) { setErr(e.message); } };
+  const [tab, setTab] = useState('upcoming');
   const upcoming = d && nextSunday(d.today), has = d && d.issues.some(i => i.send_date === upcoming);
+  // Upcoming: everything still to go out, soonest first. Skipped and Sent collect on their own tabs, most recent first.
+  const groups = { upcoming: [], skipped: [], sent: [] };
+  (d?.issues || []).forEach(i => groups[i.state === 'Skipped' ? 'skipped' : i.state === 'Sent' ? 'sent' : 'upcoming'].push(i));
+  groups.upcoming.sort((a, b) => a.send_date.localeCompare(b.send_date));
+  groups.skipped.sort((a, b) => b.send_date.localeCompare(a.send_date)); groups.sent.sort((a, b) => b.send_date.localeCompare(a.send_date));
+  const shown = groups[tab], EMPTY = { upcoming: 'Nothing coming up yet.', skipped: 'No weeks have been skipped.', sent: 'Nothing has gone out yet.' };
   return (
     <Layout title={<>The Weekly <em>Scaffolding</em></>} intro="One issue a week. Numbers count only the issues that went out, so a week that was skipped doesn’t take a number." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
       {d?.error && <p className="em-banner bad" role="status">{d.error}</p>}
       {!d ? <p className="ops-empty">Reading the issues…</p> : (
         <section className="soc-panel" aria-label="Issues">
-          <div className="ph"><h2>Issues</h2>{d.canEdit && !has && <button className="soc-btn small primary" onClick={() => make(upcoming)}>Start {long(upcoming)}</button>}</div>
-          {!d.issues.length ? <p className="ops-empty">No issues yet.</p> : <ul className="em-list">{d.issues.map(i => (
+          <div className="ph"><div className="soc-seg" role="group" aria-label="Which issues">{[['upcoming', 'Coming up'], ['skipped', 'Skipped'], ['sent', 'Sent']].map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{l} <span className="mono">{groups[k].length}</span></button>)}</div>
+            {d.canEdit && !has && <button className="soc-btn small primary" onClick={() => make(upcoming)}>Start {long(upcoming)}</button>}</div>
+          {!shown.length ? <p className="ops-empty">{EMPTY[tab]}</p> : <ul className="em-list">{shown.map(i => (
             <li key={i.send_date} className="em-row"><div className="b"><span className="mono meta">{long(i.send_date)}</span><br />
               <b>{i.number ? `No. ${i.number}` : 'No number'}</b>{i.subject ? ` · ${i.subject}` : ''}
               <span className="chips"><span className={`gchip ${STATE_CLASS[i.state] || ''}`}>{i.state}</span></span></div>
