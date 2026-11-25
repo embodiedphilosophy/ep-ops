@@ -49,7 +49,7 @@ export async function GET(req) {
     if (l.landing_url) items.push({ lane: 'page', key: 'url', title: 'Landing page', date: l.steps.find(s => s.type === 'page')?.date || '', status: 'Live link', href: l.landing_url });
     if (l.event_id) { try { for (const t of await listTasks()) if (eventIdFromTag(t.description) === l.event_id && !t.completed) items.push({ lane: 'task', key: t.id, title: t.name.replace(/ — .*$/, ''), date: t.due, status: 'Task', href: '/ops/tasks' }); } catch { /* the tasks lane is left empty if tasks can't be read */ } }
     const dates = items.map(i => i.date).filter(Boolean).sort();
-    return NextResponse.json({ ...meta, launch: { id: l.id, name: l.name, kind: l.kind, status: l.status, event_id: l.event_id, landing_url: l.landing_url, notes: l.notes, dates: l.dates, tag_name: l.tag_name, playbook_id: l.playbook_id }, event: ev && { id: evId(ev), title: ev.title, date: ev.date },
+    return NextResponse.json({ ...meta, launch: { id: l.id, name: l.name, kind: l.kind, status: l.status, event_id: l.event_id, landing_url: l.landing_url, notes: l.notes, dates: l.dates, tag_name: l.tag_name, playbook_id: l.playbook_id }, event: ev && { id: evId(ev), key: ev.id, title: ev.title, date: ev.date },
       items, lanes: LANES, from: dates[0] || today, to: dates[dates.length - 1] || today });
   } catch (e) { console.error('Launches read failed', e.message); return NextResponse.json({ error: 'Couldn’t read the launches' }, { status: 502 }); }
 }
