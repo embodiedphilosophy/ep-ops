@@ -8,6 +8,7 @@ import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
 import { driveIdOf } from '@/lib/ops/socialimages';
 import { guardrails, WEEKDAYS } from '@/lib/ops/socialrules';
+import { publishPost, publishLive } from '@/lib/ops/igpublish';
 import { eventList, rulesOf, reviewData, healthData } from '@/lib/ops/socialstatus';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export async function GET(req) {
   if (v.director && !user.director) return NextResponse.json({ error: 'Directors only' }, { status: 403 });
   const q = String(url.searchParams.get('q') || '').trim().toLowerCase(), offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   try {
+    if (url.searchParams.get('flags')) return NextResponse.json({ publishLive: publishLive() });
     if (url.searchParams.get('counts') && v.images) {
       const [img, vids] = await Promise.all([readPlain('Image Library', SHOW), readPlain('Upload Log', SHOW).catch(() => ({ rows: [] }))]);
       const n = fn => img.rows.filter(r => fn(r.values)).length;
@@ -247,6 +249,26 @@ export async function POST(req) {
       const n = await updatePlainMany(v.tab, updates, { who, ...SHEET });
       refreshSite();
       return NextResponse.json({ ok: true, changed: updates.length, cells: n, skipped });
+    }
+    // Post now: straight to Instagram (only when META_PUBLISH=live). The row is marked Publishing first so a second click can't post it twice.
+    if (v.key === 'plan' && body.publishNow) {
+      if (!canPublishSocial(user)) return NextResponse.json({ error: 'Only people who schedule posts can post' }, { status: 403 });
+      if (!publishLive()) return NextResponse.json({ error: 'Publishing straight to Instagram isn’t switched on yet. Post it by hand and mark it posted.' }, { status: 400 });
+      const row = Number(body.publishNow.row), cur = (await readPlain(v.tab, SHEET)).rows.find(r => r.row === row)?.values;
+      if (!cur || !['Approved', 'Manual', 'Failed'].includes(cur.status)) return NextResponse.json({ error: 'Only an approved post can be posted' }, { status: 400 });
+      if (cur.ig_media_id) return NextResponse.json({ error: 'This post is already on Instagram' }, { status: 409 });
+      await updatePlain(v.tab, row, { status: 'Publishing', updated_by: who, updated_at: now() }, { before: { status: cur.status }, who, ...SHEET });
+      try {
+        const r = await publishPost(cur);
+        await ensureColumns(v.tab, ['ig_media_id', 'permalink'], SHEET);
+        await updatePlain(v.tab, row, { status: 'Posted', ig_media_id: r.media_id, permalink: r.permalink, post_links: r.permalink, updated_by: who, updated_at: now() }, { who, ...SHEET });
+        refreshSite();
+        return NextResponse.json({ ok: true, permalink: r.permalink });
+      } catch (e) {
+        await updatePlain(v.tab, row, { status: 'Failed', jake_notes: `Couldn’t post: ${e.message}`.slice(0, 300), updated_by: who, updated_at: now() }, { who, ...SHEET }).catch(() => {});
+        refreshSite();
+        return NextResponse.json({ error: `Instagram wouldn’t take it: ${e.message}` }, { status: 502 });
+      }
     }
     // A story or other post made by hand: the person who posted it marks it Posted
     if (v.key === 'plan' && body.markPosted) {

@@ -252,3 +252,10 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 - **Clip requests**: steps with a teacher get a request (status Requested, due a week before the post, owner = the Creator in Team). Statuses: Not requested, Requested, In edit, Ready. No email is sent yet; the owner sees them on the page.
 - **How-to video**: add a Rules-tab row called "How-to video" with the URL; the Team page links to it.
 - Test: `scripts/ops-test/campaigns-api.sh` (17, fresh run.sh) and `campaigns.cjs` (browser, desktop and phone).
+
+## Posting straight to Instagram (Content v2)
+- `lib/ops/igpublish.js` posts one Weekly Plan row through the Graph API: single picture, carousel (children then parent), Reel (waits for Instagram to process the video), Story; then the first comment. Pictures and videos are the Drive links Instagram downloads itself.
+- **Off until `META_PUBLISH=live`** (with `META_ACCESS_TOKEN` + `META_IG_USER_ID`, the same as the sync). While off, carousels, Reels and Stories still approve to "Manual" and are posted by hand.
+- When on: the post editor shows "Post to Instagram now" for Approved / Manual / Failed posts (people who schedule only). The row is set to Publishing first (a second click can't double-post), then Posted with its link, or Failed with the reason in the notes. Approving a carousel/Reel/Story no longer makes it Manual.
+- Not built yet: posting at the scheduled time. Only "Post now" exists; Make still publishes single pictures at their time.
+- Test: `scripts/ops-test/ig-publish.sh off|live` against the mock Graph API (see the script header). A real test post needs Jacob's explicit OK.

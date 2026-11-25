@@ -350,7 +350,15 @@ http.createServer(async (req, res) => {
     // Instagram (Graph API, read only): META_GRAPH_URL=$M/graph. Five known posts with new like counts, plus two new ones
     // that match the plan (same day and caption as P101, and one tomorrow with no plan row).
     if (p.startsWith('/graph/')) {
+      if (req.method === 'POST' && /\/(media|media_publish|comments)$/.test(p)) { // content publishing (tests only run it against this mock)
+        const b = Object.fromEntries(new URLSearchParams(await (async () => { let t = ''; for await (const c of req) t += c; return t; })()));
+        const fail = /FAILME/.test(b.caption || '');
+        log('GRAPH PUBLISH', p.split('/').pop(), JSON.stringify({ ...b, access_token: undefined }));
+        if (fail) return send(res, 400, { error: { message: 'The image could not be downloaded' } });
+        return send(res, 200, { id: p.endsWith('media_publish') ? 'PUB' + Date.now() : 'CT' + Date.now() });
+      }
       if (req.method !== 'GET') { log('BLOCKED graph', req.method, p); return send(res, 403, {}); }
+      if (/\/(PUB|CT)\d+$/.test(p)) return send(res, 200, { status_code: 'FINISHED', permalink: 'https://instagram.com/p/mockpub' });
       if (p.endsWith('/debug_token')) return send(res, 200, { data: { is_valid: true, data_access_expires_at: Math.floor(Date.now() / 1000) + 40 * 86400 } });
       if (p.endsWith('/media')) {
         const known = Array.from({ length: 5 }, (_, i) => ({ id: `M${i}`, timestamp: dayNow(-i * 3 - 1) + 'T15:00:00+0000', media_type: 'IMAGE', media_product_type: 'FEED', caption: `Post number ${i}: a verse and a painting.`, permalink: 'https://instagram.com/p/x' + i, like_count: 500 + i, comments_count: 7 }));
