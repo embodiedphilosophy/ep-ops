@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
 import { rhythmWarnings, weekAhead, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
 import Cropper, { shrink } from './Cropper';
+import TemplatePanel from '../social/TemplatePanel';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 export const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
@@ -140,7 +141,7 @@ export const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], 
 
 // One post, laid out like it will appear: the picture on one side, its words and settings on the other.
 // Everything about the post is edited here; one Save writes all the changes.
-export function Composer({ p, page = false, events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
+export function Composer({ p, page = false, recentColourways = [], events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
   const [vals, setVals] = useState(p._raw);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
@@ -240,6 +241,14 @@ export function Composer({ p, page = false, events = [], types = POST_TYPES, can
     setPicMsg(`Cropped to ${c.shape}.${c.small ? ' It’s a small part of a small picture, so it may look soft.' : ''}${isNew ? '' : ' Save to use it.'}`);
   };
   const shapeOf = isStory(p) ? '9:16' : '4:5';
+  // A card made from a template: its picture becomes the post's picture, its quote the post's quote (the server re-checks it), its credit line joins the caption
+  const useCard = r => {
+    setVals(v => ({ ...v, image_id: r.image_id, image_url: r.image_url, template_id: r.template_id, colourway: r.colourway, template_fields: r.template_fields, quote_id: r.quote.quote_id,
+      caption: r.credit && !String(v.caption || '').includes(r.credit) ? `${String(v.caption || '').trimEnd()}${v.caption ? '\n\n' : ''}${r.credit}` : v.caption }));
+    setPic({ preview: r.preview, src: '' }); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined }));
+    setMode(null); setPicMsg(`Card saved to the Library as ${r.image_id}.${isNew ? '' : ' Save to use it.'}`);
+  };
+  const card = (() => { try { return JSON.parse(vals.template_fields || 'null'); } catch { return null; } })();
   const status = p.status || 'Proposed';
   return (
     <div className={`ops-se-modal${page ? ' page' : ''}`} role={page ? undefined : 'dialog'} aria-modal={page ? undefined : 'true'} aria-label="Post" onClick={e => { if (!page && e.target === e.currentTarget) leave(close)(); }}>
@@ -261,10 +270,12 @@ export function Composer({ p, page = false, events = [], types = POST_TYPES, can
               </div>)}
             {kind !== 'single' ? <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} />
             : <>
-            {mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
+            {mode === 'card' ? <TemplatePanel value={card && { ...card, template: vals.template_id, colourway: vals.colourway }} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
+              : mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
               : <div className="pic">{thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}</div>}
             {!dis && mode !== 'crop' && (
               <div className="picacts">
+                <button type="button" className={`chip${mode === 'card' ? ' on' : ''}`} onClick={() => { setMode(m => m === 'card' ? null : 'card'); setPicMsg(''); }}>{vals.template_id ? 'Edit the card' : 'Make a card'}</button>
                 {cropSrc && <button type="button" className="chip" onClick={() => { setMode('crop'); setPicMsg(''); }}>Crop</button>}
                 <button type="button" className="chip" onClick={() => setMode(m => m === 'library' ? null : 'library')}>{mode === 'library' ? 'Close the library' : 'Choose from library'}</button>
                 <label className="chip upl">Upload a photo<input type="file" accept="image/*" onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} /></label>
@@ -362,7 +373,7 @@ function Inserter({ kind, onPick }) {
 }
 
 // Every picture that may be reused, newest first, 60 at a time; the grid scrolls inside the editor
-function ImagePicker({ onPick }) {
+export function ImagePicker({ onPick }) {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState([]);

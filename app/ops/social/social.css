@@ -211,3 +211,24 @@
   .ops-shell .soc-post .th { width: 64px; flex: none }
   .ops-shell .soc-day .dh { border-top: 1px solid var(--line2); padding-top: 10px }
 }
+/* Card maker (template panel inside the Composer) */
+.ops-shell .ops-tpl { width: 100%; display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--line2); background: var(--card); border-radius: 10px; padding: 14px 16px }
+.ops-shell .ops-tpl-head { display: flex; justify-content: space-between; align-items: center }
+.ops-shell .ops-tpl .grp { display: flex; flex-direction: column; gap: 6px }
+.ops-shell .ops-tpl .cap { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .ops-tpl .row { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .ops-tpl .sw button { width: 40px; height: 40px; border-radius: 20px; border: 1px solid var(--line2); cursor: pointer; padding: 0 }
+.ops-shell .ops-tpl .sw button.on { outline: 3px solid var(--terra); outline-offset: 2px }
+.ops-shell .ops-tpl .locked { border: 1px solid var(--line2); border-left: 3px solid var(--pine); border-radius: 6px; padding: 10px 12px; background: #fff; display: flex; flex-direction: column; gap: 6px; align-items: flex-start }
+.ops-shell .ops-tpl .locked p { margin: 0; font-family: var(--serif, 'Cormorant Garamond', serif); font-size: 18px; line-height: 1.3 }
+.ops-shell .ops-tpl .tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--pine); color: var(--ground); white-space: nowrap }
+.ops-shell .ops-tpl .tag.source { background: #fff; color: #2E3F7F; border: 1px solid #2E3F7F }
+.ops-shell .ops-tpl .tag.editable, .ops-shell .ops-tpl .tag.choice { background: var(--sand2); color: #6B4E1E }
+.ops-shell .ops-tpl .pick ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow-y: auto; border: 1px solid var(--line2); border-radius: 6px; background: #fff }
+.ops-shell .ops-tpl .pick li button { width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid var(--line2) }
+.ops-shell .ops-tpl .pick .t { font-size: 13px } .ops-shell .ops-tpl .pick .s { font-size: 11.5px; color: var(--ink-soft) }
+.ops-shell .ops-tpl .stage { background: var(--sand); border-radius: 6px; padding: 10px; display: flex; justify-content: center; align-items: center; min-height: 140px }
+.ops-shell .ops-tpl .stage img { max-width: 100%; max-height: 520px; height: auto; display: block; box-shadow: 0 1px 0 var(--line2), 0 0 0 1px var(--line2) }
+.ops-shell .ops-tpl .fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px }
+.ops-shell .ops-tpl .fields li { display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.ops-shell .ops-tpl .acts { padding-top: 4px }

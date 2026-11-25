@@ -123,6 +123,15 @@ export async function POST(req) {
     return { out, errors };
   };
   const now = () => new Date().toISOString();
+  // A post's quote columns are written only here, from a verified Quote Library row, so "Verbatim" always means it was copied from the library
+  const stampQuote = async out => {
+    for (const k of ['quote_text', 'quote_source', 'quote_check']) delete out[k];
+    if (!out.quote_id) { if ('quote_id' in out) Object.assign(out, { quote_text: '', quote_source: '', quote_check: '' }); return null; }
+    const q = (await readPlain('Quote Library', SHOW)).rows.find(r => r.values.quote_id === out.quote_id)?.values;
+    if (!q || String(q.verified).toUpperCase() !== 'TRUE') return 'That quote isn’t a verified quote in the Quote Library';
+    Object.assign(out, { quote_text: q.quote, quote_source: [q.author, q.work].filter(Boolean).join(', '), quote_check: 'Verbatim' });
+    return null;
+  };
   const wantsApproved = out => out.status === 'Approved';
   try {
     // Day categories: a weekday's standing post type, or an override for one week
@@ -200,6 +209,7 @@ export async function POST(req) {
     }
     if (body.add && v.key === 'plan') {
       const { out, errors } = clean(body.values);
+      { const e = await stampQuote(out); if (e) errors.quote_id = e; }
       if (!out.publish_date) errors.publish_date = 'Pick a date';
       if (!out.publish_time_ET) errors.publish_time_ET = 'Pick a time';
       if (!out.platforms) errors.platforms = 'Where it goes, e.g. IG Feed, Facebook';
@@ -236,6 +246,7 @@ export async function POST(req) {
       return NextResponse.json({ ok: true, row });
     }
     const { out, errors } = clean(body.changes);
+    if (v.key === 'plan' && 'quote_id' in out) { const e = await stampQuote(out); if (e) errors.quote_id = e; }
     // Needs edit only makes sense with a note saying what to change
     if (out.status === 'Needs edit' && !String(body.changes.jake_notes ?? body.before?.jake_notes ?? '').trim()) errors.jake_notes = 'Say what should change';
     if (Object.keys(errors).length) return NextResponse.json({ error: 'Some fields need fixing', errors }, { status: 400 });
