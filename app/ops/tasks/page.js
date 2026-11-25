@@ -82,7 +82,7 @@ export default async function Tasks({ searchParams }) {
         <div className="ops-group" key={g.key || 'other'}>
           {g.title && <h3>{g.title} <span>{g.date ? `· ${short(g.date)} ` : ''}— {g.tasks.length}</span></h3>}
           <TaskList tasks={g.tasks} showWho={user.director} team={names} roleNames={roleNames} short={!!g.key && g.key !== 'all'}
-            assign={user.director && view === 'unowned'} done={view === 'done'} empty="" />
+            assign={view === 'unowned' ? (user.director && 'triage') : view !== 'done'} done={view === 'done'} empty="" />
         </div>
       ))}
     </Shell>

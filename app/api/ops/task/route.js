@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/ops/auth';
 import { listTasks, createTask, updateTask, addComment, listComments, reopenTask } from '@/lib/ops/taskstore';
 import { isStaff } from '@/lib/ops/nav';
 import { loadCalendar } from '@/lib/calendar';
-import { visibleTo, ownersOf, parseTag, loadTeam, addDays } from '@/lib/ops/tasks';
+import { visibleTo, ownersOf, parseTag, loadTeam, addDays, PLACEHOLDERS } from '@/lib/ops/tasks';
 import { todayET } from '@/lib/events';
 import { sendEmail, layout, button, esc } from '@/lib/ops/email';
 
@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 const bare = name => String(name).replace(/^\[[^\]]+\]\s*/, '');
+const PLACEHOLDER_SLUGS = new Set(PLACEHOLDERS.map(slug));
 const withoutBlock = d => String(d || '').replace(/\s*\[blocked:[^\]]+\]/g, '');
 
 async function findTask(user, id) {
@@ -95,17 +96,24 @@ export async function POST(req) {
       await addComment(id, task.auto ? `**${me}** reopened this: the automatic tick was wrong.` : `**${me}** unticked this.`).catch(() => {});
       return NextResponse.json({ ok: true });
     }
+    // Hand a task to someone else on the team (any staff member, for any task they can see).
+    // It leaves the giver's list and lands on the new owner's, with a comment and an email.
     if (action === 'assign') {
-      if (!user.director) return NextResponse.json({ error: 'Only directors can assign tasks' }, { status: 403 });
+      if (!isStaff(user)) return NextResponse.json({ error: 'Only staff can reassign tasks' }, { status: 403 });
       const person = team.find(m => m.name === who);
       if (!person) return NextResponse.json({ error: 'Pick someone from the team' }, { status: 400 });
+      if (task.labels.length === 1 && task.labels[0] === person.name) return NextResponse.json({ error: `It’s already with ${person.name.split(' ')[0]}` }, { status: 400 });
+      // The [ep:…] tag tells the daily sync whose task this is. A placeholder ("Teacher (unassigned)") becomes
+      // the new person. A real person's tag is left alone, so the sync doesn't move the task back to whoever
+      // the calendar names; it only moves it again if the calendar itself changes.
       const p = parseTag(task.description);
-      const description = p ? task.description.replace(p.tag, p.tag.replace(/:[^:\]]+\]$/, `:${slug(person.name)}]`)) : task.description;
+      const description = p && PLACEHOLDER_SLUGS.has(p.who) ? task.description.replace(p.tag, p.tag.replace(/:[^:\]]+\]$/, `:${slug(person.name)}]`)) : task.description;
+      const from = task.labels.length ? task.labels.join(', ') : '';
       try { await updateTask(id, { name: bare(task.name), labels: [person.name], description }); }
       catch { await updateTask(id, { name: `[${person.name}] ${bare(task.name)}`, description }); }
-      await addComment(id, `**${me}** assigned this to ${person.name}.`).catch(() => {});
-      if (person.email !== user.email) await notify([person], `New task: ${bare(task.name).split(' — ')[0]}`, `<p>${esc(me)} assigned you <b>${title}</b>, due ${esc(task.due)}.</p>`, base);
-      return NextResponse.json({ ok: true });
+      await addComment(id, `**${me}** assigned this to ${person.name}${from ? ` (was ${from})` : ''}.`).catch(() => {});
+      if (person.email !== user.email) await notify([person], `New task: ${bare(task.name).split(' — ')[0]}`, `<p>${esc(me)} assigned you <b>${title}</b>${task.due ? `, due ${esc(task.due)}` : ''}.</p>`, base);
+      return NextResponse.json({ ok: true, assigned: person.name });
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (e) {
