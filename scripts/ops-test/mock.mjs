@@ -77,6 +77,7 @@ const schedule = [H,
   ev('2026-12-01', 'WSML', 'Wisdom School Monthly Lecture', { 'Public Title': 'Sanctifying the World' }),
   ev('2026-12-05', 'SSWW', 'SS Weekend Workshop — Winter on-ramp', T('Jacob Kyle')),
   ev('2026-11-14', 'EVENT', 'Spanda Intensive  (Nov 14–Nov 15)', { ...T('Tova Olsson'), Time: '10am ET', 'Public Title': 'Spanda Intensive', Summary: 'Two mornings with the Spanda Kārikās.' }),
+  ev(soon(37), 'EVENT', 'Meditation Resolution 2027', { ...T('Floss Harry'), Time: '12pm ET', Website: 'TRUE', 'Registration URL': 'https://enroll.embodiedphilosophy.com/resolution', Price: '$0' }),
 ];
 const templates = [
   ['track', 'task', 'assign_to', 'offset_days', 'details'],
@@ -127,6 +128,19 @@ const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimon
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
 const kitDrafts = [];
+// Kit as it was on 25 Nov (Teachers & Email tests): drafts with no event ID, stale drafts, the two Meditation Monday reminders for one day, a linked promo
+const kdate = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10) + 'T16:00:00Z';
+const kitExtra = [
+  ...[['1', 'The year turns'], ['2', 'What are you keeping?'], ['3', 'What are you ready to release?'], ['4', 'One small practice']].map(([n, t], i) => ({ id: 200 + i, subject: `Road to Resolution ${n}: ${t}`, description: `Road to Resolution ${n}`, send_at: null, published_at: null, created_at: kdate(-9) })),
+  { id: 210, subject: 'WR1 reminder', description: '', send_at: null, published_at: null, created_at: kdate(-40) },
+  { id: 211, subject: 'WR2 reminder', description: '', send_at: null, published_at: null, created_at: kdate(-40) },
+  { id: 212, subject: '[NEEDS CONTENT] The Weekly Scaffolding No. 5', description: '', send_at: null, published_at: null, created_at: kdate(-20) },
+  { id: 213, subject: 'Test email', description: '', send_at: null, published_at: null, created_at: kdate(-60) },
+  { id: 220, subject: 'Meditation Monday begins in one hour', description: `[MM-REMINDER ${kdate(5).slice(0, 10)}]`, send_at: kdate(5), published_at: null, created_at: kdate(-3) },
+  { id: 221, subject: 'Meditation Monday today at 12pm ET', description: '', send_at: kdate(5), published_at: null, created_at: kdate(-3) },
+  { id: 230, subject: 'Join us: Recognition in practice', description: '[{LRL}] Promo #1 · LRL · everyone', send_at: kdate(1), published_at: null, created_at: kdate(-5) },
+  { id: 231, subject: 'Last week’s lecture', description: '[{LRL}] Promo #0', send_at: kdate(-10), published_at: kdate(-10), created_at: kdate(-12) },
+];
 
 // EP Support KB (Entries, Handoffs) and a Zendesk stand-in for the Support page
 const kbEntries = [['ID', 'Replaces', 'Topic', 'Programs', 'Platform', 'Question', 'Other phrasings', 'Public answer', 'Ether notes', 'Hand to Ichha when', 'Public', 'Status', 'Owner', 'Last reviewed', 'Open question'],
@@ -187,6 +201,8 @@ const meetings = [
 const SCHED_H = ['ID', 'Date', 'Day', 'Track', 'Event', 'Teachers & Hosts', 'Time', 'Status', 'Promo Starts', 'Notes', 'Owner (plan)', 'Audience'];
 const DET_H = ['ID', 'Date', 'Track', 'Event', 'Series', 'Teacher/Host Emails', 'Public Title', 'Host Label', 'Website', 'Registration URL', 'Summary', 'Price Label', 'Public Note', 'Zoom Type', 'Zoom Link', 'Live Duration', 'Vimeo Video ID', 'Course Host', 'Enrolled Tag'];
 const ms = schedule.slice(1).map((r, i) => ({ ...Object.fromEntries(H.map((h, j) => [h, r[j]])), ID: 'E' + String(i + 1).padStart(3, '0') }));
+const idOf = t => ms.find(m => String(m.Event).includes(t))?.ID; // Kit's mock descriptions name events by what the schedule really calls them
+for (const k of kitExtra) k.description = k.description.replace('{LRL}', idOf('Recognition in practice'));
 tabs['Schedule'] = [['Schedule'], ['How to use'], ['Next ID'], SCHED_H, ...ms.map(o => [o.ID, o.Date, '', o.Track, o.Event, o.Teachers, o.Time, o.Status, o['Promo Starts'], o.Notes, o['Teacher / Owner'], o.Audience])];
 tabs['Event Details'] = [['Event Details'], ['How to use'], [], DET_H, ...ms.filter((_, i) => i !== 3).map(o => [o.ID, '', '', '', o.Series, o['Teacher/Host Emails'], o['Public Title'], o['Host Label'], o.Website, o['Registration URL'], o.Summary, '', o['Public Note'], o.Zoom, o['Zoom Link'], o.Duration, o['Video ID'], o['Course Host'], o['Enrolled Tag']])];
 const objs = (t, hr) => { const h = tabs[t][hr - 1]; return tabs[t].slice(hr).filter(r => r[0]).map(r => Object.fromEntries(h.map((k, j) => [k, r[j] ?? '']))); };
@@ -423,6 +439,14 @@ http.createServer(async (req, res) => {
     if (p.startsWith('/kit/')) {
       // Promo-email drafts (Publish → Email): logged, never real. Anything else written to Kit is refused.
       if (req.method === 'POST' && p.endsWith('/broadcasts')) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks', JSON.stringify(b.content_tree).length, 'chars'); const id = 900 + (kitDrafts.length); kitDrafts.push({ id, ...b }); log('KIT DRAFT CREATED', id, b.subject, '|', b.description, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
+      if (req.method === 'PUT' && /\/broadcasts\/(2\d\d)$/.test(p)) { // description-only write (attach an email to an event)
+        const b = await body(req), x = kitExtra.find(k => k.id === Number(p.split('/').pop())); if (!x) return send(res, 404, {});
+        if (Object.keys(b).join() !== 'description') { log('BLOCKED kit', 'PUT wrote more than the description', Object.keys(b).join()); return send(res, 403, {}); }
+        x.description = b.description; log('KIT DESCRIPTION SET', x.id, b.description); return send(res, 200, { broadcast: x });
+      }
+      if (req.method === 'GET' && /\/broadcasts\/(2\d\d)$/.test(p)) { const x = kitExtra.find(k => k.id === Number(p.split('/').pop())); return send(res, x ? 200 : 404, x ? { broadcast: x } : {}); }
+      if (p.endsWith('/sequences')) return send(res, 200, { sequences: [{ id: 1, name: 'Sequence' }, { id: 2, name: 'Welcome' }], pagination: {} });
+      if (p.endsWith('/segments')) return send(res, 200, { segments: [{ id: 5, name: 'Hold: Not yet welcomed' }], pagination: {} });
       if (req.method === 'PUT' && /\/broadcasts\/\d+$/.test(p)) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks'); const id = Number(p.split('/').pop()); log('KIT DRAFT UPDATED', id, b.subject, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
       if (req.method !== 'GET') { log('BLOCKED kit', req.method, p); return send(res, 403, { error: 'writes blocked' }); }
       if (p.endsWith('/tags')) return send(res, 200, { tags: [{ id: 1, name: 'Navaratri 2026' }], pagination: {} });
@@ -433,7 +457,7 @@ http.createServer(async (req, res) => {
         { id: 11, subject: '[E002] Promo #1: the Goddess', send_at: new Date(Date.now() + 2 * 864e5).toISOString() },
         { id: 12, subject: '[E002] Promo #2', published_at: new Date(Date.now() - 864e5).toISOString() },
         { id: 13, subject: 'Autumn sale', send_at: new Date(Date.now() + 5 * 864e5).toISOString() },
-        { id: 14, subject: '[E005] Draft promo' }], pagination: {} });
+        { id: 14, subject: '[E005] Draft promo' }, ...kitExtra], pagination: {} });
       return send(res, 200, {});
     }
     if (p.startsWith('/calendar/v3/')) return send(res, 200, { items: meetings });
