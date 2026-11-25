@@ -92,11 +92,6 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
           <h1>{mode === 'month' ? new Date(monthOf + '-15T12:00:00Z').toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : <>Week of {long(start)} <em>at a glance</em></>}</h1>
           <p>{dateLine}</p>
         </div>
-        <div className="soc-act">
-          <div className="soc-seg" role="group" aria-label="Calendar view">{VIEWS.map(([k, l]) => <button key={k} type="button" aria-pressed={mode === k} onClick={() => setMode(k)}>{l}</button>)}</div>
-          <a className="soc-btn" href="/ops/social/review">Review &amp; approve {reviewCount > 0 && <span className="n mono">{reviewCount}</span>}</a>
-          {data?.canEdit && <a className="soc-btn primary" href="/ops/social/compose">New post</a>}
-        </div>
       </header>
 
       <section className="soc-cards" aria-label="Status">
@@ -147,40 +142,24 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             </span>
           </div>)}
 
-        <section className="soc-panel" aria-label="Day categories">
-          <div className="ph">
-            <div><h2>Day categories</h2><span className="sub">Each day has a standing post category. The calendar shows whether it’s covered.</span></div>
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className="sub"><b className="mono" style={{ color: '#1E1A14' }}>{filled}/7</b> filled this week</span>
-              {data.canCategory && <button type="button" className="soc-btn small" aria-pressed={editing} onClick={() => setEditing(x => !x)}>{editing ? 'Done' : 'Edit day categories'}</button>}
-            </div>
-          </div>
-          {editing && <>
-            <div className="soc-cats">{WEEKDAYS.map((w, i) => { const cur = categoryFor(addD(start, i), cats); return (
-              <label key={w}><span className="cap">{w}</span>
-                <select value={cur} onChange={e => setCat(w, e.target.value)}><option value="">No category</option>{[...new Set([...POST_TYPES, cur].filter(Boolean))].map(c => <option key={c}>{c}</option>)}</select></label>); })}</div>
-            <div className="soc-scope" role="radiogroup" aria-label="How long this lasts">
-              <label><input type="radio" name="scope" checked={scope === 'standing'} onChange={() => setScope('standing')} /> Every week from now on</label>
-              <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only</label>
-            </div></>}
-          <div className="soc-legend">
-            <span><i style={{ background: '#20302A' }} />Filled</span>
-            <span><i style={{ background: '#F2E8D6', border: '1px solid #B98A3E' }} />Filled, awaiting approval</span>
-            <span><i style={{ border: '1.5px dashed #A5432A' }} />Not filled</span>
-            <span><i style={{ background: '#EFE7D8' }} />Missed (day passed)</span>
-          </div>
-        </section>
-
         {msg && <p className="hint" role="status" style={{ margin: 0 }}>{msg}</p>}
+
+        <div className="soc-act soc-toolbar">
+          <div className="soc-seg" role="group" aria-label="Calendar view">{VIEWS.map(([k, l]) => <button key={k} type="button" aria-pressed={mode === k} onClick={() => setMode(k)}>{l}</button>)}</div>
+          {mode === 'week' && <span className="soc-act">
+            <button className="soc-btn small" onClick={() => step(-1)} aria-label="Earlier week">←</button>
+            <button className="soc-btn small" onClick={() => setStart(monOf(t))}>This week</button>
+            <button className="soc-btn small" onClick={() => step(1)} aria-label="Later week">→</button>
+          </span>}
+          <span className="soc-act" style={{ marginLeft: 'auto' }}>
+            <a className="soc-btn" href="/ops/social/review">Review &amp; approve {reviewCount > 0 && <span className="n mono">{reviewCount}</span>}</a>
+            {data.canEdit && <a className="soc-btn primary" href="/ops/social/compose">New post</a>}
+          </span>
+        </div>
 
         <div className="soc-main">
           <div className="view">
             {mode === 'week' && (<>
-              <div className="soc-act" style={{ marginBottom: 10 }}>
-                <button className="soc-btn small" onClick={() => step(-1)} aria-label="Earlier week">←</button>
-                <button className="soc-btn small" onClick={() => setStart(monOf(t))}>This week</button>
-                <button className="soc-btn small" onClick={() => step(1)} aria-label="Later week">→</button>
-              </div>
               <div className="soc-scroll"><div className="soc-weekgrid">
                 {cells.map(({ d, ps, cat, st }) => (
                   <div key={d} className={`soc-day${d === t ? ' today' : ''}`} onDragOver={e => { if (drag != null) e.preventDefault(); }} onDrop={() => { if (drag != null) move(drag, d); setDrag(null); }}>
@@ -216,6 +195,30 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             </div>
           </aside>
         </div>
+
+        <section className="soc-panel" aria-label="Day categories">
+          <div className="ph">
+            <div><h2>Day categories</h2><span className="sub">Each day has a standing post category. The calendar shows whether it’s covered.</span></div>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="sub"><b className="mono" style={{ color: '#1E1A14' }}>{filled}/7</b> filled this week</span>
+              {data.canCategory && <button type="button" className="soc-btn small" aria-pressed={editing} onClick={() => setEditing(x => !x)}>{editing ? 'Done' : 'Edit day categories'}</button>}
+            </div>
+          </div>
+          {editing && <>
+            <div className="soc-cats">{WEEKDAYS.map((w, i) => { const cur = categoryFor(addD(start, i), cats); return (
+              <label key={w}><span className="cap">{w}</span>
+                <select value={cur} onChange={e => setCat(w, e.target.value)}><option value="">No category</option>{[...new Set([...POST_TYPES, cur].filter(Boolean))].map(c => <option key={c}>{c}</option>)}</select></label>); })}</div>
+            <div className="soc-scope" role="radiogroup" aria-label="How long this lasts">
+              <label><input type="radio" name="scope" checked={scope === 'standing'} onChange={() => setScope('standing')} /> Every week from now on</label>
+              <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only</label>
+            </div></>}
+          <div className="soc-legend">
+            <span><i style={{ background: '#20302A' }} />Filled</span>
+            <span><i style={{ background: '#F2E8D6', border: '1px solid #B98A3E' }} />Filled, awaiting approval</span>
+            <span><i style={{ border: '1.5px dashed #A5432A' }} />Not filled</span>
+            <span><i style={{ background: '#EFE7D8' }} />Missed (day passed)</span>
+          </div>
+        </section>
       </>}
     </div>
   );
