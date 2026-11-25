@@ -38,3 +38,6 @@
 .soc .em-so { font: 10px 'JetBrains Mono', monospace; color: #6b6450; } .soc .em-warn { color: #B26A00; }
 .soc .em-tray { display: flex; flex-wrap: wrap; gap: 6px; } .soc .em-views { display: inline-flex; gap: 4px; margin-left: auto; }
 @media (max-width: 700px) { .soc .em-cell { min-height: 64px; } .soc .em-ci, .soc .em-ev, .soc .em-so, .soc .em-auto { font-size: 9px; } .soc .em-cell .dn .plus { opacity: 1; } }
+.soc .em-rule-h { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; } .soc .em-rule-h .b { flex: 1 1 240px; min-width: 0; }
+.soc .em-sw { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; } .soc .em-rule-f { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line, #e4ddcc); border-radius: 6px; background: #fffdf8; }
+.soc .em-verse { margin: 8px 0; padding: 10px 14px; border-left: 3px solid #9C7E1E; background: #fbf7ee; } .soc .em-verse div { margin: 3px 0; }

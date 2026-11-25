@@ -32,7 +32,7 @@ export async function GET(req) {
   }
   const mode = url.searchParams.get('preview') ? 'preview' : url.searchParams.get('dry') ? 'dry' : 'build';
   if (mode === 'build' && !jobsHere()) return NextResponse.json(SKIPPED);
-  const r = await runScaffolding({ date: url.searchParams.get('date'), mode, origin: url.origin });
+  const r = await runScaffolding({ date: url.searchParams.get('date'), mode, origin: url.origin, cron: !url.searchParams.get('date') && mode === 'build' });
   if (r.html) return new NextResponse(r.html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   return NextResponse.json(r.json, { status: r.status });
 }
