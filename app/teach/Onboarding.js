@@ -38,7 +38,10 @@ export default function Onboarding({ data, embedded = false, onStep }) {
   const anyCircle = data.offerings.some(o => o.circle);
 
   const steps = useMemo(() => {
-    const s = [{ key: 'welcome', label: 'Welcome' }, { key: 'profile', label: 'Bio & headshot' }];
+    const s = [{ key: 'welcome', label: 'Welcome' }];
+    // The agreement step shows while there's an agreement to sign (it stays in the list once they've signed it here)
+    if (data.agreement?.status === 'needed') s.push({ key: 'agreement', label: 'Agreement' });
+    s.push({ key: 'profile', label: 'Bio & headshot' });
     pendingOfferings.forEach((o, i) => {
       const suffix = pendingOfferings.length > 1 ? ` ${i + 1}` : '';
       s.push({ key: `course:${o.key}`, label: `Your offering${suffix}`, offering: o.key }, { key: `preview:${o.key}`, label: `Course page${suffix}`, offering: o.key });
@@ -65,6 +68,8 @@ export default function Onboarding({ data, embedded = false, onStep }) {
     role: data.onFile?.role || 'Guest teacher', updating: !data.onFile, saved: data.profileDone,
   });
 
+  const [agreement, setAgreement] = useState(data.agreement || { status: 'none' });
+
   // course pages, keyed by offering
   const [pages, setPages] = useState(() => Object.fromEntries(data.offerings.map(o => [o.key, {
     title: o.page?.title || '', subtitle: o.page?.subtitle || '', summary: o.page?.summary || o.summary || '', explore: o.page?.explore || '',
@@ -82,6 +87,7 @@ export default function Onboarding({ data, embedded = false, onStep }) {
 
   const view = {
     welcome: () => <Welcome data={data} first={first} next={next} />,
+    agreement: () => <Agreement data={data} agreement={agreement} setAgreement={setAgreement} name={name} first={first} as={as} next={next} say={say} />,
     profile: () => <Profile data={data} profile={profile} setProfile={setProfile} as={as} next={next} say={say} />,
     course: () => <Course o={offering} page={pages[offering.key]} setPage={p => setPage(offering.key, p)} as={as} next={next} say={say} />,
     preview: () => <Preview o={offering} page={pages[offering.key]} profile={profile} as={as} say={say}
@@ -90,7 +96,7 @@ export default function Onboarding({ data, embedded = false, onStep }) {
     circle: () => <Circle data={data} pages={pages} as={as} next={next} />,
     dashboard: () => <Dashboard data={data} first={first} pages={pages} next={next} />,
     emails: () => <Emails data={data} pages={pages} next={next} />,
-    done: () => <Done data={data} first={first} profile={profile} pages={pages} as={as} steps={steps} go={go} />,
+    done: () => <Done data={data} first={first} profile={profile} pages={pages} agreement={agreement} as={as} steps={steps} go={go} />,
   }[cur.key.split(':')[0]];
 
   return (
@@ -123,6 +129,45 @@ export default function Onboarding({ data, embedded = false, onStep }) {
 }
 
 // ---------- steps ----------
+// Read and sign the General Teaching Agreement (typed name + consent). Only shown when one is still to sign.
+function Agreement({ data, agreement, setAgreement, name, first, as, next, say }) {
+  const t = useT();
+  const [signer, setSigner] = useState(''), [agree, setAgree] = useState(false), [busy, setBusy] = useState(false), [err, setErr] = useState('');
+  const when = iso => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+  if (agreement.status === 'signed') return (
+    <div className="t-stack">
+      <div><span className="eyebrow">Agreement</span><h1 className="t-h1">{t('agreement_signed_title', { first })}</h1>
+        <p className="t-lede">Signed by {agreement.signer} on {when(agreement.signed_at)} and countersigned by {agreement.countersigned_by} for Embodied Philosophy.{data.actingAs ? ' (Trying it out: nothing was saved.)' : ' A copy is on its way to your inbox.'}</p></div>
+      <div className="t-actions">
+        <button className="btn btn-primary" onClick={next}>Continue to your bio</button>
+        {agreement.link && <a className="btn btn-ghost" href={agreement.link} target="_blank" rel="noreferrer">Read or print it</a>}
+      </div>
+    </div>
+  );
+  const ok = signer.trim().length >= 3 && agree;
+  const sign = async e => {
+    e.preventDefault(); if (!ok) return;
+    setBusy(true); setErr('');
+    try { const j = await post('/api/teach/agreement', { as, name: signer, agree }); setAgreement(j.agreement); say('Agreement signed'); }
+    catch (x) { setErr(x.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="t-stack">
+      <div><span className="eyebrow">Agreement</span><h1 className="t-h1">{t('agreement_title', { first })}</h1>
+        <p className="t-lede">{t('agreement_lede', { first })}</p></div>
+      <div className="t-card t-contract" tabIndex={0} aria-label="The agreement">{agreement.text}</div>
+      <form className="t-stack" style={{ gap: 14 }} onSubmit={sign}>
+        <div className="t-field"><label htmlFor="t-sig">Type your full name to sign</label>
+          <input id="t-sig" type="text" value={signer} onChange={e => setSigner(e.target.value)} placeholder={name} autoComplete="name" /></div>
+        <label className="t-consent"><input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /> <span>I have read this agreement and agree to it. Typing my name counts as my signature.</span></label>
+        {err && <p className="t-error">{err}</p>}
+        <div className="t-actions"><button className="btn btn-primary" type="submit" disabled={busy || !ok}>{busy ? 'Signing…' : 'Sign the agreement'}</button></div>
+        <p className="t-small t-muted">Questions about anything in it? Reply to your onboarding email before you sign and we’ll talk it through.</p>
+      </form>
+    </div>
+  );
+}
+
 function Welcome({ data, first, next }) {
   const t = useT();
   if (!data.offerings.length) return (
@@ -485,7 +530,7 @@ function Emails({ data, pages, next }) {
   );
 }
 
-function Done({ data, first, profile, pages, as, steps, go }) {
+function Done({ data, first, profile, pages, agreement, as, steps, go }) {
   const t = useT();
   const [state, setState] = useState(data.onboarded ? 'done' : 'idle'), [err, setErr] = useState('');
   const finish = async () => { setState('busy'); try { await post('/api/teach/finish', { as }); setState('done'); } catch (e) { setErr(e.message); setState('idle'); } };
@@ -496,6 +541,7 @@ function Done({ data, first, profile, pages, as, steps, go }) {
       <div><span className="eyebrow">All set</span><h1 className="t-h1">{t('done_title', { first })}</h1>
         <p className="t-lede">{t('done_lede')}</p></div>
       <div className="t-card"><ul className="t-checks">
+        {data.agreement?.status === 'needed' && <li className={agreement.status === 'signed' ? 'on' : ''}><span className="tick">{agreement.status === 'signed' ? '✓' : ''}</span><span><b>Teaching agreement</b> · <span className="t-muted">{agreement.status === 'signed' ? 'Signed and countersigned' : 'Not signed yet'}</span></span></li>}
         <li className={profile.saved ? 'on' : ''}><span className="tick">{profile.saved ? '✓' : ''}</span><span><b>Bio & headshot</b> · <span className="t-muted">{profile.saved ? 'Saved' : 'Not saved yet'}</span></span></li>
         {data.offerings.map(o => <li key={o.key} className={pages[o.key]?.submitted ? 'on' : ''}><span className="tick">{pages[o.key]?.submitted ? '✓' : ''}</span><span><b>{pages[o.key]?.title || o.title}</b> · <span className="t-muted">{pages[o.key]?.submitted ? 'Course page sent for review' : 'Course page not sent yet'}</span></span></li>)}
         {data.offerings.length > 0 && <li className="on"><span className="tick">✓</span><span><b>Reminders</b> · <span className="t-muted">First one {addDays(data.offerings[0].start, -7) >= data.today ? `arrives ${fmt(addDays(data.offerings[0].start, -7), { month: 'long', day: 'numeric' })}` : 'is on its way'}</span></span></li>}

@@ -4,6 +4,7 @@ import { profileFor, saveProfile, addToTeam, offeringsFor } from '@/lib/teach';
 import { todayET } from '@/lib/events';
 import { longDate } from '@/lib/dates';
 import { sendEmail, layout, esc, button } from '@/lib/ops/email';
+import { agreementFor } from '@/lib/ops/faculty';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,9 @@ export async function POST(req) {
   if (ctx.actingAs) return NextResponse.json({ ok: true, preview: true });
   const p = await profileFor(ctx.email);
   if (!p?.name) return NextResponse.json({ error: 'Please finish your profile first.' }, { status: 400 });
+  // The agreement step comes first: no finishing onboarding with the General Teaching Agreement unsigned
+  const ag = await agreementFor(ctx.email, await offeringsFor(ctx.email), { name: p.name }).catch(() => ({ status: 'none' }));
+  if (ag.status === 'needed') return NextResponse.json({ error: 'Please read and sign your teaching agreement first (the Agreement step).' }, { status: 400 });
   await saveProfile(ctx.email, { onboarded_on: p.onboarded_on || todayET() });
   const team = await addToTeam({ name: p.name, email: ctx.email }).catch(e => `Team tab: ${e.message}`);
   if (!p.onboarded_on) {

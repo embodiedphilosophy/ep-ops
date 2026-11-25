@@ -1197,6 +1197,9 @@ button.signin[aria-expanded="true"] .signin-caret{transform:rotate(180deg)}
   .t-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-top:22px;border-top:1px solid var(--line)}
   .t-link{background:none;color:var(--ink-soft);border:0;text-decoration:underline;text-underline-offset:3px;font-weight:500;padding:12px 6px}
   .t-wrap .btn:disabled{opacity:.45;cursor:not-allowed}
+  .t-contract{white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;line-height:1.6;max-height:55vh;overflow:auto}
+  .t-consent{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.5}
+  .t-consent input{margin-top:4px;flex:none}
   .t-field{display:flex;flex-direction:column;gap:6px}
   .t-field label{font-weight:600;font-size:14px}
   .t-field .hint{font-size:13px;color:var(--ink-soft)}

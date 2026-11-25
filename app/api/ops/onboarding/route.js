@@ -9,6 +9,7 @@ import { onboardingData } from '@/lib/teachdata';
 import { saveCopy } from '@/lib/teachcopy';
 import { teamRows, addPerson, sendOnboardingLink } from '@/lib/ops/people';
 import { refreshSite } from '@/lib/ops/refresh';
+import { signedEmails, generalTemplate } from '@/lib/ops/faculty';
 
 // Ops → Faculty → Onboarding: see a teacher's onboarding exactly as they will, edit its words (for every teacher) and
 // this teacher's course page draft, then send the onboarding invitation. Previews are tried-as: nothing is saved or
@@ -47,10 +48,16 @@ export async function GET(req) {
     const today = todayET(), people = new Map();
     for (const ev of (await loadCalendar()).filter(e => (e.end_date || e.date) >= today).sort((a, b) => a.date.localeCompare(b.date)))
       for (const em of emailsOf(ev)) { const k = lower(em); if (!people.has(k)) people.set(k, { email: k, next: { title: ev.title, date: ev.date }, sessions: 0 }); people.get(k).sessions++; }
-    for (const t of (await teamRows().catch(() => [])).filter(r => r.active && lower(r.type) === 'teacher')) if (!people.has(t.email)) people.set(t.email, { email: t.email, name: t.name, next: null, sessions: 0 });
+    const team = await teamRows().catch(() => []);
+    for (const t of team.filter(r => r.active && lower(r.type) === 'teacher')) if (!people.has(t.email)) people.set(t.email, { email: t.email, name: t.name, next: null, sessions: 0 });
+    // The General Teaching Agreement: teachers (not staff) who haven't signed one yet
+    const [signed, general] = await Promise.all([signedEmails().catch(() => new Set()), generalTemplate().catch(() => null)]);
+    const toSign = em => !!general && !signed.has(em) && !team.some(r => r.active && r.email === em && lower(r.type) !== 'teacher');
     const list = await Promise.all([...people.values()].map(async p => {
       const st = await onboardingState(p.email).catch(() => null), prof = st?.profile || await profileFor(p.email).catch(() => null);
-      return { ...p, name: prof?.name || p.name || '', status: !st ? '' : !st.needed ? 'Done' : st.profile ? `${st.pending.length} course page${st.pending.length === 1 ? '' : 's'} to go` : 'Not started', sent: lastSent(sent, p.email) };
+      const base = !st ? '' : !st.needed ? 'Done' : st.profile ? `${st.pending.length} course page${st.pending.length === 1 ? '' : 's'} to go` : 'Not started';
+      const status = toSign(p.email) ? (base === 'Done' || !base ? 'Agreement to sign' : `${base} · agreement to sign`) : base;
+      return { ...p, name: prof?.name || p.name || '', status, sent: lastSent(sent, p.email) };
     }));
     return NextResponse.json({ people: list });
   } catch (e) { console.error('Onboarding read failed', e.message); return fail('Couldn’t read onboarding just now', 502); }

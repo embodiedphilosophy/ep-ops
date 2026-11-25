@@ -126,7 +126,7 @@ async function Invitations({ user }) {
                   <span className={`st ${DOT[i.status] || 'grey'}`}><span className={`dot ${DOT[i.status] || 'grey'}`} aria-hidden="true" />{STATUS_LABEL[i.status] || i.status}</span>
                   <span className="what">
                     <b>{i.name}</b> · {i.offering_title}
-                    <small>{i.kind}{i.fee ? ` · $${i.fee} ${i.fee_unit === 'flat' ? 'flat' : 'per session'}` : ''} · invited {nice(i.created_at)} by {i.created_by}
+                    <small>{i.kind}{i.fee ? ` · $${i.fee} ${i.fee_unit === 'flat' ? 'flat' : 'per session'}` : ''} · {i.source === 'onboarding' ? 'signed during onboarding' : `invited ${nice(i.created_at)} by ${i.created_by}`}
                       {i.status === 'signed' ? ` · signed ${nice(i.signed_at)}` : i.status === 'accepted' ? ` · accepted ${nice(i.responded_at)}${i.template ? '' : ' · no agreement'}` : i.status === 'sent' && i.email_status ? ` · email ${i.email_status}` : ''}</small>
                   </span>
                   <InviteActions id={i.id} status={i.status} link={i.status === 'sent' ? inviteUrl(base, i) : ''} contract={i.status === 'signed' ? `/invite/staff/contract?id=${i.id}` : ''} />
