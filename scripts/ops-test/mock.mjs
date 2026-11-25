@@ -78,6 +78,11 @@ const schedule = [H,
   ev('2026-12-05', 'SSWW', 'SS Weekend Workshop — Winter on-ramp', T('Jacob Kyle')),
   ev('2026-11-14', 'EVENT', 'Spanda Intensive  (Nov 14–Nov 15)', { ...T('Tova Olsson'), Time: '10am ET', 'Public Title': 'Spanda Intensive', Summary: 'Two mornings with the Spanda Kārikās.' }),
   ev(soon(37), 'EVENT', 'Meditation Resolution 2027', { ...T('Floss Harry'), Time: '12pm ET', Website: 'TRUE', 'Registration URL': 'https://enroll.embodiedphilosophy.com/resolution', Price: '$0' }),
+  // Reminder rules (Teachers & Email phase 3): sessions with and without a Zoom link
+  ev(soon(3), 'SS', 'Sādhana School — Fall 2026 wk 7', { ...T('Jacob Kyle'), Time: '12pm ET', Website: 'TRUE', 'Zoom Link': 'https://us02web.zoom.us/j/81234567890' }),
+  ev(soon(5), 'EVENT', 'Open Session 3 — Tasting the Real', { ...T('Floss Harry'), Time: '6pm ET', Website: 'TRUE', 'Zoom Link': 'https://us02web.zoom.us/j/82345678901' }),
+  ev(soon(6), 'EVENT', 'Practicum: sitting with doubt', { ...T('Floss Harry'), Time: '1pm ET', Website: 'TRUE' }),
+  ev(soon(8), 'WSML', 'Wisdom School Monthly Lecture: Return', { ...T('Abha Rajbhandari'), Time: '7pm ET', Website: 'TRUE', 'Zoom Link': 'https://us02web.zoom.us/j/83456789012' }),
 ];
 const templates = [
   ['track', 'task', 'assign_to', 'offset_days', 'details'],
@@ -128,6 +133,11 @@ const oldSite = { 1001: siteTabs['Site Teachers'], 1002: siteTabs['Site Testimon
 delete siteTabs['Site Teachers']; delete siteTabs['Site Testimonials'];
 const sheetIds = {}; let nextSheet = 5000;
 const kitDrafts = [];
+// Weekly Scaffolding issues relative to today: two went out (published in Kit), one never did
+const sunday = k => { const d = new Date(Date.now() + (((7 - new Date().getUTCDay()) % 7) + 7 * k) * 864e5); return d.toISOString().slice(0, 10); };
+const scaffIssues = [[sunday(-3), 'Sent', '7', 'Gathering the threads', 'A quiet week', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'https://app.kit.com/campaigns/301/draft'],
+  [sunday(-2), 'Draft', '8', 'Never finished', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+  [sunday(-1), 'Sent', '9', 'What the body knows', 'Notes from the week', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'https://app.kit.com/campaigns/302/draft']];
 // Kit as it was on 25 Nov (Teachers & Email tests): drafts with no event ID, stale drafts, the two Meditation Monday reminders for one day, a linked promo
 const kdate = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10) + 'T16:00:00Z';
 const kitExtra = [
@@ -138,6 +148,8 @@ const kitExtra = [
   { id: 213, subject: 'Test email', description: '', send_at: null, published_at: null, created_at: kdate(-60) },
   { id: 220, subject: 'Meditation Monday begins in one hour', description: `[MM-REMINDER ${kdate(5).slice(0, 10)}]`, send_at: kdate(5), published_at: null, created_at: kdate(-3) },
   { id: 221, subject: 'Meditation Monday today at 12pm ET', description: '', send_at: kdate(5), published_at: null, created_at: kdate(-3) },
+  { id: 301, subject: 'Gathering the threads', description: `Weekly Scaffolding ${sunday(-3)}`, send_at: kdate(-21), published_at: kdate(-21), created_at: kdate(-25) },
+  { id: 302, subject: 'What the body knows', description: `Weekly Scaffolding ${sunday(-1)}`, send_at: kdate(-7), published_at: kdate(-7), created_at: kdate(-12) },
   { id: 230, subject: 'Join us: Recognition in practice', description: '[{LRL}] Promo #1 · LRL · everyone', send_at: kdate(1), published_at: null, created_at: kdate(-5) },
   { id: 231, subject: 'Last week’s lecture', description: '[{LRL}] Promo #0', send_at: kdate(-10), published_at: kdate(-10), created_at: kdate(-12) },
 ];
@@ -187,7 +199,9 @@ const tabs = { 'Mentee Step Status': stepStatus, 'Mentee Books': menteeBooks, 'E
   // Circle event sync: which Circle space each program's live sessions go in
   'Circle Groups': [['offering', 'circle_access_group_ids', 'name', 'circle_event_space_id'], ['sadhana-fall-2026', '7', 'SS 26-27 · Fall', '3001'], ['SS', '', 'Sādhana School · Live', '3001']],
   'Weekly Scaffolding': [['Send Date', 'Status', 'Issue No', 'Subject', 'Preview Text', 'Events Intro', 'Reflection Headline', 'Reflection Body', 'Reflection URL', 'Sanskrit Devanagari', 'Sanskrit IAST', 'Sanskrit Translation', 'Sanskrit Source', 'Video Title', 'Video Meta', 'Video Caption', 'Video URL', 'Video Thumbnail', 'Tarka Issue', 'Tarka Title', 'Tarka Author', 'Tarka Teaser', 'Tarka URL', 'PS', 'Kit Draft', 'Built At', 'Notes'],
-    ['2026-10-11', 'Draft', '1', 'The Nine Nights begin', 'Navaratri starts Sunday'], ['2026-10-18', 'Draft', '2'], ['2026-10-25', 'Draft', '3']], 'Event Details': [['ID']] };
+    ['2026-10-11', 'Draft', '1', 'The Nine Nights begin', 'Navaratri starts Sunday'], ['2026-10-18', 'Draft', '2'], ['2026-10-25', 'Draft', '3'],
+    ...scaffIssues],
+  'Event Details': [['ID']] };
 
 // ---------- team calendar (Google Calendar events) ----------
 const at = (n, h) => `${day(n)}T${String(h).padStart(2, '0')}:00:00-04:00`;
