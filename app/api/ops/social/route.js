@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
 import { isStaff, canEditSocial, canPublishSocial, canDeleteSocial, canApproveSocial } from '@/lib/ops/nav';
-import { readPlain, updatePlain, addPlain, ensureColumns, createTab, ConflictError } from '@/lib/ops/store';
+import { readPlain, updatePlain, updatePlainMany, addPlain, ensureColumns, createTab, ConflictError } from '@/lib/ops/store';
 import { viewOf, isLocked, checkSocial, thumbOf, mondayOf, postIdFor, eventLabel, hasText, timeKey, isFeed, displayStatus, V2_COLS, MIN_SLIDES } from '@/lib/ops/socialengine';
-import { loadCalendar } from '@/lib/calendar';
+import { loadCalendar, loadTeam } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { refreshSite } from '@/lib/ops/refresh';
 import { driveIdOf } from '@/lib/ops/socialimages';
@@ -29,6 +29,16 @@ export async function GET(req) {
   if (v.director && !user.director) return NextResponse.json({ error: 'Directors only' }, { status: 403 });
   const q = String(url.searchParams.get('q') || '').trim().toLowerCase(), offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   try {
+    if (url.searchParams.get('counts') && v.images) {
+      const [img, vids] = await Promise.all([readPlain('Image Library', SHOW), readPlain('Upload Log', SHOW).catch(() => ({ rows: [] }))]);
+      const n = fn => img.rows.filter(r => fn(r.values)).length;
+      return NextResponse.json({ counts: { art: n(x => !hasText(x)), promo: n(x => hasText(x) && String(x.type) !== 'Design'), designs: n(x => String(x.type) === 'Design'), videos: vids.rows.filter(r => r.values.kind === 'video').length } });
+    }
+    if (url.searchParams.get('view') === 'comments') {
+      const post = String(url.searchParams.get('post') || '');
+      const rows = (await readPlain('Comments', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values).filter(c => c.post_id === post).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      return NextResponse.json({ comments: rows });
+    }
     if (v.key === 'review') return NextResponse.json(await reviewData(user));
     if (v.key === 'health') return NextResponse.json(await healthData(user));
     // The Upload Log tab is made on the first upload; until then there are no videos
@@ -57,7 +67,7 @@ export async function GET(req) {
       }
       // The grid preview: the last twelve feed posts that went out, for context beneath the upcoming ones
       const past = live.filter(r => r.values.publish_date <= today && ['Posted', 'Manual'].includes(r.values.status) && isFeed(r.values)).sort(order).reverse().slice(0, 12).map(mine);
-      extra = { types, past, rules: await rulesOf(), dayCategories: (await readPlain('Day Categories', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values) };
+      extra = { types, past, team: (await loadTeam().catch(() => [])).filter(m => !/^teacher$/i.test(m.type)).map(m => m.name).filter(Boolean), rules: await rulesOf(), dayCategories: (await readPlain('Day Categories', SHOW).catch(() => ({ rows: [] }))).rows.map(r => r.values) };
       rows = rows.filter(r => r.values.status !== 'Deleted' && ((r.values.publish_date || '9') >= from || r.values.status === 'Draft')).sort(order).map(mine);
     } else if (v.images && url.searchParams.get('pick')) {
       // The post editor's picker: only Art (no words on the picture) that may be used, newest first (uploads are added at the bottom)
@@ -79,6 +89,19 @@ export async function GET(req) {
       for (const r of rows) { const id = r.values[idCol], d = String(r.values.last_used || '').slice(0, 10); if (id && /^\d{4}-\d{2}-\d{2}$/.test(d) && (!used[id] || d > used[id])) used[id] = d; }
       rows = rows.map(r => ({ ...r, used: used[r.values[idCol]] || '' }));
     }
+    // The Library's filters (category, deity, program, and the Use checkboxes) run on the whole table, so counts and paging stay right
+    let facets;
+    if (v.images && !url.searchParams.get('pick')) {
+      const distinct = c => Object.entries(rows.reduce((m, r) => { const x = String(r.values[c] || '').trim(); if (x) m[x] = (m[x] || 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).map(([name, n]) => ({ name, n }));
+      facets = { category: distinct('category'), deity: distinct('deity'), program: distinct('program') };
+      const sp = url.searchParams, f = new Set(String(sp.get('f') || '').split(',').filter(Boolean)), t = todayET();
+      const daysAgo = d => Math.round((Date.parse(t + 'T12:00:00Z') - Date.parse(String(d).slice(0, 10) + 'T12:00:00Z')) / 864e5);
+      for (const c of ['category', 'deity', 'program']) if (sp.get(c)) rows = rows.filter(r => String(r.values[c] || '').trim() === sp.get(c));
+      if (f.has('reuse')) rows = rows.filter(r => String(r.values.reuse_ok).toUpperCase() === 'TRUE' && String(r.values.hidden).toUpperCase() !== 'TRUE');
+      if (f.has('nowords')) rows = rows.filter(r => !hasText(r.values));
+      if (f.has('gap')) rows = rows.filter(r => !r.used || !/^\d{4}-\d{2}-\d{2}/.test(r.used) || daysAgo(r.used) > 90);
+      if (f.has('licence')) rows = rows.filter(r => String(r.values.license || r.values.licence || '').trim());
+    }
     if (q && v.search) rows = rows.filter(r => v.search.some(c => String(r.values[c] || '').toLowerCase().includes(q)));
     const total = rows.length, page = v.key === 'plan' ? rows : rows.slice(offset, offset + 60);
     if (v.key === 'history') {
@@ -95,7 +118,7 @@ export async function GET(req) {
     const events = v.key !== 'plan' ? undefined : (await loadCalendar().catch(() => []))
       .filter(e => e.date >= addDays(todayET(), -3) && e.date <= addDays(todayET(), 120) && /public/i.test(e.audience || '') && e.track !== 'MM')
       .filter((e, i, a) => a.findIndex(x => eventLabel(x) === eventLabel(e)) === i).slice(0, 60).map(eventLabel);
-    return NextResponse.json({ head: data.head, rows: page, total, offset, events, ...extra, canEdit: canEditSocial(user) && (!v.director || user.director), canPublish: canPublishSocial(user), canCategory: canApproveSocial(user), me: user.name || user.email,
+    return NextResponse.json({ head: data.head, rows: page, total, offset, events, facets, ...extra, canEdit: canEditSocial(user) && (!v.director || user.director), canPublish: canPublishSocial(user), canCategory: canApproveSocial(user), me: user.name || user.email,
       locked: data.head.filter(h => isLocked(v.tab, h)) });
   } catch (e) {
     console.error('Social read failed', v.tab, e.message);
@@ -107,12 +130,23 @@ export async function GET(req) {
 //      { view: 'plan', approve: [{ row, before }] }        approve several posts at once
 export async function POST(req) {
   const user = await currentUser();
-  if (!canEditSocial(user)) return NextResponse.json({ error: 'Only the social team can change posts' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
+  // Everyone on staff can comment on a post; changing posts is for the social team
+  if (!canEditSocial(user) && !(isStaff(user) && body.comment)) return NextResponse.json({ error: 'Only the social team can change posts' }, { status: 403 });
   const v = viewOf(body.view);
   if (!v || v.key === 'history') return NextResponse.json({ error: 'Unknown view' }, { status: 400 });
   if (v.director && !user.director) return NextResponse.json({ error: 'Directors only' }, { status: 403 });
   const who = user.name || user.email;
+  // A comment on a post (with @mentions kept as typed); the Comments tab is made on the first one
+  if (body.comment) {
+    const c = body.comment, text = String(c.body || '').trim().slice(0, 1000), post = String(c.post_id || '').trim();
+    if (!text || !post) return NextResponse.json({ error: 'Write a comment' }, { status: 400 });
+    try {
+      if (!(await readPlain('Comments', SHEET).catch(() => null))) await createTab('Comments', ['post_id', 'author', 'body', 'created_at', 'mentions'], [], SHEET);
+      await addPlain('Comments', { post_id: post, author: who, body: text, created_at: new Date().toISOString(), mentions: (text.match(/@[\p{L}][\p{L}'’-]*/gu) || []).join(', ') }, { who, ...SHEET });
+      return NextResponse.json({ ok: true });
+    } catch (e) { console.error('Comment failed', e.message); return NextResponse.json({ error: 'Couldn’t save the comment' }, { status: 502 }); }
+  }
   const clean = obj => {
     const out = {}, errors = {};
     for (const [col, raw] of Object.entries(obj || {})) {
@@ -193,6 +227,35 @@ export async function POST(req) {
       for (const a of body.skip) n += (await updatePlain(v.tab, Number(a.row), { status: 'Skip', updated_by: who, updated_at: now() }, { before: { status: a.before?.status }, who, ...SHEET })).length ? 1 : 0;
       refreshSite();
       return NextResponse.json({ ok: true, skipped: n });
+    }
+    // Bulk edit in the Library: the same change to several pictures, each checked against what the editor showed
+    if (body.bulk && v.images) {
+      if (!canEditSocial(user)) return NextResponse.json({ error: 'Only the social team can change the Library' }, { status: 403 });
+      const { out, errors } = clean(body.bulk.changes);
+      const ok = ['category', 'program', 'deity', 'hidden', 'reuse_ok', 'has_text'];
+      for (const k of Object.keys(out)) if (!ok.includes(k)) errors[k] = 'Can’t be changed in bulk';
+      if (!Object.keys(out).length && !Object.keys(errors).length) errors.changes = 'Choose what to change';
+      if (Object.keys(errors).length) return NextResponse.json({ error: 'Some fields need fixing', errors }, { status: 400 });
+      const table = await readPlain(v.tab, SHEET), rows = Array.isArray(body.bulk.rows) ? body.bulk.rows.slice(0, 200) : [];
+      const updates = [], skipped = [];
+      for (const r of rows) {
+        const cur = table.rows.find(x => x.row === Number(r.row))?.values;
+        if (!cur) { skipped.push(r.row); continue; }
+        if (Object.keys(out).some(k => k in (r.before || {}) && String(r.before[k] ?? '').trim() !== String(cur[k] ?? '').trim())) { skipped.push(r.row); continue; } // changed by someone else
+        updates.push({ row: Number(r.row), changes: out });
+      }
+      const n = await updatePlainMany(v.tab, updates, { who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true, changed: updates.length, cells: n, skipped });
+    }
+    // A story or other post made by hand: the person who posted it marks it Posted
+    if (v.key === 'plan' && body.markPosted) {
+      if (!canPublishSocial(user)) return NextResponse.json({ error: 'Only people who schedule posts can mark one posted' }, { status: 403 });
+      const cur = (await readPlain(v.tab, SHEET)).rows.find(r => r.row === Number(body.markPosted.row))?.values;
+      if (!cur || cur.status !== 'Manual') return NextResponse.json({ error: 'Only a post waiting to be posted by hand can be marked posted' }, { status: 400 });
+      await updatePlain(v.tab, Number(body.markPosted.row), { status: 'Posted', updated_by: who, updated_at: now() }, { before: { status: 'Manual' }, who, ...SHEET });
+      refreshSite();
+      return NextResponse.json({ ok: true });
     }
     // Delete: Proposed, Needs edit, Skip or Expired posts only. The row stays (so no row numbers move) and is hidden.
     if (v.key === 'plan' && Array.isArray(body.delete)) {

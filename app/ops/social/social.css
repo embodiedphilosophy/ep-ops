@@ -232,3 +232,104 @@
 .ops-shell .ops-tpl .fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px }
 .ops-shell .ops-tpl .fields li { display: flex; justify-content: space-between; gap: 8px; align-items: center }
 .ops-shell .ops-tpl .acts { padding-top: 4px }
+.ops-shell .ops-tpl select, .ops-shell .ops-tpl input:not([type=radio]), .ops-shell .ops-tpl textarea { width: 100%; box-sizing: border-box }
+.ops-shell .ops-tpl .stage.strip { justify-content: flex-start; overflow-x: auto; gap: 8px; align-items: flex-start }
+.ops-shell .ops-tpl .stage.strip img { max-height: 300px; width: auto; flex: none }
+.ops-shell .ops-tpl .slides { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.ops-shell .ops-tpl .slides li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: start; border: 1px solid var(--line2); border-radius: 6px; padding: 8px; background: #fff }
+.ops-shell .ops-tpl .slides .n { font-size: 12px; color: var(--ink-soft); text-align: center; padding-top: 10px }
+.ops-shell .ops-tpl .slides .f { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.ops-shell .ops-tpl .slides .a { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .tw-strip { display: flex; flex-direction: column; gap: 10px }
+.ops-shell .tw-strip img { width: 100%; height: auto; display: block; box-shadow: 0 0 0 1px var(--line2) }
+.ops-shell .soc-rev input { margin-top: 2px }
+
+/* The Composer (design: "Post composer"): phone preview · media and checks · details */
+.ops-shell .cmp { max-width: none }
+.ops-shell .cmp-bar { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin-bottom: 14px }
+.ops-shell .cmp-cols { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start }
+.ops-shell .cmp-phone { position: sticky; top: 12px }
+.ops-shell .phone { width: 300px; max-width: 100%; background: #fff; border: 1px solid var(--line2); border-radius: 30px; padding: 14px 8px 12px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .phone .who { display: flex; align-items: center; gap: 8px; padding: 0 6px; font-size: 12px }
+.ops-shell .phone .who i { width: 28px; height: 28px; border-radius: 14px; background: var(--pine) }
+.ops-shell .phone .who span { margin-left: auto; font-size: 11px; color: var(--ink-soft) }
+.ops-shell .phone .frame { position: relative; width: 100%; background: var(--sand); overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center }
+.ops-shell .phone .frame img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .phone .frame .empty { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .phone .frame .badge { position: absolute; left: 10px; bottom: 12px; font-size: 10px; padding: 3px 8px; border-radius: 10px; background: rgba(0,0,0,.65); color: #fff }
+.ops-shell .phone .frame .bar { position: absolute; top: 8px; left: 8px; right: 8px; height: 2px; background: rgba(255,255,255,.5) }
+.ops-shell .phone .dots { display: flex; justify-content: center; gap: 4px }
+.ops-shell .phone .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line2) }
+.ops-shell .phone .dots i.on { background: #2E3F7F }
+.ops-shell .phone .pcap { margin: 0; padding: 0 6px; font-size: 11px; line-height: 1.45 }
+.ops-shell .cmp-media, .ops-shell .cmp-details { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.ops-shell .cmp .lbl { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .cmp-card { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card) }
+.ops-shell .cmp-card > span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; min-width: 0 }
+.ops-shell .cmp-card small { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .cmp-card .th { width: 56px; height: 70px; flex: none; background: var(--sand); border-radius: 4px; overflow: hidden; display: block }
+.ops-shell .cmp-card .th img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .cmp-guard { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 10px; background: var(--sand2) }
+.ops-shell .cmp-guard .g { font-size: 12.5px } .ops-shell .cmp-guard .g.ok { color: #2B5A33 } .ops-shell .cmp-guard .g.warn { color: #8a5a00 } .ops-shell .cmp-guard .g.bad { color: var(--terra-d) }
+.ops-shell .cmp-story { padding: 14px; border: 1px solid #2E3F7F; border-radius: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; font-size: 13px }
+.ops-shell .cmp-story b { color: #2E3F7F }
+.ops-shell .cmp-spec { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-soft) } .ops-shell .cmp-spec .ok { color: #2B5A33 }
+.ops-shell .cmp-details .grp { display: flex; flex-direction: column; gap: 8px }
+.ops-shell .cmp-details .row { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .cmp-details .grp .row { flex-direction: row; flex-wrap: wrap; gap: 8px }
+.ops-shell .cmp-details .tog { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); font-size: 13px }
+.ops-shell .cmp-details .tog input { width: auto; min-height: 0 }
+.ops-shell .cmp-details .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.ops-shell .cmp-details select, .ops-shell .cmp-details input:not([type=checkbox]), .ops-shell .cmp-details textarea { width: 100%; box-sizing: border-box }
+.ops-shell .capwrap { position: relative } .ops-shell .capwrap .count { position: absolute; right: 8px; top: 0; font-size: 11px; color: var(--ink-soft) }
+.ops-shell .cmp-parts { display: flex; flex-direction: column; gap: 6px }
+.ops-shell .cmp-parts .blk { padding: 8px 10px; border-radius: 6px; background: var(--sand2); font-size: 13px }
+.ops-shell .cmp-parts .blk span { display: block; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .cmp-parts .blk.draft { border: 1px solid var(--terra); background: #FFF7F3 } .ops-shell .cmp-parts .blk.draft span { color: var(--terra) }
+.ops-shell .cmp-thread { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line2); padding-top: 10px }
+.ops-shell .cmp-thread ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .cmp-thread li p { margin: 2px 0 0; font-size: 13px }
+.ops-shell .cmp-thread .send { display: flex; gap: 8px; align-items: flex-end }
+@media (max-width: 1100px) { .ops-shell .cmp-cols { grid-template-columns: 300px minmax(0, 1fr) } .ops-shell .cmp-details { grid-column: 1 / -1 } }
+@media (max-width: 760px) { .ops-shell .cmp-cols { grid-template-columns: minmax(0, 1fr) } .ops-shell .cmp-phone { position: static } .ops-shell .cmp-details .two { grid-template-columns: 1fr } }
+.ops-shell .cmp-cols > * { min-width: 0; max-width: 100% }
+.ops-shell .cmp .picacts { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .cmp .chip.upl { max-width: 100% }
+.ops-shell .cmp { overflow-x: clip }
+.ops-shell .cmp .chip.upl { position: relative; overflow: hidden }
+.ops-shell .cmp .chip.upl input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 0; cursor: pointer; min-height: 0 }
+
+/* The Library (design: "Media library") */
+.ops-shell .lib-cols { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; gap: 20px; align-items: start }
+.ops-shell .lib-filters { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 12px }
+.ops-shell .lib-filters .cap { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); margin-top: 8px }
+.ops-shell .lib-filters input:not([type=checkbox]), .ops-shell .lib-filters select { width: 100%; box-sizing: border-box; min-height: 40px }
+.ops-shell .lib-filters .chk { display: flex; align-items: center; gap: 8px; font-size: 13px } .ops-shell .lib-filters .chk input { width: auto; min-height: 0 }
+.ops-shell .dropz { margin-top: 14px; border: 1.5px dashed var(--ochre2); border-radius: 10px; padding: 14px 10px; text-align: center; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-soft) } .ops-shell .dropz b { color: var(--ink); font-size: 13px }
+.ops-shell .lib-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px }
+.ops-shell .lib-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; background: var(--sand2); border-radius: 8px; margin-bottom: 10px }
+.ops-shell .lib-bulk input, .ops-shell .lib-bulk select { min-height: 36px; width: auto; max-width: 160px }
+.ops-shell .lib-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px }
+.ops-shell .lib-grid li > button { width: 100%; text-align: left; border: 1px solid var(--line2); background: var(--card); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; color: inherit; font: inherit }
+.ops-shell .lib-grid li.on > button { outline: 2px solid var(--terra) } .ops-shell .lib-grid li.off { opacity: .5 }
+.ops-shell .lib-grid .th { position: relative; aspect-ratio: 4 / 5; background: var(--sand); border-radius: 5px; overflow: hidden; display: flex; align-items: center; justify-content: center }
+.ops-shell .lib-grid .th img { width: 100%; height: 100%; object-fit: cover; display: block } .ops-shell .lib-grid .th i { font-size: 11px; color: var(--ink-soft); font-style: normal }
+.ops-shell .lib-grid .tick { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 11px; background: #fff; border: 1.5px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 13px } .ops-shell .lib-grid .tick.on { background: var(--pine); color: #fff; border-color: var(--pine) }
+.ops-shell .lib-grid b { font-size: 12px; font-weight: 600; overflow-wrap: anywhere } .ops-shell .lib-grid small { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .lib-grid em { font-style: normal; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 8px; background: #FFF7F3; color: var(--terra-d); border: 1px solid var(--terra); align-self: flex-start }
+.ops-shell .lib-grid .more { grid-column: 1 / -1; text-align: center }
+.ops-shell .lib-side { display: flex; flex-direction: column; gap: 10px; background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 14px; position: sticky; top: 12px; min-width: 0 }
+.ops-shell .lib-side .big { aspect-ratio: 4 / 5; background: var(--sand); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center } .ops-shell .lib-side .big img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .lib-side h2 { font-size: 22px; overflow-wrap: anywhere } .ops-shell .lib-side .sub { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .prov { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px } .ops-shell .prov div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px } .ops-shell .prov dt { color: var(--ink-soft) } .ops-shell .prov dd { margin: 0; overflow-wrap: anywhere }
+.ops-shell .credit { padding: 10px 12px; background: var(--sand2); border-radius: 8px; font-size: 13px; display: flex; flex-direction: column; gap: 4px } .ops-shell .credit .cap { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft) }
+.ops-shell .lib-side .acts { display: flex; flex-direction: column; gap: 8px } .ops-shell .lib-side .acts .link { border: 0; background: none; color: var(--terra-d); cursor: pointer; font: inherit; padding: 6px }
+.ops-shell .soc-btn.upl { position: relative; overflow: hidden } .ops-shell .soc-btn.upl input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; font-size: 0; cursor: pointer; min-height: 0 }
+@media (max-width: 1100px) { .ops-shell .lib-cols { grid-template-columns: 220px minmax(0, 1fr) } .ops-shell .lib-side { grid-column: 1 / -1; position: static } }
+@media (max-width: 760px) { .ops-shell .lib-cols { grid-template-columns: minmax(0, 1fr) } .ops-shell .lib-filters { position: static } }
+
+/* Coming up & campaigns: rows stack on a phone so the title keeps its width */
+.soc .camp li { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-start; }
+.soc .camp li .b { flex: 1 1 240px; min-width: 0; }
+.soc .camp li .soc-act, .soc .camp li select { flex: 0 0 auto; }
+.soc .camp li .b input { width: 100%; }

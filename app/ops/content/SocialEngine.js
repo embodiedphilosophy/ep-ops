@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
-import { rhythmWarnings, weekAhead, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
+
 import Cropper, { shrink } from './Cropper';
 import TemplatePanel from '../social/TemplatePanel';
+import { TEMPLATES } from '@/lib/ops/templates/registry';
+import { guardrails } from '@/lib/ops/socialrules';
 
 const label = h => h === 'publish_time_ET' ? 'Time (ET)' : h === 'pillar' ? 'Type of post' : h === 'jake_notes' ? 'Notes for the planner' : h.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 export const day = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? new Date(`${s}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : s || 'No date';
@@ -44,7 +46,7 @@ export function useView(view, q = '', offset = 0, extra = '') {
     const j = await res?.json().catch(() => ({}));
     setData(res?.ok ? j : { error: j?.error || 'Couldn’t load the Social Engine' });
   };
-  useEffect(() => { setData(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [view, q, offset]);
+  useEffect(() => { setData(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [view, q, offset, extra]);
   return [data, load];
 }
 
@@ -104,30 +106,24 @@ export function GridPreview({ posts, past, canEdit, open, reload, setMsg }) {
 const todayNY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 const flag = p => !p._thumb ? 'No image yet' : p.image_review !== 'Kept' ? 'Image not reviewed' : '';
 export function NextPosts({ n = 9 }) {
-  const [data, reload] = useView('plan');
-  const [open, setOpen] = useState(null);
+  const [data] = useView('plan');
   if (!data) return <p className="ops-empty">Loading the next posts…</p>;
   if (data.error) return <p className="ops-empty">{data.error}</p>;
   const today = todayNY();
-  const posts = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }))
-    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') && p.publish_date >= today && !/^skip/i.test(p.status || ''))
+  const posts = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb }))
+    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') && p.publish_date >= today && !/^skip/i.test(p.status || '') && p.status !== 'Draft')
     .slice(0, n);
   if (!posts.length) return <p className="ops-empty">No posts scheduled.</p>;
-  const i = posts.findIndex(p => p._row === open);
   return (
-    <>
-      <ul className="ops-strip">{posts.map(p => (
-        <li key={p._row}>
-          <button type="button" onClick={() => setOpen(p._row)} aria-label={`Open the ${day(p.publish_date)} post`}>
-            {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none" aria-hidden="true" />}
-            <span className="d">{day(p.publish_date)}{p.publish_time_ET ? ` · ${time(p.publish_time_ET)}` : ''}</span>
-            <span className="p">{p.platforms}</span>
-            <span className={`s${flag(p) ? ' warn' : ''}`}>{flag(p) || p.status || 'Proposed'}</span>
-          </button>
-        </li>))}</ul>
-      {i >= 0 && <Composer key={posts[i]._row} p={posts[i]} events={data.events || []} canEdit={data.canEdit} onSaved={reload}
-        prev={i > 0 ? () => setOpen(posts[i - 1]._row) : null} next={i < posts.length - 1 ? () => setOpen(posts[i + 1]._row) : null} close={() => setOpen(null)} />}
-    </>
+    <ul className="ops-strip">{posts.map(p => (
+      <li key={p._row}>
+        <a href={`/ops/social/compose?row=${p._row}`} aria-label={`Open the ${day(p.publish_date)} post`}>
+          {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none" aria-hidden="true" />}
+          <span className="d">{day(p.publish_date)}{p.publish_time_ET ? ` · ${time(p.publish_time_ET)}` : ''}</span>
+          <span className="p">{p.platforms}</span>
+          <span className={`s${flag(p) ? ' warn' : ''}`}>{flag(p) || p.status || 'Proposed'}</span>
+        </a>
+      </li>))}</ul>
   );
 }
 
@@ -135,20 +131,21 @@ const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLoca
 export const blankPost = seed => {
   const v = { publish_date: tomorrow(), publish_time_ET: '11:00', platforms: 'IG Feed, Facebook', format: 'Feed single', media_kind: 'single', pillar: '', status: 'Proposed',
     ...(seed?.caption && { caption: seed.caption }), ...(seed?.image_id && { image_id: seed.image_id, image_url: '' }) };
-  return { ...v, _row: null, _raw: v, _new: true, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
+  return { ...v, _row: null, _raw: v, _new: true, _openCard: !!seed?.openCard, _seedPic: seed?.thumb ? { preview: seed.thumb, src: seed.drive ? `/api/ops/social/image?id=${seed.drive}` : '' } : null };
 };
 export const KINDS = [['single', 'Single', 'IG Feed, Facebook', 'Feed single'], ['carousel', 'Carousel', 'IG Feed, Facebook', 'Carousel'], ['reel', 'Video / Reel', 'IG Reel, Facebook', 'Reel'], ['story', 'Story frame', 'IG Story', 'Story']];
 
 // One post, laid out like it will appear: the picture on one side, its words and settings on the other.
 // Everything about the post is edited here; one Save writes all the changes.
-export function Composer({ p, page = false, recentColourways = [], events = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
+export function Composer({ p, page = false, recentColourways = [], events = [], team = [], types = POST_TYPES, canEdit, canPublish, onSaved, onAdded, prev, next, close }) {
   const [vals, setVals] = useState(p._raw);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState(null); // null | 'library' | 'crop'
+  const [mode, setMode] = useState(p._openCard ? 'card' : null); // null | 'library' | 'crop' | 'card'
   const [pic, setPic] = useState(p._seedPic || null); // { preview, src } once the picture changes here
   const [picMsg, setPicMsg] = useState('');
+  const [pv, setPv] = useState('4:5'); // the phone preview's shape for a feed post
   const isNew = !!p._new;
   const changed = PLAN_EDITABLE.filter(k => k !== 'status' && String(vals[k] ?? '') !== String(p._raw[k] ?? ''));
   const [inserting, setInserting] = useState(null); // null | 'captions' | 'quotes'
@@ -178,6 +175,10 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
     const j = await api({ view: 'plan', delete: [{ row: p._row }] });
     setBusy(false);
     if (j.ok && j.deleted) { onSaved(); close(); } else setMsg(j.error || 'That post can’t be deleted (it may be approved or published).');
+  };
+  const markPosted = async () => {
+    setBusy(true); const j = await api({ view: 'plan', markPosted: { row: p._row } }); setBusy(false);
+    if (j.ok) { onSaved(); setMsg('Marked posted.'); } else setMsg(j.error || 'Couldn’t mark it posted');
   };
   const leave = go => () => { if (!(isNew ? String(vals.caption || '').trim() || vals.image_id : changed.length) || confirm('Leave without saving your changes?')) go(); };
   useEffect(() => {
@@ -243,107 +244,160 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
   const shapeOf = isStory(p) ? '9:16' : '4:5';
   // A card made from a template: its picture becomes the post's picture, its quote the post's quote (the server re-checks it), its credit line joins the caption
   const useCard = r => {
-    setVals(v => ({ ...v, image_id: r.image_id, image_url: r.image_url, template_id: r.template_id, colourway: r.colourway, template_fields: r.template_fields, quote_id: r.quote.quote_id,
+    const slidesJson = r.carousel ? JSON.stringify(r.exports.map(e => ({ kind: 'image', drive_file_id: e.drive_file_id, image_id: e.image_id }))) : undefined;
+    setVals(v => ({ ...v, image_id: r.image_id, image_url: r.image_url, template_id: r.template_id, colourway: r.colourway, template_fields: r.template_fields, quote_id: r.quote?.quote_id || '',
+      ...(r.carousel && { media_kind: 'carousel', slides_json: slidesJson, keyword: r.keyword || '' }),
       caption: r.credit && !String(v.caption || '').includes(r.credit) ? `${String(v.caption || '').trimEnd()}${v.caption ? '\n\n' : ''}${r.credit}` : v.caption }));
-    setPic({ preview: r.preview, src: '' }); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined }));
-    setMode(null); setPicMsg(`Card saved to the Library as ${r.image_id}.${isNew ? '' : ' Save to use it.'}`);
+    if (!r.carousel) setPic({ preview: r.preview, src: '' });
+    setErrors(x => ({ ...x, image_id: undefined, image_url: undefined, slides_json: undefined }));
+    setMode(null); setPicMsg(r.carousel ? `${r.exports.length} slides saved to the Library.${isNew ? '' : ' Save to use them.'}` : `Card saved to the Library as ${r.image_id}.${isNew ? '' : ' Save to use it.'}`);
   };
   const card = (() => { try { return JSON.parse(vals.template_fields || 'null'); } catch { return null; } })();
   const status = p.status || 'Proposed';
+  const sizeShown = kind === 'reel' || kind === 'story' ? '9:16' : pv;
+  const platforms = String(vals.platforms || '').split(',').map(x => x.trim()).filter(Boolean);
+  const hasPlat = n => platforms.some(x => x.toLowerCase() === n.toLowerCase());
+  const togglePlat = n => setVals(v => { const cur = String(v.platforms || '').split(',').map(x => x.trim()).filter(Boolean); const on = cur.some(x => x.toLowerCase() === n.toLowerCase()); return { ...v, platforms: (on ? cur.filter(x => x.toLowerCase() !== n.toLowerCase()) : [...cur, n]).join(', ') }; });
+  const london = londonLabel(vals.publish_date, vals.publish_time_ET);
+  const g = guardrails({ ...vals, quote_check: vals.quote_id ? 'Verbatim' : p._raw.quote_check }, { eventLabels: new Set(events) });
+  const draftBits = String(vals.caption || '').match(/\[DRAFT[^\]]*\]/gi) || [];
+  const checks = [
+    ...g.blocked.map(x => ({ t: 'bad', x })), ...g.flags.map(x => ({ t: 'warn', x })),
+    ...(vals.quote_id || p._raw.quote_check === 'Verbatim' ? [{ t: 'ok', x: 'Quote copied verbatim from the Quote Library' }] : []),
+    ...(vals.quote_id || p._raw.quote_check === 'Verbatim' ? [{ t: 'ok', x: 'Sanskrit diacritics kept exactly as in the source' }] : []),
+    ...(!draftBits.length ? [{ t: 'ok', x: 'No DRAFT sentences left in the caption' }] : []),
+    ...(vals.image_id || vals.image_url || slides.length ? [{ t: 'ok', x: vals.template_id ? 'Picture made from a template, saved in the Library' : 'Picture chosen' }] : []),
+    ...(String(vals.caption || '').length <= 2200 ? [{ t: 'ok', x: `Caption ${String(vals.caption || '').length} of 2,200 characters` }] : []),
+  ];
+  const thread = (<Thread post={p.post_id} canComment={!isNew} />);
   return (
     <div className={`ops-se-modal${page ? ' page' : ''}`} role={page ? undefined : 'dialog'} aria-modal={page ? undefined : 'true'} aria-label="Post" onClick={e => { if (!page && e.target === e.currentTarget) leave(close)(); }}>
-      <div className="ops-se-comp">
+      <div className="ops-se-comp cmp">
         <div className="top">
           <span className={`pill s-${status.replace(/\s/g, '')}`}>{isNew ? 'New post' : status}</span>
-          <span className="when">{day(isNew ? vals.publish_date : p.publish_date)} · {time(p.publish_time_ET)} ET · {kindLabel(p) || p.platforms || 'Feed'}</span>
+          <span className="when">{day(isNew ? vals.publish_date : p.publish_date)} · {time(isNew ? vals.publish_time_ET : p.publish_time_ET)} ET · {kindLabel(isNew ? vals : p) || p.platforms || 'Feed'}</span>
           <span className="nav">
             {!isNew && <button className="chip" disabled={!prev} onClick={leave(prev)} aria-label="Previous post">←</button>}
             {!isNew && <button className="chip" disabled={!next} onClick={leave(next)} aria-label="Next post">→</button>}
-            <button className="chip" onClick={leave(close)} aria-label="Close">✕</button>
+            {!page && <button className="chip" onClick={leave(close)} aria-label="Close">✕</button>}
           </span>
         </div>
-        <div className="cols">
-          <div className="media">
-            {(isNew || (!locked && canEdit)) && (
-              <div className="ops-kinds" role="radiogroup" aria-label="What kind of post">
-                {KINDS.map(([k, l]) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={`chip${kind === k ? ' on' : ''}`} disabled={dis} onClick={() => setKind(k)}>{l}</button>)}
-              </div>)}
-            {kind !== 'single' ? <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} />
-            : <>
-            {mode === 'card' ? <TemplatePanel value={card && { ...card, template: vals.template_id, colourway: vals.colourway }} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
-              : mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} />
-              : <div className="pic">{thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}</div>}
-            {!dis && mode !== 'crop' && (
-              <div className="picacts">
-                <button type="button" className={`chip${mode === 'card' ? ' on' : ''}`} onClick={() => { setMode(m => m === 'card' ? null : 'card'); setPicMsg(''); }}>{vals.template_id ? 'Edit the card' : 'Make a card'}</button>
-                {cropSrc && <button type="button" className="chip" onClick={() => { setMode('crop'); setPicMsg(''); }}>Crop</button>}
-                <button type="button" className="chip" onClick={() => setMode(m => m === 'library' ? null : 'library')}>{mode === 'library' ? 'Close the library' : 'Choose from library'}</button>
-                <label className="chip upl">Upload a photo<input type="file" accept="image/*" onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} /></label>
-              </div>
-            )}
-            {picMsg ? <p className="hint">{picMsg}</p> : (vals.image_id !== p._raw.image_id || vals.image_url !== p._raw.image_url) && <p className="hint">New picture chosen. Save to use it.</p>}
-            {(errors.image_id || errors.image_url) && <p className="hint">{errors.image_id || errors.image_url}</p>}
-            {mode === 'library' && <ImagePicker onPick={(id, t, drive) => { setVals(s => ({ ...s, image_id: id, image_url: '' })); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined })); setPic({ preview: t, src: drive ? `/api/ops/social/image?id=${drive}` : '' }); setPicMsg(''); setMode(null); }} />}
-            </>}
-            {p.quote_text && <p className="quo">“{p.quote_text}”{p.quote_source ? ` — ${p.quote_source}` : ''} <span className={p.quote_check === 'Verbatim' ? 'ok' : 'warn'}>{p.quote_check || 'not checked'}</span></p>}
-            {p.error && <p className="err">Make: {p.error}</p>}
-            {p.post_links && <p className="ev"><a href={p.post_links.split(/\s|,/)[0]} target="_blank" rel="noopener">View the post ↗</a></p>}
+        {(isNew || (!locked && canEdit)) && (
+          <div className="cmp-bar">
+            <div className="ops-kinds" role="radiogroup" aria-label="What kind of post">
+              {KINDS.map(([k, l]) => <button key={k} type="button" role="radio" aria-checked={kind === k} className={`chip${kind === k ? ' on' : ''}`} disabled={dis} onClick={() => setKind(k)}>{l}</button>)}
+            </div>
+            {kind !== 'reel' && kind !== 'story' && <div className="ops-kinds" role="group" aria-label="Size">{['4:5', '1:1'].map(z => <button key={z} type="button" className={`chip mono${pv === z ? ' on' : ''}`} aria-pressed={pv === z} onClick={() => setPv(z)}>{z}</button>)}</div>}
+          </div>)}
+        <div className="cmp-cols">
+          <div className="cmp-phone">
+            <PhonePreview size={sizeShown} kind={kind} thumb={thumb} slides={slides} caption={vals.caption} />
           </div>
-          <form className="words ops-edit" onSubmit={async e => { e.preventDefault(); await save(); }}>
+          <div className="cmp-media media">
+            {mode === 'card' ? <TemplatePanel kind={kind === 'carousel' ? 'carousel' : 'single'} value={card ? { ...card, template: vals.template_id, colourway: vals.colourway } : p._openCard ? { template: 'quoteart', art: vals.image_id } : null} recent={recentColourways} useView={useView} ImagePicker={ImagePicker} onUse={useCard} onClose={() => setMode(null)} />
+              : kind === 'single' ? (<>
+                <span className="lbl">Template</span>
+                <div className="cmp-card"><span><b>{vals.template_id ? (TEMPLATES[vals.template_id]?.name || vals.template_id) : 'No template'}</b><small>{vals.template_id ? `${vals.colourway || ''} · text locked to its source` : 'Make a card from a verified quote, an event or a teacher, or use a picture.'}</small></span>
+                  {!dis && <button type="button" className="chip" onClick={() => { setMode('card'); setPicMsg(''); }}>{vals.template_id ? 'Edit the card' : 'Make a card'}</button>}</div>
+                <span className="lbl">Art</span>
+                {mode === 'crop' && cropSrc ? <Cropper src={cropSrc} initial={shapeOf} onDone={cropped} onCancel={() => setMode(null)} /> : (
+                  <div className="cmp-card"><span className="th">{thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" /> : <i>none</i>}</span>
+                    <span><b>{vals.image_id || (thumb ? 'Picture' : 'No picture yet')}</b><small>{vals.template_id ? 'Designed card' : 'From the Library · reuse OK'}</small></span></div>)}
+                {!dis && mode !== 'crop' && (
+                  <div className="picacts">
+                    {cropSrc && <button type="button" className="chip" onClick={() => { setMode('crop'); setPicMsg(''); }}>Crop</button>}
+                    <button type="button" className="chip" onClick={() => setMode(m => m === 'library' ? null : 'library')}>{mode === 'library' ? 'Close the library' : 'Swap from the library'}</button>
+                    <label className="chip upl">Upload a photo<input type="file" accept="image/*" onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} /></label>
+                  </div>)}
+                {picMsg ? <p className="hint">{picMsg}</p> : (vals.image_id !== p._raw.image_id || vals.image_url !== p._raw.image_url) && <p className="hint">New picture chosen. Save to use it.</p>}
+                {(errors.image_id || errors.image_url) && <p className="hint err">{errors.image_id || errors.image_url}</p>}
+                {mode === 'library' && <ImagePicker onPick={(id, t, drive) => { setVals(s => ({ ...s, image_id: id, image_url: '' })); setErrors(x => ({ ...x, image_id: undefined, image_url: undefined })); setPic({ preview: t, src: drive ? `/api/ops/social/image?id=${drive}` : '' }); setPicMsg(''); setMode(null); }} />}
+                {p.quote_text && <p className="quo">“{p.quote_text}”{p.quote_source ? ` — ${p.quote_source}` : ''} <span className={p.quote_check === 'Verbatim' ? 'ok' : 'warn'}>{p.quote_check || 'not checked'}</span></p>}
+                {p.error && <p className="err">Make: {p.error}</p>}
+                {p.post_links && <p className="ev"><a href={p.post_links.split(/\s|,/)[0]} target="_blank" rel="noopener">View the post ↗</a></p>}
+              </>)
+              : (<>
+                <SlidesEditor kind={kind} slides={slides} onChange={setSlides} disabled={dis} error={errors.slides_json} onTemplate={kind === 'carousel' ? () => { setMode('card'); setPicMsg(''); } : null} />
+                {kind === 'carousel' && vals.keyword && <p className="hint">Keyword <b>{vals.keyword}</b> is logged on the post, so comments can be counted and an auto-reply can key off it.</p>}
+                {kind === 'reel' && <ul className="cmp-spec"><li className="ok">Reels are vertical (9:16), up to 90 seconds, H.264 video with AAC sound.</li><li>Clip from Rebecka · edited in Descript to remove filler words.</li><li>Caption: 1–2 sentences on the clip (Floss confirms) plus the standard “extract from our recent course” footer.</li></ul>}
+                {kind === 'story' && (
+                  <div className="cmp-story">
+                    <b>Stories are posted by hand</b>
+                    <span>Meta doesn’t let the dashboard add a link sticker, so a person posts it. Whoever is assigned gets the frame and the link ready to paste.</span>
+                    <div className="row">
+                      {slides[0]?.drive_file_id && <a className="chip" href={`https://drive.google.com/uc?export=download&id=${slides[0].drive_file_id}`} target="_blank" rel="noopener">Download frame</a>}
+                      <button type="button" className="chip" disabled={!vals.link} onClick={() => { navigator.clipboard?.writeText(vals.link); setMsg('Sticker link copied.'); }}>Copy sticker link</button>
+                      {canPublish && !isNew && p.status === 'Manual' && <button type="button" className="chip" disabled={busy} onClick={markPosted}>Mark posted</button>}
+                    </div>
+                  </div>)}
+              </>)}
+            <div className="cmp-guard"><span className="lbl">Guardrail checks</span>
+              {checks.map((c, i) => <span key={i} className={`g ${c.t}`}>{c.t === 'ok' ? '✓' : c.t === 'bad' ? '✗' : '!'} {c.x}</span>)}
+              {!checks.length && <span className="g">Nothing to check yet.</span>}</div>
+          </div>
+          <form className="cmp-details words ops-edit" onSubmit={async e => { e.preventDefault(); await save(); }}>
             {locked && <p className="hint">Already {status.toLowerCase()}: shown as it went out.</p>}
-            {kind !== 'story' && field('caption', <textarea id="c-caption" ref={capRef} className="capbox" rows={10} value={vals.caption || ''} disabled={dis} onChange={set('caption')}
-              onBlur={e => { e.target.dataset.at = e.target.selectionStart; }} placeholder="Write the caption…" />, 'Caption')}
-            {kind !== 'story' && <div className="capbar">
-              {!dis && <>
-                <button type="button" className={`chip${inserting === 'captions' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'captions' ? null : 'captions')}>Insert a snippet</button>
-                <button type="button" className={`chip${inserting === 'quotes' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'quotes' ? null : 'quotes')}>Insert a quote</button>
-              </>}
-              <span className="count">{String(vals.caption || '').length} / 2,200</span>
-            </div>}
-            {inserting && <Inserter kind={inserting} onPick={t => { insert(t); setInserting(null); }} />}
-            {field('hashtags', <textarea id="c-hashtags" rows={2} value={vals.hashtags || ''} disabled={dis} onChange={set('hashtags')} />)}
-            {hashtagCount(vals.hashtags) + hashtagCount(vals.caption) > MAX_HASHTAGS && <p className="hint warnline">That’s {hashtagCount(vals.hashtags) + hashtagCount(vals.caption)} hashtags. Instagram now allows {MAX_HASHTAGS} per post, so trim it before approving.</p>}
+            <div className="grp"><span className="lbl">Publish to</span>
+              <div className="row">{[['IG Feed', kind === 'reel' ? 'IG Reel' : 'IG Feed'], ['Facebook Page', 'Facebook'], ['+ Story frame', 'IG Story']].map(([l, n]) => (
+                <label key={n} className="tog"><input type="checkbox" checked={hasPlat(n)} disabled={dis} onChange={() => togglePlat(n)} /> {l}</label>))}</div></div>
             <div className="two">
+              {field('pillar', <select id="c-pillar" value={vals.pillar || ''} disabled={dis} onChange={set('pillar')}><option value="">Choose…</option>{[...new Set([...types, vals.pillar].filter(Boolean))].map(t => <option key={t}>{t}</option>)}</select>, 'Post type')}
+              {field('content_pillar', <select id="c-content_pillar" value={vals.content_pillar || ''} disabled={dis} onChange={set('content_pillar')}><option value="">Choose…</option>{['Content', 'Practice', 'Marketing'].map(t => <option key={t}>{t}</option>)}</select>, 'Pillar')}
               {field('publish_date', <input id="c-publish_date" type="date" value={vals.publish_date || ''} disabled={dis} onChange={set('publish_date')} />, 'Date')}
-              {field('publish_time_ET', <input id="c-publish_time_ET" value={vals.publish_time_ET || ''} disabled={dis} placeholder="11:00" onChange={set('publish_time_ET')} />)}
+              {field('publish_time_ET', <><input id="c-publish_time_ET" value={vals.publish_time_ET || ''} disabled={dis} placeholder="11:00" onChange={set('publish_time_ET')} />{london && <small className="hint mono">{london}</small>}</>, 'Time · ET')}
             </div>
+            {field('linked_event', <select id="c-linked_event" value={vals.linked_event || ''} disabled={dis} onChange={set('linked_event')}><option value="">None, evergreen post</option>{[...new Set([...events, vals.linked_event].filter(Boolean))].map(e => <option key={e}>{e}</option>)}</select>, 'Event (from Master Schedule)')}
+            {kind !== 'story' && (<>
+              <div className="capwrap">
+                {field('caption', <textarea id="c-caption" ref={capRef} className="capbox" rows={9} value={vals.caption || ''} disabled={dis} onChange={set('caption')}
+                  onBlur={e => { e.target.dataset.at = e.target.selectionStart; }} placeholder="Write the caption…" />, 'Caption')}
+                <span className="count mono">{String(vals.caption || '').length} / 2,200</span>
+              </div>
+              <div className="cmp-parts">
+                {(vals.quote_id || p.quote_text) && <div className="blk lock"><span>Locked · quote, verbatim</span>{p.quote_text || `From the Quote Library (${vals.quote_id})`}</div>}
+                {draftBits.map((d, i) => <div key={i} className="blk draft"><span>Draft · needs review</span>{d}</div>)}
+              </div>
+              <div className="capbar">
+                {!dis && <>
+                  <button type="button" className={`chip${inserting === 'captions' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'captions' ? null : 'captions')}>Insert a snippet</button>
+                  <button type="button" className={`chip${inserting === 'quotes' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'quotes' ? null : 'quotes')}>Insert a quote</button>
+                  <button type="button" className={`chip${inserting === 'hashtags' ? ' on' : ''}`} onClick={() => setInserting(x => x === 'hashtags' ? null : 'hashtags')}>Hashtag set</button>
+                </>}
+              </div>
+              {inserting && <Inserter kind={inserting === 'quotes' ? 'quotes' : 'captions'} onlyType={inserting === 'hashtags' ? /hashtag/i : null} onPick={t => { if (inserting === 'hashtags') setVals(v => ({ ...v, hashtags: [v.hashtags, t].filter(Boolean).join(' ') })); else insert(t); setInserting(null); }} />}
+              {field('hashtags', <textarea id="c-hashtags" rows={2} value={vals.hashtags || ''} disabled={dis} onChange={set('hashtags')} />)}
+              {hashtagCount(vals.hashtags) + hashtagCount(vals.caption) > MAX_HASHTAGS && <p className="hint warnline">That’s {hashtagCount(vals.hashtags) + hashtagCount(vals.caption)} hashtags. Instagram now allows {MAX_HASHTAGS} per post, so trim it down.</p>}
+              {field('first_comment', <textarea id="c-first_comment" rows={2} value={vals.first_comment || ''} disabled={dis} onChange={set('first_comment')} placeholder="Optional: posted as the first comment" />, 'First comment')}
+            </>)}
+            {field('link', <input id="c-link" value={vals.link || ''} disabled={dis} placeholder="https://" onChange={set('link')} />, kind === 'story' ? 'Sticker link' : 'Link')}
             <div className="two">
-              {field('platforms', <input id="c-platforms" value={vals.platforms || ''} disabled={dis} onChange={set('platforms')} />)}
-              {field('format', <input id="c-format" value={vals.format || ''} disabled={dis} onChange={set('format')} />)}
+              {field('assignee', <select id="c-assignee" value={vals.assignee || ''} disabled={dis} onChange={set('assignee')}><option value="">Nobody yet</option>{[...new Set([...team, vals.assignee].filter(Boolean))].map(n => <option key={n}>{n}</option>)}</select>, 'Assignee')}
+              {field('jake_notes', <textarea id="c-jake_notes" rows={2} value={vals.jake_notes || ''} disabled={dis} onChange={set('jake_notes')} placeholder="What should change?" />, 'Notes for the planner')}
             </div>
-            <div className="two">
-              {field('pillar', <><input id="c-pillar" list="c-types" value={vals.pillar || ''} disabled={dis} placeholder="e.g. Suggested reading" onChange={set('pillar')} />
-                <datalist id="c-types">{types.map(t => <option key={t} value={t} />)}</datalist></>)}
-              {field('link', <input id="c-link" value={vals.link || ''} disabled={dis} placeholder="https://" onChange={set('link')} />)}
-            </div>
-            {field('linked_event', <><input id="c-linked_event" list="c-events" value={vals.linked_event || ''} disabled={dis} placeholder="None" onChange={set('linked_event')} />
-              <datalist id="c-events">{events.map(e => <option key={e} value={e} />)}</datalist></>, 'For an event')}
-            {field('jake_notes', <textarea id="c-jake_notes" rows={2} value={vals.jake_notes || ''} disabled={dis} onChange={set('jake_notes')} placeholder="What should the planner change?" />)}
+            {!isNew && (p.created_by || p.approved_by || p.updated_by) && (
+              <p className="hint by">{[p.created_by && `Added by ${p.created_by}`, p.approved_by && `approved by ${p.approved_by}`, p.updated_by && p.updated_by !== p.created_by && `last changed by ${p.updated_by}`, p.override_reason && `override: ${p.override_reason}`].filter(Boolean).join(' · ')}</p>)}
+            {thread}
+            {status === 'Unconfirmed' && <p className="hint">Approved, but Instagram hasn’t confirmed it went out. The hourly check marks it Posted once it finds it.</p>}
+            {status === 'Expired' && <p className="hint">This wasn’t approved before its time, so it didn’t go out. Move it to a new date and approve it, or delete it.</p>}
+            {kind !== 'single' && canPublish && <p className="hint">Approving a carousel, Reel or Story marks it “Manual”: it is ready to post by hand. Automatic posting for these starts with the next update.</p>}
             {canEdit && isNew && (
               <div className="bar">
                 {canPublish && <button type="button" className="chip primary" disabled={busy} onClick={() => save({ status: 'Approved' })}>Add and approve</button>}
                 <button type="submit" className="chip" disabled={busy}>Add as proposed</button>
                 <button type="button" className="chip" onClick={leave(close)}>Cancel</button>
-              </div>
-            )}
-            {!isNew && (p.created_by || p.approved_by || p.updated_by) && (
-              <p className="hint by">{[p.created_by && `Added by ${p.created_by}`, p.approved_by && `approved by ${p.approved_by}`, p.updated_by && p.updated_by !== p.created_by && `last changed by ${p.updated_by}`].filter(Boolean).join(' · ')}</p>)}
-            {status === 'Unconfirmed' && <p className="hint">Approved, but Instagram hasn’t confirmed it went out. The hourly check marks it Posted once it finds it.</p>}
-            {status === 'Expired' && <p className="hint">This wasn’t approved before its time, so it didn’t go out. Move it to a new date and approve it, or delete it.</p>}
-            {kind !== 'single' && canPublish && <p className="hint">{process.env.NEXT_PUBLIC_META_PUBLISH === 'live' ? '' : 'Approving a carousel, Reel or Story marks it “Manual”: it is ready to post by hand. Automatic posting for these starts with the next update.'}</p>}
+              </div>)}
             {canEdit && !locked && !isNew && (
               <div className="bar">
                 {!canPublish ? <span className="hint">You can edit and save. Someone who schedules posts will approve it.</span> : status !== 'Approved'
                   ? <button type="button" className="chip primary" disabled={busy} onClick={async () => { if (await save({ status: 'Approved' })) next ? next() : close(); }}>{changed.length ? 'Save and approve' : 'Approve'}</button>
                   : <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Proposed' })}>Unapprove</button>}
                 <button type="submit" className={`chip${status === 'Approved' ? ' primary' : ''}`} disabled={busy || !changed.length}>{changed.length ? `Save ${changed.length} change${changed.length === 1 ? '' : 's'}` : 'No changes'}</button>
-                {canPublish && <button type="button" className="chip" disabled={busy || !String(vals.jake_notes || '').trim()} onClick={() => save({ status: 'Needs edit' })}>Send back with my notes</button>}
+                {canPublish && <button type="button" className="chip" disabled={busy || !String(vals.jake_notes || '').trim()} onClick={() => save({ status: 'Needs edit' })}>Request changes</button>}
                 {status !== 'Skip' ? <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Skip' })}>Skip</button>
                   : <button type="button" className="chip" disabled={busy} onClick={() => save({ status: 'Proposed' })}>Back to proposed</button>}
                 {canDelete && <button type="button" className="chip danger" disabled={busy} onClick={remove}>Delete</button>}
-              </div>
-            )}
-            {msg && <p className="hint">{msg}</p>}
+              </div>)}
+            {msg && <p className="hint" role="status">{msg}</p>}
           </form>
         </div>
       </div>
@@ -351,13 +405,63 @@ export function Composer({ p, page = false, recentColourways = [], events = [], 
   );
 }
 
+// ET on a date → the same moment in London, for "Time · ET (16:00 London)"
+function londonLabel(date, t) {
+  const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!m || !/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return '';
+  const guess = new Date(`${date}T${m[1].padStart(2, '0')}:${m[2]}:00Z`);
+  const ny = new Date(guess.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const instant = new Date(guess.getTime() + (guess - ny));
+  return `${instant.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })} London`;
+}
+
+// The post as it will look on a phone: Instagram chrome, the picture in its real shape, the carousel dots, the caption
+function PhonePreview({ size, kind, thumb, slides, caption }) {
+  const first = kind === 'carousel' || kind === 'reel' || kind === 'story' ? (slides[0] && slideThumb(slides[0])) || thumb : thumb;
+  const ratio = { '4:5': '4 / 5', '1:1': '1 / 1', '9:16': '9 / 16' }[size];
+  return (
+    <div className="phone">
+      <div className="who"><i /><b>embodiedphilosophy</b><span className="mono">{kind === 'reel' ? 'Reel' : kind === 'story' ? 'Story' : size}</span></div>
+      <div className="frame" style={{ aspectRatio: ratio }}>
+        {first ? <img src={first} alt="" referrerPolicy="no-referrer" /> : <span className="empty">{kind === 'reel' ? 'Add the video' : kind === 'carousel' ? 'Add slides' : 'Add a picture'}</span>}
+        {kind === 'reel' && <span className="badge">▶ Reel</span>}
+        {kind === 'story' && <span className="bar" />}
+      </div>
+      {kind === 'carousel' && slides.length > 1 && <div className="dots">{slides.map((_, i) => <i key={i} className={i === 0 ? 'on' : ''} />)}</div>}
+      {kind !== 'story' && <p className="pcap"><b>embodiedphilosophy</b> {String(caption || '').replace(/\s+/g, ' ').slice(0, 140) || <i>The caption shows here.</i>}</p>}
+    </div>
+  );
+}
+
+// Comments and who did what, per post (everyone on staff can comment; @name is kept as typed)
+function Thread({ post, canComment }) {
+  const [list, setList] = useState(null);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = async () => { const r = await fetch(`/api/ops/social?view=comments&post=${encodeURIComponent(post || '')}`).catch(() => null); const j = await r?.json().catch(() => ({})); setList(j?.comments || []); };
+  useEffect(() => { if (post) load(); else setList([]); }, [post]);
+  const send = async e => {
+    e.preventDefault(); if (!text.trim()) return;
+    setBusy(true); const j = await api({ view: 'plan', comment: { post_id: post, body: text } }); setBusy(false);
+    if (j.ok) { setText(''); load(); }
+  };
+  return (
+    <div className="cmp-thread">
+      <span className="lbl">Thread &amp; history</span>
+      {list === null ? <p className="hint">Loading…</p> : list.length ? <ul>{list.map((c, i) => <li key={i}><b>{c.author}</b> <small className="mono">{String(c.created_at).slice(0, 16).replace('T', ' ')}</small><p>{c.body}</p></li>)}</ul> : <p className="hint">No comments yet.</p>}
+      {canComment && post && <div className="send"><textarea aria-label="Comment, or @mention someone" rows={2} value={text} placeholder="Comment, or @mention someone…" onChange={e => setText(e.target.value)} />
+        <button type="button" className="chip" disabled={busy || !text.trim()} onClick={send}>Comment</button></div>}
+    </div>
+  );
+}
+
 // Approved Caption Bank snippets and verified quotes (copied exactly), to drop into a caption
-function Inserter({ kind, onPick }) {
+function Inserter({ kind, onPick, onlyType = null }) {
   const [q, setQ] = useState('');
   const [data] = useView(kind, q);
   const ok = r => kind === 'captions' ? String(r.values.approved).toUpperCase() === 'TRUE' : String(r.values.verified).toUpperCase() === 'TRUE';
   const text = r => kind === 'captions' ? r.values.text : `“${r.values.quote}”\n— ${[r.values.author, r.values.work].filter(Boolean).join(', ')}`;
-  const rows = data?.rows?.filter(ok) || [];
+  const rows = (data?.rows?.filter(ok) || []).filter(r => !onlyType || onlyType.test(r.values.type || ''));
   return (
     <div className="ops-se-ins">
       <input placeholder={kind === 'captions' ? 'Search snippets…' : 'Search quotes by words, author, work…'} value={q} onChange={e => setQ(e.target.value)} autoFocus />
@@ -479,7 +583,7 @@ function Library({ view, onUse }) {
   );
 }
 
-function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone }) {
+export function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone }) {
   const [vals, setVals] = useState(values);
   const [orig, setOrig] = useState(values);
   const [errors, setErrors] = useState({});
@@ -529,7 +633,7 @@ function Row({ view, head, locked, row, values, thumb, onUse, canEdit, onDone })
 // The slides of one post, in order. Drag a slide (or use the arrows) to reorder; add pictures from the library
 // or upload pictures and video straight to Drive.
 const slideThumb = sl => sl.drive_file_id ? `https://lh3.googleusercontent.com/d/${sl.drive_file_id}=w240` : sl.url && sl.kind !== 'video' ? sl.url : '';
-function SlidesEditor({ kind, slides, onChange, disabled, error }) {
+function SlidesEditor({ kind, slides, onChange, disabled, error, onTemplate }) {
   const [picking, setPicking] = useState(false);
   const [drag, setDrag] = useState(null);
   const [note, setNote] = useState(''); // what the last upload said (kept here: the upload button goes away once a Reel or Story has its one file)
@@ -557,6 +661,7 @@ function SlidesEditor({ kind, slides, onChange, disabled, error }) {
       </ol>
       {!disabled && !full && (
         <div className="picacts">
+          {onTemplate && <button type="button" className="chip" onClick={onTemplate}>Make slides from a template</button>}
           {kind !== 'reel' && <button type="button" className={`chip${picking ? ' on' : ''}`} onClick={() => setPicking(x => !x)}>{picking ? 'Close the library' : kind === 'carousel' ? '+ Picture from the library' : 'Choose from the library'}</button>}
           <UploadBox kind={kind} onDone={(f, warn) => { add({ kind: f.kind, drive_file_id: f.id, ...(f.image_id && { image_id: f.image_id }) }); setNote(`Uploaded to Drive.${warn.length ? ' ' + warn.join(' ') : ''}`); }} />
         </div>)}
@@ -590,36 +695,39 @@ export function specWarnings(m, file, postKind) {
   return w;
 }
 
-function UploadBox({ kind, onDone }) {
-  const [msg, setMsg] = useState('');
-  const [pct, setPct] = useState(null);
-  const accept = kind === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
+// One file straight to Drive: the server opens the upload, the browser sends the file to Google, the server records it.
+// → { id, kind, image_id, warn: [plain-language spec warnings] }
+export async function driveUpload(file, postKind, onPct = () => {}) {
   const post = async body => {
     const res = await fetch('/api/ops/social/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
     const j = await res?.json().catch(() => ({})) || {};
     if (!res?.ok) throw new Error(j.error || 'The upload didn’t work. Try again.');
     return j;
   };
-  // One PUT straight to Google's upload address: the file never passes through our server
-  const put = (url, file) => new Promise((resolve, reject) => {
+  const put = (url, f) => new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open('PUT', url); x.setRequestHeader('Content-Type', file.type);
-    x.upload.onprogress = e => e.lengthComputable && setPct(Math.round(100 * e.loaded / e.total));
+    x.open('PUT', url); x.setRequestHeader('Content-Type', f.type);
+    x.upload.onprogress = e => e.lengthComputable && onPct(Math.round(100 * e.loaded / e.total));
     x.onload = () => { try { const j = JSON.parse(x.responseText); x.status < 300 && j.id ? resolve(j.id) : reject(new Error('Drive didn’t accept the file')); } catch { reject(new Error('Drive didn’t accept the file')); } };
     x.onerror = () => reject(new Error('The connection dropped. Try again.'));
-    x.send(file);
+    x.send(f);
   });
+  const m = await probe(file), warn = specWarnings(m, file, postKind);
+  const { url } = await post({ step: 'start', name: file.name, size: file.size, type: file.type });
+  const id = await put(url, file);
+  const d = await post({ step: 'done', id, name: file.name, kind: m.kind, width: m.width, height: m.height, duration: m.duration, codec_ok: !/quicktime/.test(file.type) });
+  return { id, kind: m.kind, image_id: d.image_id, warn };
+}
+
+function UploadBox({ kind, onDone }) {
+  const [msg, setMsg] = useState('');
+  const [pct, setPct] = useState(null);
+  const accept = kind === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
   const pick = async file => {
     if (!file) return;
     setMsg(''); setPct(0);
-    try {
-      const m = await probe(file), warn = specWarnings(m, file, kind);
-      const { url } = await post({ step: 'start', name: file.name, size: file.size, type: file.type });
-      const id = await put(url, file);
-      const d = await post({ step: 'done', id, name: file.name, kind: m.kind, width: m.width, height: m.height, duration: m.duration, codec_ok: !/quicktime/.test(file.type) });
-      setMsg('');
-      onDone({ id, kind: m.kind, image_id: d.image_id }, warn);
-    } catch (e) { setMsg(e.message); } finally { setPct(null); }
+    try { const r = await driveUpload(file, kind, setPct); setMsg(''); onDone({ id: r.id, kind: r.kind, image_id: r.image_id }, r.warn); }
+    catch (e) { setMsg(e.message); } finally { setPct(null); }
   };
   return (
     <>

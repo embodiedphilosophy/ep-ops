@@ -12,7 +12,7 @@ const short = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { day:
 const dow = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
 const out = p => ['Posted', 'Manual'].includes(p.status);
 const PILLARS = [['Content', '#20302A'], ['Practice', '#B98A3E'], ['Marketing', '#A5432A']];
-const dotOf = p => (PILLARS.find(([n]) => n.toLowerCase() === String(p.pillar || '').toLowerCase()) || [0, isTextHeavy(p) ? '#20302A' : '#B98A3E'])[1];
+const dotOf = p => (PILLARS.find(([n]) => n.toLowerCase() === String(p.content_pillar || p.pillar || '').toLowerCase()) || [0, isTextHeavy(p) ? '#20302A' : '#B98A3E'])[1];
 const title = p => String(p.caption || '').split('\n').find(Boolean) || (p.media_kind === 'story' ? 'Story frame' : 'No caption yet');
 const VIEWS = [['week', 'Week'], ['month', 'Month'], ['list', 'List'], ['grid', 'Grid'], ['feed', 'Feed']];
 
@@ -43,7 +43,7 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
   const filled = cells.filter(c => c.cat && c.st.state.startsWith('filled')).length;
   const warn = rhythmWarnings(live.filter(p => p.publish_date >= t), rules);
   const nextMon = addD(monOf(t), 7), ahead = weekAhead(live, nextMon, 7);
-  const perPillar = PILLARS.map(([n, c]) => [n, c, wk.filter(p => isFeed(p) && String(p.pillar || '').toLowerCase() === n.toLowerCase()).length]);
+  const perPillar = PILLARS.map(([n, c]) => [n, c, wk.filter(p => isFeed(p) && String(p.content_pillar || p.pillar || '').toLowerCase() === n.toLowerCase()).length]);
   const tagged = perPillar.reduce((s, x) => s + x[2], 0);
   const target = (String(rules.mix || '').match(/\d+/g) || [40, 30, 30]).map(Number);
   const feedDays = new Set(wk.filter(isFeed).map(p => p.publish_date)).size;

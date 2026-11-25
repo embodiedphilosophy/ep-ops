@@ -20,8 +20,8 @@ export default function ComposePage({ row, type, date, seeded }) {
     const p = blankPost(seed);
     if (type) { p.pillar = type; p._raw = { ...p._raw, pillar: type }; }
     if (/^\d{4}-\d{2}-\d{2}$/.test(date || '')) { p.publish_date = date; p._raw = { ...p._raw, publish_date: date }; }
-    return <Composer page recentColourways={recentColourways} key={`new-${seed ? 's' : 'n'}`} p={p} events={data.events || []} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload} close={back} onAdded={back} />;
+    return <Composer page recentColourways={recentColourways} team={data.team || []} key={`new-${seed ? 's' : 'n'}`} p={p} events={data.events || []} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload} close={back} onAdded={back} />;
   }
-  return <Composer page recentColourways={recentColourways} key={posts[i]._row} p={posts[i]} events={data.events || []} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
+  return <Composer page recentColourways={recentColourways} team={data.team || []} key={posts[i]._row} p={posts[i]} events={data.events || []} canEdit={data.canEdit} canPublish={data.canPublish} onSaved={reload}
     prev={i > 0 ? nav(posts[i - 1]) : null} next={i < posts.length - 1 ? nav(posts[i + 1]) : null} close={back} />;
 }
