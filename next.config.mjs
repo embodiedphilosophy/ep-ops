@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // The card renderer reads its bundled fonts from disk at run time
-  outputFileTracingIncludes: { '/api/ops/social/render': ['./lib/ops/fonts/**'] },
+  outputFileTracingIncludes: { '/api/ops/social/render': ['./lib/ops/fonts/**', './public/brand/ep-mark-*.png'] },
   async rewrites() {
     return {
       afterFiles: [
