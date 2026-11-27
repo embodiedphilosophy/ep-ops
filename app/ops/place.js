@@ -10,7 +10,7 @@ const LOADERS = {
     index: () => import('./programs/Index'), launches: () => import('./programs/LaunchesView'),
     library: () => import('./programs/Library'), landing: () => import('./programs/Landing'), recordings: () => import('./programs/Recordings'),
   },
-  people: { faculty: () => import('./team/page'), profiles: () => import('./email/teachers/page'), hours: () => import('./hours/page') },
+  people: { directory: () => import('./people/Directory'), invitations: () => import('./people/InvitationsView'), onboarding: () => import('./people/OnboardingView'), review: () => import('./people/ReviewView'), hours: () => import('./people/Hours') },
   publish: {
     calendar: () => import('./social/page'), week: () => import('./email/page'), email: () => import('./email/emails/page'), 'email-calendar': () => import('./email/calendar/page'),
     compose: () => import('./social/compose/page'), 'compose-email': () => import('./email/edit/page'), 'this-week': () => import('./social/this-week/page'),
@@ -29,7 +29,9 @@ const first = v => (Array.isArray(v) ? v[0] : v) || '';
 // Which view the address asks for: ?view=, or the older query strings that used to pick a page
 function wanted(place, sp) {
   const v = first(sp.view);
-  if (place === 'people' && !v && (first(sp.needs) === 'profile' || first(sp.email))) return 'profiles';
+  // People: the older Faculty and Teacher profiles addresses (?tab=invitations, ?tab=onboarding, ?needs=profile&tab=review). ?needs=profile
+  // alone is the directory narrowed to profiles; ?email= opens that person's record (app/ops/people/page.js).
+  if (place === 'people' && !v) { const t = first(sp.tab); if (t === 'invitations' || t === 'onboarding') return t; if (t === 'review' && first(sp.needs) === 'profile') return 'review'; }
   if (place === 'publish' && !v && first(sp.tab) === 'email') return 'promo';
   return v;
 }

@@ -1,7 +1,7 @@
 import { getEpisodes, placeholder } from '@/lib/podcast';
 import { isStaff, canEditSite } from '@/lib/ops/nav';
 import { redirect } from 'next/navigation';
-import Review from '../team/Review';
+import Review from '../people/Review';
 import { loadCalendar, loadTemplates } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { addDays } from '@/lib/ops/tasks';
@@ -42,7 +42,7 @@ export default async function Content({ searchParams }) {
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   // The old Overview (status board, Next posts) is gone: This week is the new front page, and Next posts lives in Social
   if (sp?.tab === 'media') redirect('/ops/programs?view=recordings');
-  if (sp?.tab === 'review') redirect('/ops/people?needs=profile');
+  if (sp?.tab === 'review') redirect('/ops/people?view=review');
   if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/publish');
   const tab = sp.tab;
   return (

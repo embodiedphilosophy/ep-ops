@@ -8,9 +8,9 @@ const post = async body => {
   return res?.ok ? j : { error: j?.error || 'Couldn’t save. Try again.' };
 };
 
-export function InviteForm({ offerings, templates, kinds, units }) {
+export function InviteForm({ offerings, templates, kinds, units, prefill }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: '', email: '', kind: kinds[0], offering: '', title: '', fee: '', fee_unit: 'session', message: '', template: templates[0] || '', terms: '' });
+  const [f, setF] = useState({ name: prefill?.name || '', email: prefill?.email || '', kind: kinds[0], offering: '', title: '', fee: '', fee_unit: 'session', message: '', template: templates[0] || '', terms: '' });
   const noAgreement = !f.template;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');

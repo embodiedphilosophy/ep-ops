@@ -33,6 +33,17 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   { const r = await get('/ops/programs/E002'); t('a session ID opens its program (one redirect to the program key)', r.status === 307 || r.status === 200, String(r.status)); }
   t('a teacher can open a program page', (await get('/ops/programs/P-sadhana-fall-2026', cookie('abha@example.com'))).status === 200);
   t('a teacher is not offered the Launch tab', !/tab=launch/.test(await (await get('/ops/programs/P-sadhana-fall-2026', cookie('abha@example.com'))).text()));
+  console.log('-- people: one directory, one record per person (EP Ops 2, step 5)');
+  for (const [u, to, q] of [['/ops/email/teachers?email=nataraj%40example.com', '/ops/people/nataraj@example.com', 'tab=profile'], ['/ops/team?tab=onboarding&email=abha%40example.com', '/ops/people', 'view=onboarding'], ['/ops/team?tab=invitations', '/ops/people', 'tab=invitations'],
+    ['/ops/email/teachers', '/ops/people', 'needs=profile'], ['/ops/hours?m=2026-11', '/ops/people', 'view=hours'], ['/ops/content?tab=review', '/ops/people', 'view=review']]) {
+    const res = await get(u), loc = res.headers.get('location') || '', g = loc ? new URL(loc, B) : null;
+    t(`${u} redirects once to ${to}`, res.status === 307 && g && decodeURIComponent(g.pathname) === to && loc.includes(q), `${res.status} ${loc}`);
+    if (g) { const fin = await get(g.pathname + g.search); t(`${u} lands on a page that loads`, fin.status === 200, `${fin.status} ${fin.headers.get('location')}`); }
+  }
+  { const res = await get('/ops/people?email=mary%40example.com'), loc = res.headers.get('location') || ''; t('/ops/people?email= opens the person’s record (one redirect)', res.status === 307 && /\/ops\/people\/mary/.test(decodeURIComponent(loc)), loc); }
+  for (const tab of ['', '?tab=profile', '?tab=invitations', '?tab=hours', '?tab=access']) { const r = await get('/ops/people/floss%40example.com' + tab); t(`person record ${tab || '(overview)'} loads`, r.status === 200, String(r.status)); }
+  for (const v of ['', '?view=invitations', '?view=onboarding', '?view=review', '?view=hours', '?show=needs', '?q=floss']) { const r = await get('/ops/people' + v); t(`/ops/people${v} loads`, r.status === 200, String(r.status)); }
+  t('a teacher is not shown a person record', (await get('/ops/people/abha%40example.com', cookie('abha@example.com'))).status === 307);
   console.log('-- the older stubs');
   for (const [u, to] of [['/ops/content?tab=email', '/ops/publish'], ['/ops/content?tab=media', '/ops/programs'], ['/ops/content?tab=review', '/ops/people'], ['/ops/content', '/ops/publish'], ['/ops/content?tab=social&s=review', '/ops/publish'], ['/ops/content?tab=website', '/ops/settings'], ['/ops/admin', '/ops/tasks'], ['/ops/admin?t=links', '/ops/settings']]) {
     let res = await get(u); const loc = res.headers.get('location'); t(`${u} → ${to}`, res.status === 307 && loc && new URL(loc, B).pathname === to, `${res.status} ${loc}`);

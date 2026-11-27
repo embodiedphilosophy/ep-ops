@@ -1,4 +1,4 @@
-// Faculty → Onboarding in a browser: live preview, editing the words (typing shows at once, Save keeps it), the panel following the step, the course page draft, the send panel, phone width. Start from a fresh run.sh.
+// People › Onboarding in a browser: live preview, editing the words (typing shows at once, Save keeps it), the panel following the step, the course page draft, the send panel, phone width. Start from a fresh run.sh.
 const { chromium } = require('./pw.cjs');
 const { execSync } = require('child_process'); const O = __dirname + '/out';
 const ck = e => execSync(`node ${__dirname}/cookie.mjs ${e}`, { env: { ...process.env, OPS_SECRET: require('fs').readFileSync(O + '/ops_secret', 'utf8').trim() } }).toString().trim();
@@ -6,7 +6,7 @@ let fails = 0; const t = (n, ok) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}
 (async () => { const b = await chromium.launch(); const errs = [];
   const c = await b.newContext({ viewport: { width: 1440, height: 1000 } }); await c.addCookies([{ name: 'ep_ops', value: ck('jacob@embodiedphilosophy.com'), domain: 'localhost', path: '/' }]);
   const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:3100/ops/team?tab=onboarding', { waitUntil: 'networkidle' }); await p.waitForTimeout(1500);
+  await p.goto('http://localhost:3100/ops/people?view=onboarding', { waitUntil: 'networkidle' }); await p.waitForTimeout(1500);
   await p.selectOption('#ob-who', 'jacob@example.com'); await p.waitForSelector('.ob-frame .t-h1', { timeout: 30000 });
   const h = await p.locator('.ob-frame .t-h1').innerText(), back = /back/i.test(h);
   t('preview shows the welcome step', /teaching with us|good to have you back/i.test(h));
@@ -22,7 +22,7 @@ let fails = 0; const t = (n, ok) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}
   await p.screenshot({ path: O + '/studio-desk.png' });
   t('no page errors', !errs.length); if (errs.length) console.log(errs);
   const m = await b.newContext({ viewport: { width: 390, height: 900 } }); await m.addCookies([{ name: 'ep_ops', value: ck('jacob@embodiedphilosophy.com'), domain: 'localhost', path: '/' }]);
-  const q = await m.newPage(); await q.goto('http://localhost:3100/ops/team?tab=onboarding&email=jacob@example.com', { waitUntil: 'networkidle' }); await q.waitForSelector('.ob-frame .t-h1', { timeout: 30000 });
+  const q = await m.newPage(); await q.goto('http://localhost:3100/ops/people?view=onboarding&email=jacob@example.com', { waitUntil: 'networkidle' }); await q.waitForSelector('.ob-frame .t-h1', { timeout: 30000 });
   t('phone: no sideways scroll', await q.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await q.screenshot({ path: O + '/studio-phone.png', fullPage: false });
   await b.close(); console.log(fails ? `${fails} failed` : 'all passed'); process.exit(fails ? 1 : 0); })();
