@@ -55,8 +55,8 @@ const metaLog = async () => (await (await fetch('http://localhost:4556/__log')).
   ck(`[${MODE}] ${pages.length} pages loaded as a director (none broke)`, codes.every(c => c < 500), codes.join(','));
   ck(`[${MODE}] loading every page asked Meta nothing, in any mode (even Live)`, (await metaLog()).total === 0);
   // The database: loading pages never makes the Ads tables (the app's log has no mention), and only Ads code may use the store.
-  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/ads[a-z]*\.js$|app\/api\/ops\/ads\/route\.js$/.test(f));
-  ck(`[${MODE}] only Ads code uses the Ads store (lib/ops/ads*.js and the Ads route): no other page, API or library file (Ads PR 2: the store is used by Ads, and by nothing else)`, srcHit.length === 0, srcHit.join(' '));
+  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/ads[a-z]*\.js$|app\/api\/ops\/ads(-library|-audiences)?\/route\.js$/.test(f));
+  ck(`[${MODE}] only Ads code uses the Ads store (lib/ops/ads*.js and the Ads routes: ads, ads-library, ads-audiences): no other page, API or library file (Ads PR 2: the store is used by Ads, and by nothing else)`, srcHit.length === 0, srcHit.join(' '));
   let traced = ''; try { traced = execFileSync('grep', ['-rlE', 'electric-sql', path.join(__dirname, '../../.next/server'), '--include=*.nft.json']).toString().trim(); } catch (e) { traced = ''; }
   ck(`[${MODE}] the build does not trace PGlite (a test tool) into any route`, traced === '', traced);
   const log = fs.readFileSync(path.join(__dirname, 'out/next.log'), 'utf8');

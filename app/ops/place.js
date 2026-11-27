@@ -24,7 +24,7 @@ const LOADERS = {
     overview: () => import('./students/Overview'), support: () => import('./students/SupportView'), mentee: () => import('./students/MenteeView'),
     pods: () => import('./students/PodsView'), 'one-to-ones': () => import('./students/OneToOnesView'), ce: () => import('./students/CeView'),
   },
-  ads: { campaigns: () => import('./ads/CampaignsView') },
+  ads: { campaigns: () => import('./ads/CampaignsView'), library: () => import('./ads/LibraryView') },
   business: { finance: () => import('./business/FinanceView'), payroll: () => import('./business/PayrollView'), audience: () => import('./business/AudienceView') },
   settings: { team: group('team'), templates: group('templates'), website: group('website'), connections: group('connections') },
 };

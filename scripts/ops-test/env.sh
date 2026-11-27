@@ -46,3 +46,7 @@ export SOCIAL_INGEST_SECRET=mock-ingest-secret-0123456789
 unset ANTHROPIC_API_KEY ANTHROPIC_BASE
 export ANTHROPIC_BASE=$M/anthropic ANTHROPIC_API_KEY=mock-anthropic-key-not-real ADS_TEST_BLOB=inline ADS_TEST_DB=pglite
 if [ "$MOCK_NOKEY" = 1 ]; then unset ANTHROPIC_API_KEY; fi   # ads-drafts.sh: a run with no drafting key
+# Ads PR 4 (the Practice Report link): never the real quiz database. REPORT_TEST_DB=pglite (MOCK_REPORT=1, ads-library.sh only) gives a synthetic quiz in an in-process Postgres;
+# otherwise the link is not connected. Inert unless set; not set in production.
+unset REPORT_DATABASE_URL REPORT_TEST_DB
+if [ "$MOCK_REPORT" = 1 ]; then export REPORT_TEST_DB=pglite; fi

@@ -39,6 +39,10 @@
     {
       "path": "/api/ops/ads-rules",
       "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/ops/ads-audiences",
+      "schedule": "15 11 * * *"
     }
   ]
 }
