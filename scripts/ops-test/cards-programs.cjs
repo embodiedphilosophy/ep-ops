@@ -15,11 +15,11 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
 
   // --- This Week at EP
   await go('social/this-week');
-  t('sidebar lists This Week at EP', /This Week at EP/i.test(await p.locator('nav[aria-label=Dashboard]').innerText()));
+  t('Publish has This Week at EP as a tab', /This Week at EP/i.test(await p.locator('nav[aria-label="publish views"]').innerText()));
   t('headline and the locked-to-schedule promise', /This Week at/.test(await p.locator('.soc-head h1').innerText()) && /Nothing posts until/.test(await p.locator('.soc-head p').innerText()));
-  t('next week lists events and flags missing facts', await p.locator('.soc-rev li.blocked').count() > 0 && /Missing in the Master Schedule/.test(await p.locator('.soc-rev').innerText()));
+  t('next week lists events and flags missing facts', await p.locator('.soc-rev li.blocked').count() > 0 && /Missing in the Master Schedule/.test(await p.locator('.soc-rev').first().innerText()));
   await p.locator('button[aria-label="Earlier week"]').click(); await p.waitForTimeout(1500);
-  t('this week has complete events, none of them Sādhana School weekly', await p.locator('.soc-rev li').count() >= 2 && !/Sādhana School/.test(await p.locator('.soc-rev').innerText()), String(await p.locator('.soc-rev li').count()));
+  t('this week has complete events, none of them Sādhana School weekly', await p.locator('.soc-rev li').count() >= 2 && !/Sādhana School/.test(await p.locator('.soc-rev').first().innerText()), String(await p.locator('.soc-rev li').count()));
   await p.locator('.tw-strip img').first().waitFor({ timeout: 25000 }).catch(() => {});
   const n = await p.locator('.soc-rev li input[type=checkbox]:checked').count();
   t('slides drawn: cover + one per event + closing', await p.locator('.tw-strip img').count() === n + 2, `${await p.locator('.tw-strip img').count()} for ${n}`);

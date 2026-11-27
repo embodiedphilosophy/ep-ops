@@ -10,7 +10,7 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const noScroll = async n => ck(`${name}: no sideways scroll (${n})`, !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
     await p.goto(U + '/ops/email/reminders'); await p.waitForSelector('[aria-label="Rules"] li');
     ck(`${name}: five rules, listed off`, await p.locator('[aria-label="Rules"] > ul > li').count() === 5);
-    ck(`${name}: sidebar has Reminders and Newsletter`, (await p.locator('.ops-side').innerText()).includes('Reminders') && (await p.locator('.ops-side').innerText()).includes('Newsletter'));
+    ck(`${name}: Student reminders is a Settings tab`, (await p.locator('nav[aria-label="settings views"]').innerText()).includes('Student reminders'));
     ck(`${name}: Handled elsewhere explains Meditation Mondays`, await p.locator('text=Kit’s own automation sends this').count() === 1);
     await noScroll('reminders');
     if (name === 'desktop') {

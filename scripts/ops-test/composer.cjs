@@ -33,7 +33,7 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await p.fill('#c-caption', 'A clean caption.'); await p.waitForTimeout(300);
   t('guardrails now pass', /✓ Picture chosen/.test(await p.locator('.cmp-guard').innerText()) && /✓ No DRAFT/.test(await p.locator('.cmp-guard').innerText()));
   await p.locator('.ops-se-comp button:text-is("Add as proposed")').click(); await p.waitForTimeout(2500);
-  t('saved and back on the calendar', new URL(p.url()).pathname === '/ops/social');
+  t('saved and back on the calendar', new URL(p.url()).pathname === '/ops/publish');
   const C = ck('jacob@embodiedphilosophy.com');
   const plan = JSON.parse(execSync(`curl -s -H "Cookie: ep_ops=${C}" "http://localhost:3100/api/ops/social?view=plan"`).toString());
   const row = plan.rows.find(r => r.values.pillar === 'Suggested reading' && r.values.content_pillar === 'Content');
