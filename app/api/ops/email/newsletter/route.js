@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
 import { isStaff, canEditEmail } from '@/lib/ops/nav';
-import { issueList, ensureIssue, weekLists, verses, FIELDS, VERSE } from '@/lib/ops/newsletter';
+import { issueList, ensureIssue, weekLists, verses, FIELDS, VERSE, OFFER_COLS } from '@/lib/ops/newsletter';
 import { runScaffolding, audience } from '@/lib/ops/scaffoldrun';
 import { buildIssue, weekEvents } from '@/lib/scaffolding';
-import { updatePlain } from '@/lib/ops/store';
+import { updatePlain, ensureColumns } from '@/lib/ops/store';
 import { updateBroadcast } from '@/lib/kit';
 import { etToIso } from '@/lib/ops/emailrender';
 import { forgetKit } from '@/lib/ops/emailkit';
@@ -47,7 +47,7 @@ export async function POST(req) {
     if (b.action === 'save') {
       if (['Sent', 'Scheduled'].includes(it.state)) return bad(`This issue is ${it.state.toLowerCase()}, so it can’t be changed here.`, 409);
       const ch = {}, before = {};
-      for (const k of Object.keys(FIELDS)) if (b.changes?.[k] !== undefined) { ch[FIELDS[k]] = String(b.changes[k]).slice(0, 4000); before[FIELDS[k]] = row[k] ?? ''; }
+      for (const k of Object.keys(FIELDS)) if (b.changes?.[k] !== undefined) { ch[FIELDS[k]] = String(b.changes[k]).slice(0, 12000); before[FIELDS[k]] = row[k] ?? ''; }
       if (b.changes?.quote_id) { // the verse is copied from the verified Quote Library, never typed
         const v = (await verses()).find(x => x.quote_id === b.changes.quote_id); if (!v) return bad('That verse isn’t verified in the Quote Library.');
         Object.assign(ch, { [VERSE.sanskrit_devanagari]: v.devanagari, [VERSE.sanskrit_iast]: v.iast, [VERSE.sanskrit_translation]: v.translation, [VERSE.sanskrit_source]: v.source });
@@ -55,6 +55,7 @@ export async function POST(req) {
       }
       if (b.changes?.clear_verse) for (const k of Object.keys(VERSE)) { ch[VERSE[k]] = ''; before[VERSE[k]] = row[k] ?? ''; }
       if (!Object.keys(ch).length) return NextResponse.json({ ok: true });
+      if (OFFER_COLS.some(c => c in ch)) await ensureColumns('Weekly Scaffolding', OFFER_COLS); // the four offer columns are added the first time
       await updatePlain('Weekly Scaffolding', row._row, ch, { before, who: me }); refreshSite(); return NextResponse.json({ ok: true });
     }
     if (b.action === 'build') { // makes or updates the Kit draft (never schedules)

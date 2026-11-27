@@ -1,4 +1,4 @@
-// Content → Email → Weekly Scaffolding: Pilgrimage Weekly sits after Reflection, saves on a full-width tab, and reaches the email
+// Content → Email → Weekly Scaffolding: Wisdom School Weekly (sheet: Pilgrimage *) sits after Reflection, saves on a full-width tab, and reaches the email
 //   node scripts/ops-test/pilgrimage.cjs   (after run.sh; the mock's Weekly Scaffolding tab has no Pilgrimage columns yet, like the real one)
 let chromium; try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/node-tools/node_modules/playwright')); }
 const fs = require('fs'), out = __dirname + '/out';
@@ -15,7 +15,7 @@ const cookie = fs.readFileSync(out + '/cookie.txt', 'utf8').trim();
     await p.waitForSelector('form.ops-edit legend');
     const legends = await p.$$eval('form.ops-edit legend', ls => ls.map(l => l.textContent));
     const i = s => legends.findIndex(l => l.startsWith(s));
-    ok(i('Reflection') >= 0 && i('Pilgrimage') === i('Reflection') + 1 && i('Sanskrit') === i('Pilgrimage') + 1, `${tag}: order ${legends.join(' › ')}`);
+    ok(i('Reflection') >= 0 && i('Wisdom School Weekly') === i('Reflection') + 1 && i('Sanskrit') === i('Wisdom School Weekly') + 1, `${tag}: order ${legends.join(' › ')}`);
     await p.fill('#s-Pilgrimage-Title', `The Threshold (${tag})`);
     await p.fill('#s-Pilgrimage-Body', 'This week we cross over.');
     await p.fill('#s-Pilgrimage-URL', 'https://embodiedphilosophy.com/pilgrimage');
@@ -30,7 +30,7 @@ const cookie = fs.readFileSync(out + '/cookie.txt', 'utf8').trim();
   }
   const html = await (await fetch('http://localhost:3100/api/ops/scaffolding?date=2026-10-25', { headers: { cookie: `ep_ops=${cookie}` } })).text();
   const at = s => html.indexOf(s);
-  ok(at('The Threshold') > at('The Weekly Reflection') && at('The Threshold') < at('Sanskrit for the Week'), 'email: Pilgrimage Weekly after Reflection, before Sanskrit');
+  ok(at('The Threshold') > at('The Weekly Reflection') && at('The Threshold') < at('Sanskrit for the Week'), 'email: Wisdom School Weekly after Reflection, before Sanskrit');
   ok(/\[if subscriber\.tags contains "Member: Wisdom School" or subscriber\.tags contains "Member: Wisdom School Plus" \]/.test(html), 'email: wrapped in the Wisdom School tag check');
   await b.close(); process.exit(fails ? 1 : 0);
 })();

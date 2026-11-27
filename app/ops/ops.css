@@ -1016,3 +1016,93 @@
 .ops-shell .ops-cal-cats input[type=radio] { width: auto; min-height: 0; margin: 0 }
 .ops-shell .ops-my-report li b { text-align: right; max-width: 70% }
 .ops-shell .ops-tasks li.is-handed { color: var(--soft); font-style: italic; background: var(--paper) }
+/* Faculty → People: add / remove / onboarding link on each person */
+.ops-shell .ops-dir .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px }
+.ops-shell .ops-dir .acts small { color: var(--ink-soft); font-size: 12px }
+
+/* Faculty → Onboarding: the teacher's onboarding as a live preview, with the edit panel beside it */
+.ops-shell .ob-studio { display: flex; flex-direction: column; gap: 14px }
+.ops-shell .ob-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.ops-shell .ob-pick select { min-width: 280px; max-width: 100%; min-height: 40px }
+.ops-shell .ob-other { display: flex; gap: 6px }
+.ops-shell .ob-other input { min-height: 40px; min-width: 220px }
+.ops-shell .ob-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start }
+.ops-shell .ob-preview { min-width: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--ground) }
+.ops-shell .ob-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 10px 14px; background: var(--pine); color: #FAF5EB; font-size: 13px }
+.ops-shell .ob-bar .sub { color: var(--ochre) }
+.ops-shell .ob-frame { max-height: 78vh; overflow: auto }
+.ops-shell .ob-edit { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto }
+.ops-shell .ob-card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 14px; display: flex; flex-direction: column; gap: 8px }
+.ops-shell .ob-card h3 { font-size: 18px; margin: 0 }
+.ops-shell .ob-card summary { cursor: pointer; min-height: 32px; display: flex; align-items: center }
+.ops-shell .ob-card .sub, .ops-shell .ob-f .sub { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ob-f { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .ob-f textarea, .ops-shell .ob-f input, .ops-shell .ob-card > input, .ops-shell .ob-card select { width: 100%; font: inherit; font-size: 14px }
+.ops-shell .ob-acts { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .ob-list { margin: 4px 0 8px 18px; font-size: 13px }
+.ops-shell .ob-mail { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px; background: var(--ground) }
+.ops-shell .ob-mail p { margin: 0 }
+.ops-shell .ob-btn { align-self: flex-start; background: var(--accent); color: #fff; padding: 6px 12px; border-radius: 4px; font-weight: 600 }
+/* the onboarding screens inside the preview: narrower step list, no sticky parts */
+.ops-shell .t-embedded .t-shell { grid-template-columns: 180px minmax(0, 1fr); gap: 24px; padding: 0 18px; max-width: none }
+.ops-shell .t-embedded .t-rail { position: static }
+@media (max-width: 1100px) { .ops-shell .ob-grid { grid-template-columns: minmax(0, 1fr) } .ops-shell .ob-edit { position: static; max-height: none } }
+@media (max-width: 700px) { .ops-shell .t-embedded .t-shell { grid-template-columns: minmax(0, 1fr) } .ops-shell .ob-pick select, .ops-shell .ob-other input { min-width: 0; width: 100% } .ops-shell .ob-other { width: 100% } }
+
+/* Payroll */
+.ops-shell .pr { display: flex; flex-direction: column; gap: 16px }
+.ops-shell .pr-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between }
+.ops-shell .pr-month { display: flex; gap: 8px; align-items: center }
+.ops-shell .pr-month b { font-size: 18px; min-width: 150px; text-align: center }
+.ops-shell .pr-status { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line) }
+.ops-shell .pr-status.finalized { border-color: var(--ochre) }
+.ops-shell .pr-status.sent { border-color: var(--pine); color: var(--pine) }
+.ops-shell .pr-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px }
+.ops-shell .pr-sum > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); display: flex; flex-direction: column; gap: 2px }
+.ops-shell .pr-sum b { font-family: var(--mono, monospace); font-size: 18px }
+.ops-shell .pr-sum .total { border-color: var(--accent) }
+.ops-shell .pr-sec h2 { font-size: 20px; margin: 0 0 8px; display: inline-flex; gap: 8px; align-items: baseline }
+.ops-shell .pr-sec h2 span { font-size: 13px; color: var(--ink-soft) }
+.ops-shell .pr-sec summary { cursor: pointer; list-style: none }
+.ops-shell .pr-table { display: flex; flex-direction: column; border-top: 1px solid var(--line) }
+.ops-shell .pr-row { display: grid; grid-template-columns: minmax(0, 1fr) 76px 86px 100px minmax(150px, auto); gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line) }
+.ops-shell .pr-row.head { font-size: 12px; color: var(--ink-soft); padding: 6px 0 }
+.ops-shell .pr-row.person { grid-template-columns: minmax(0, 1fr) 130px 100px minmax(150px, auto) }
+.ops-shell .pr-row input, .ops-shell .pr-row select { width: 100%; min-height: 36px; font: inherit; font-size: 14px }
+.ops-shell .pr-row.missing { background: color-mix(in srgb, var(--ochre) 10%, transparent) }
+.ops-shell .pr-row.removed { opacity: .55 }
+.ops-shell .pr-what { font-size: 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere }
+.ops-shell .pr-note { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .pr-link { all: unset; cursor: pointer; font-size: 12.5px; color: var(--accent); text-decoration: underline; min-height: 28px; display: inline-flex; align-items: center; align-self: flex-start }
+.ops-shell .pr-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px }
+.ops-shell .pr-more label, .ops-shell .pr-add label { display: flex; flex-direction: column; gap: 3px }
+.ops-shell .pr-more input { min-height: 34px }
+.ops-shell .pr-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end }
+.ops-shell .pr-acts b { min-width: 86px; text-align: right }
+.ops-shell .pr-who { display: flex; gap: 8px; align-items: baseline; padding: 12px 0 2px; font-size: 15px }
+.ops-shell .pr-subtotal { margin-left: auto; font-family: var(--mono, monospace); font-weight: 600 }
+.ops-shell .pr-gone summary { font-size: 13px; color: var(--ink-soft); min-height: 36px; display: flex; align-items: center }
+.ops-shell .pr-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--panel); margin-top: 8px }
+.ops-shell .pr-add .wide { grid-column: 1 / -1 }
+.ops-shell .pr-add input, .ops-shell .pr-add select { min-height: 38px; font: inherit; font-size: 14px }
+.ops-shell .pr-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: var(--panel) }
+.ops-shell .pr-actions .sub { font-size: 13px; color: var(--ink-soft) }
+.ops-shell .pr-access { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px }
+.ops-shell .pr-access label { display: flex; gap: 8px; align-items: center; min-height: 36px }
+@media (max-width: 760px) {
+  .ops-shell .pr-row, .ops-shell .pr-row.person { grid-template-columns: 1fr 1fr 1fr }
+  .ops-shell .pr-row > .pr-what, .ops-shell .pr-row.person > span:first-child { grid-column: 1 / -1 }
+  .ops-shell .pr-row > .pr-acts { grid-column: 1 / -1; justify-content: flex-start }
+  .ops-shell .pr-row.head { display: none }
+  .ops-shell .pr-more { grid-template-columns: 1fr }
+}
+.ops-shell .pr-check { display: flex !important; flex-direction: row !important; gap: 6px; align-items: center; min-height: 36px; font-size: 13px }
+.ops-shell .pr-check input { width: 18px; height: 18px; min-height: 0 }
+.ops-shell .pr-srate { width: 110px !important }
+.ops-shell .pr-via { margin-top: -6px }
+.ops-shell .pr-via .warn { border-color: var(--ochre) }
+.ops-shell .pr-via-tag { align-self: flex-start; font-size: 11.5px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-soft) }
+.ops-shell .pr-via-tag.gusto { border-color: var(--pine); color: var(--pine) }
+.ops-shell .pr-via-tag.unset { border-color: var(--ochre); color: #8A5A12 }
+.ops-shell .pr-pflags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px }
+.ops-shell .pr-pflags select { width: auto !important; min-height: 32px }

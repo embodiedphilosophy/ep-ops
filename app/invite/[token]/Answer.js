@@ -7,7 +7,7 @@ const post = async body => {
   return res?.ok ? j : { error: j?.error || 'Something went wrong. Please try again.' };
 };
 
-export default function Answer({ token, decline, text, name }) {
+export default function Answer({ token, decline, text, name, noAgreement = false }) {
   const [mode, setMode] = useState(decline ? 'no' : 'yes');
   const [signer, setSigner] = useState('');
   const [agree, setAgree] = useState(false);
@@ -16,6 +16,7 @@ export default function Answer({ token, decline, text, name }) {
   const [done, setDone] = useState('');
   const go = async body => { setBusy(true); setErr(''); const j = await post({ token, ...body }); setBusy(false); if (j.error) setErr(j.error); else setDone(body.action); };
   if (done === 'decline') return <p>Thank you for letting us know. We hope to teach together another time.</p>;
+  if (done === 'accept') { if (typeof window !== 'undefined') window.location.reload(); return <p>Wonderful. One moment…</p>; }
   if (done === 'sign') { if (typeof window !== 'undefined') window.location.reload(); return <p>Signed. One moment…</p>; }
   if (mode === 'no') return (
     <div className="noprint">
@@ -25,6 +26,17 @@ export default function Answer({ token, decline, text, name }) {
         <button className="btn quiet" onClick={() => setMode('yes')}>Actually, I’d like to teach</button>
       </p>
       {err && <p className="err">{err}</p>}
+    </div>
+  );
+  // No agreement to sign: just say yes
+  if (noAgreement) return (
+    <div className="noprint">
+      <p style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button className="btn" aria-disabled={busy} onClick={() => go({ action: 'accept' })}>{busy ? 'One moment…' : 'Yes, I’d love to'}</button>
+        <button className="btn quiet" onClick={() => setMode('no')}>Not this time</button>
+      </p>
+      {err && <p className="err">{err}</p>}
+      <p className="muted">Then you’ll get a link to a short onboarding for your bio, photo and course details.</p>
     </div>
   );
   if (!text) return <p className="err">The agreement is missing. Please reply to the invitation email and we’ll sort it out.</p>;

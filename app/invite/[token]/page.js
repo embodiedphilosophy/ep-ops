@@ -24,6 +24,12 @@ export default async function Invite({ params, searchParams }) {
     <p>Next, a short onboarding for your bio, photo and course details. Sign in with <b>{inv.email}</b>.</p>
     <p><a className="btn quiet" href="/teach">Start onboarding</a></p>
   </>);
+  if (inv.status === 'accepted') return (<>
+    <p className="eyebrow">Accepted</p><h1>Thank you, {String(inv.name).split(' ')[0]}</h1>
+    <p>We’re delighted you’ll teach <b>{inv.offering_title}</b>. Your onboarding link is on its way by email: your bio, photo and course details.</p>
+    <p>You can also sign in with <b>{inv.email}</b>.</p>
+    <p><a className="btn quiet" href="/teach">Start onboarding</a></p>
+  </>);
   if (inv.status !== 'sent') return (<><p className="eyebrow">{STATUS_LABEL[inv.status] || inv.status}</p><h1>{inv.offering_title}</h1><p>This invitation is closed. If that’s a surprise, just reply to the email.</p></>);
   const tpl = (await loadTemplates()).find(t => t.name === inv.template);
   const text = tpl ? fillContract(tpl.body, inv) : '';
@@ -32,6 +38,6 @@ export default async function Invite({ params, searchParams }) {
     <h1>{inv.offering_title}</h1>
     {inv.message && <p style={{ whiteSpace: 'pre-wrap' }}>{inv.message}</p>}
     {facts}
-    <Answer token={token} decline={sp?.a === 'no'} text={text} name={inv.name} />
+    <Answer token={token} decline={sp?.a === 'no'} text={text} name={inv.name} noAgreement={!inv.template} />
   </>);
 }

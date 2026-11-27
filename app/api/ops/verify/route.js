@@ -6,7 +6,9 @@ export async function GET(req) {
   const url = new URL(req.url);
   const data = verify(url.searchParams.get('token'));
   if (!data || data.purpose !== 'login') return NextResponse.redirect(new URL('/ops/login?expired=1', url));
-  const res = NextResponse.redirect(new URL('/ops', url));
+  // An onboarding link carries next: '/teach'; only our own pages are allowed
+  const next = /^\/(teach|ops)(\/|$|\?)/.test(String(data.next || '')) ? data.next : '/ops';
+  const res = NextResponse.redirect(new URL(next, url));
   res.cookies.set(COOKIE, sign({ email: data.email }, 60 * 60 * 24 * 30), { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
   return res;
 }

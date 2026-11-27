@@ -52,11 +52,11 @@ assert.equal(Y.nextFor(steps, new Set(steps.map(s => s.id)), '2026-12-02').lengt
 // reviews: locked the month before, open in its month, complete when all ticked (shown that month), hidden otherwise
 const R = sch.reviews, ids = k => R.find(r => r.key === k).checks.map(c => c.id);
 const st = (t, done = []) => Y.reviewCard(R, new Set(done), t);
-assert.equal(st('2026-10-20').state, 'locked'); assert.equal(st('2026-11-10').state, 'open'); assert.equal(st('2026-11-10').key, 'q1');
-assert.equal(st('2026-11-20', ids('q1').slice(0, 4)).ticked, 4); assert.equal(st('2026-11-20', ids('q1')).state, 'complete');
-assert.equal(st('2026-12-10', ids('q1')), null, 'December: nothing to show'); assert.equal(st('2027-01-10', ids('q1')), null, 'January: nothing to show'); assert.equal(st('2027-02-10', ids('q1')).state, 'locked'); assert.equal(st('2027-03-05', ids('q1')).state, 'open');
+assert.equal(st('2026-10-20'), null, 'October: nothing yet'); assert.equal(st('2026-11-10').state, 'locked'); assert.equal(st('2026-12-10').state, 'open'); assert.equal(st('2026-12-10').key, 'q1');
+assert.equal(st('2026-12-20', ids('q1').slice(0, 4)).ticked, 4); assert.equal(st('2026-12-20', ids('q1')).state, 'complete');
+assert.equal(st('2027-01-10', ids('q1')), null, 'January: nothing to show'); assert.equal(st('2027-02-10', ids('q1')).state, 'locked'); assert.equal(st('2027-03-05', ids('q1')).state, 'open');
 assert.equal(st('2027-01-10').state, 'open'); assert.equal(st('2026-09-05'), null, 'not before the year starts');
-assert.deepEqual(Y.laterReviews(R, '2026-11-10').map(r => r.key), ['mid', 'readiness']); assert.equal(Y.laterReviews(R, '2026-11-10')[0].opensOn, '2027-03-01');
+assert.deepEqual(Y.laterReviews(R, '2026-12-10').map(r => r.key), ['mid', 'readiness']); assert.equal(Y.laterReviews(R, '2026-12-10')[0].opensOn, '2027-03-01');
 
 // lanes: dots in the right month and state; "Both" steps in both lanes
 const L = Y.lanesFor(steps, new Set([id0]), '2026-12-10');
@@ -78,7 +78,7 @@ assert.equal(Y.canEdit('2026-11-24T19:00:00Z', Date.parse('2026-11-22T18:00:00Z'
 // buildYear: before the year, a normal month, the page summary from Step Status
 let y = Y.buildYear({ scheduleRows: [], monthRows: [], statusRows: [], email: 'maya@x.com', today: '2026-10-10' }); assert.equal(y.started, false); assert.deepEqual(y.steps, []); assert.equal(y.review, null);
 y = Y.buildYear({ scheduleRows: [], monthRows: [{ month: '2026-11', theme: 'From the sheet', publish: 'TRUE' }], statusRows: rows, email: 'maya@x.com', today: '2026-11-10', booked: { start: '2026-11-24T19:00:00Z', summary: [{ q: 'q', a: 'Calendly words' }] }, now: Date.parse('2026-11-10T12:00:00Z') });
-assert.equal(y.started, true); assert.equal(y.steps.length, 3); assert.equal(y.month.theme, 'From the sheet'); assert.equal(y.doneCount, 1); assert.equal(y.review.state, 'open');
+assert.equal(y.started, true); assert.equal(y.steps.length, 3); assert.equal(y.month.theme, 'From the sheet'); assert.equal(y.doneCount, 1); assert.equal(y.review.state, 'locked', 'the Q1 review opens in December');
 assert.deepEqual(y.oneToOne.summary, { text: 'My words', source: 'page' }); assert.equal(y.oneToOne.canEdit, true); assert.equal(y.reminders, false);
 
 // Ops: cohort counts, review progress, summary status colours
@@ -86,7 +86,7 @@ const mentees = [{ name: 'Maya', email: 'maya@x.com' }, { name: 'Sam', email: 's
 const c = Y.cohortSteps(steps, mentees, rows); assert.deepEqual([c[0].count, c[0].of], [2, 2]); assert.equal(c[0].doneBy[0].at, '2026-11-28T19:00:00Z'); assert.equal(c[1].count, 0);
 const rp = Y.reviewProgress(R[0], mentees, [...rows, ...ids('q1').map(i => ({ email: 'sam@x.com', step_id: i, status: 'done' })), { email: 'maya@x.com', step_id: ids('q1')[0], status: 'done' }], '2026-12-05');
 assert.deepEqual(rp.map(x => [x.state, x.ticked]), [['progress', 1], ['ready', 5]]);
-assert.equal(Y.reviewProgress(R[0], mentees, [], '2026-12-05')[0].state, 'risk'); assert.equal(Y.reviewProgress(R[0], mentees, [], '2026-11-20')[0].state, 'none');
+assert.equal(Y.reviewProgress(R[0], mentees, [], '2027-01-05')[0].state, 'risk'); assert.equal(Y.reviewProgress(R[0], mentees, [], '2026-12-20')[0].state, 'none');
 const now = Date.parse('2026-11-20T12:00:00Z'), at = d => `2026-11-${d}T19:00:00Z`;
 assert.deepEqual([Y.summaryStatus(at(30), true, now).key, Y.summaryStatus(at(30), false, now).key, Y.summaryStatus(at(22), false, now).key, Y.summaryStatus(at(20), false, now).key], ['in', 'none', 'soon', 'risk']);
 

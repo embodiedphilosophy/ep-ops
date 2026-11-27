@@ -3,12 +3,14 @@ import { currentUser } from '@/lib/ops/auth';
 import { canEditEvents } from '@/lib/ops/nav';
 import { createInvite, resendInvite, cancelInvite, loadTemplates, fillContract, offerings, KINDS, FEE_UNITS } from '@/lib/ops/faculty';
 import { ConflictError } from '@/lib/ops/store';
+import { addPerson, setActive, sendOnboardingLink } from '@/lib/ops/people';
 
 export const dynamic = 'force-dynamic';
 const fail = (error, status = 400) => NextResponse.json({ error }, { status });
 const EMAIL = /^[^\s@,]+@[^\s@,]+\.[a-z]{2,}$/i;
 
-// POST { action: 'create', name, email, kind, offering, title?, fee?, fee_unit, message?, template, terms? }
+// POST { action: 'create', name, email, kind, offering, title?, fee?, fee_unit, message?, template?, terms? }  (no template: no agreement to sign)
+//      { action: 'addPerson', name, email, type, roles?, onboard? } | { action: 'removePerson' | 'restorePerson', email } | { action: 'onboardingLink', name, email }
 //      { action: 'preview', …same }  → the contract as the teacher will read it (nothing saved or sent)
 //      { action: 'resend' | 'cancel', id }
 export async function POST(req) {
@@ -21,6 +23,20 @@ export async function POST(req) {
   try {
     if (b.action === 'resend') return NextResponse.json({ ok: true, ...(await resendInvite(b.id, who, base)) });
     if (b.action === 'cancel') { await cancelInvite(b.id, who); return NextResponse.json({ ok: true }); }
+    // People (the Team tab): add, take off, bring back, and a teacher's onboarding link
+    if (b.action === 'addPerson') {
+      const p = await addPerson({ name: b.name, email: b.email, type: b.type, roles: b.roles }, user);
+      const mail = p.type === 'teacher' && b.onboard ? await sendOnboardingLink(p, base) : null;
+      return NextResponse.json({ ok: true, message: `${p.name} is ${p.back ? 'back' : 'added'}.${mail ? (mail.sent ? ' Their onboarding link is on its way.' : ` The onboarding link wasn’t sent: ${mail.why}`) : ''}` });
+    }
+    if (b.action === 'removePerson' || b.action === 'restorePerson') {
+      const p = await setActive(b.email, b.action === 'restorePerson', user);
+      return NextResponse.json({ ok: true, message: b.action === 'restorePerson' ? `${p.name} is back on the team.` : `${p.name} is off the team and can no longer sign in. Nothing was deleted.` });
+    }
+    if (b.action === 'onboardingLink') {
+      const mail = await sendOnboardingLink({ name: b.name, email: b.email }, base);
+      return mail.sent ? NextResponse.json({ ok: true, message: `Onboarding link sent to ${b.email}.` }) : fail(mail.why);
+    }
     const f = {
       name: String(b.name || '').trim(), email: String(b.email || '').trim().toLowerCase(), kind: b.kind, offering: b.offering,
       title: String(b.title || '').trim().slice(0, 160), fee: String(b.fee || '').replace(/[^0-9.]/g, ''), fee_unit: b.fee_unit || 'session',
@@ -34,7 +50,7 @@ export async function POST(req) {
       const off = (await offerings()).find(o => o.key === f.offering);
       const tpl = (await loadTemplates()).find(t => t.name === f.template);
       if (!off) return fail('Pick what you are inviting them to');
-      if (!tpl) return fail('Pick a contract (add one in Settings → Contracts)');
+      if (!tpl) return NextResponse.json({ ok: true, text: 'No agreement: they accept the invitation, and are then put on the sessions and sent their onboarding link.' });
       return NextResponse.json({ ok: true, text: fillContract(tpl.body, { ...f, offering_title: f.title || off.title, dates: off.dates.join(', ') }) });
     }
     if (b.action === 'create') {

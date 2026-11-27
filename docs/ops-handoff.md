@@ -143,6 +143,16 @@ There are no unit tests. Pages need a signed-in user and live sheets. To check a
 - **Sheet checks** (`lib/ops/sheetchecks.js`, top of Programming for editors): duplicate rows, one series on two tracks,
   single-session series, emails without teachers, internal names on the website.
 - Tests: `scripts/ops-test/faculty.cjs` (invite → sign → sessions → To pay → teacher modules → copy program → search).
+- **General Teaching Agreement** (`lib/ops/agreement.js`, Nov 25 2026): EP's standard teacher agreement, merged from the
+  2025–26 contracts (Wisdom School ICA, Guest Faculty Workshop, Course Agreement). Built in, so it is always offered in
+  Faculty → Invitations; a Settings → Contracts row named exactly "General Teaching Agreement" replaces its text (or, with
+  active = FALSE, switches it off). New placeholders: `{{offerings_list}}`, `{{terms_or_none}}`.
+- **Agreement step in onboarding** (`/teach`, `app/api/teach/agreement`): a teacher who hasn't signed any agreement (staff
+  added them, or the invitation had none) reads and signs the general agreement after Welcome, before Bio. It lists their
+  current offerings; the fee reads "as agreed with EP in writing for each offering". Archived on Faculty Invitations with
+  `source = onboarding` (same fingerprint, printable copy, countersignature); finishing onboarding is refused until it's
+  signed. Skipped for anyone on the Team tab whose type isn't teacher. Faculty → Onboarding and /teach (directors) show
+  "agreement to sign". Test: `scripts/ops-test/agreement.cjs`.
 - **Programming range** (Oct 15): `?range=8w|3m|6m|12m`, default 6 months. Rows with something due come first; the rest
   are listed month by month (nothing is hidden any more). A session opened by link beyond the range is still found.
 
@@ -319,3 +329,6 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 ## EP Ops 2, step 1: clean-up (ep-ops half)
 - Deleted the two stray folders that came in by accident with an earlier pull request: `ep-ops-program-title/` and `ops-fix/`. Every file in them was an older copy of a file that is still in the real tree (checked file by file: seven identical, two older versions of `app/ops/ops.css` and `lib/calendar.js`), and nothing imports them.
 - Still to do, in ep-website, after confirming which project runs the jobs: remove the leftover copy of `/ops`, `/teach` and `lib/ops/*` and the five duplicated crons.
+## Newsletter: featured offer
+- The Newsletter editor has an optional **Featured offer** (title, a few lines, link, button text; the button defaults to "Learn more →"). It sits between the week's events and "Study With Us", in both the Kit editor blocks (`lib/scaffoldtree.js`) and the HTML fallback (`lib/scaffolding.js`), and is left out when blank. The four columns (Featured Offer Title / Text / URL / Button) are added to the Weekly Scaffolding tab the first time one is saved.
+- Test: `scripts/ops-test/email-newsletter-offer.sh` (11 checks, fresh `run.sh`).

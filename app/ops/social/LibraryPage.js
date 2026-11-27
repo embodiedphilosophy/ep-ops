@@ -63,6 +63,7 @@ export default function LibraryPage({ canEdit }) {
         <div><span className="eyebrow">Content · Social</span><h1>Library</h1><p>One place for art, promo graphics, video and finished designs.</p></div>
         <div className="soc-act">
           {canEdit && <label className="soc-btn primary upl">{pct != null ? `Uploading… ${pct}%` : 'Upload images or video'}<input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" disabled={pct != null} onChange={e => { drop([...e.target.files]); e.target.value = ''; }} /></label>}
+          <a className="soc-btn" href="/ops/social/sources">Quotes &amp; captions</a>
           <a className="soc-btn" href="/ops/social/library?s=categories">Categories &amp; folders</a>
         </div>
       </header>

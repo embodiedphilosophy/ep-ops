@@ -333,3 +333,19 @@
 .soc .camp li .b { flex: 1 1 240px; min-width: 0; }
 .soc .camp li .soc-act, .soc .camp li select { flex: 0 0 auto; }
 .soc .camp li .b input { width: 100%; }
+
+/* This Week at EP: fixing events at the source, adding missing ones */
+.ops-shell .tw-link { background: none; border: 0; padding: 0 2px; min-height: 32px; font: inherit; font-size: 13px; color: var(--terra); text-decoration: underline; cursor: pointer }
+.ops-shell .tw-edit { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding: 14px; border: 1px solid var(--line2); border-radius: 8px; background: var(--panel) }
+.ops-shell .tw-add { margin-top: 4px }
+.ops-shell .tw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px }
+.ops-shell .tw-grid label { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.ops-shell .tw-grid label.wide { grid-column: 1 / -1 }
+.ops-shell .tw-grid .sub, .ops-shell .tw-edit > .sub { font-size: 11px; color: var(--ink-soft) }
+.ops-shell .tw-scope { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center }
+.ops-shell .tw-scope legend { padding: 0; margin-bottom: 4px; width: 100% }
+.ops-shell .tw-scope label { display: flex; gap: 6px; align-items: center; min-height: 36px; font-size: 14px }
+.ops-shell .tw-scope input { width: 18px; height: 18px; min-height: 0 }
+.ops-shell .tw-others summary { cursor: pointer; font-size: 13px; color: var(--ink-soft); min-height: 40px; display: flex; align-items: center }
+.ops-shell .tw-capline { display: flex; justify-content: space-between; align-items: center; gap: 8px }
+@media (max-width: 640px) { .ops-shell .tw-grid { grid-template-columns: minmax(0, 1fr) } }

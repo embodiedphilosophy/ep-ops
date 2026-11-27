@@ -20,15 +20,23 @@ function List() {
   const load = useCallback(async () => { const res = await fetch(`${API}?fresh=1`).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the newsletter'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
   const make = async day => { try { await post({ action: 'create', date: day }); window.location.href = `/ops/email/newsletter?date=${day}`; } catch (e) { setErr(e.message); } };
+  const [tab, setTab] = useState('upcoming');
   const upcoming = d && nextSunday(d.today), has = d && d.issues.some(i => i.send_date === upcoming);
+  // Upcoming: everything still to go out, soonest first. Skipped and Sent collect on their own tabs, most recent first.
+  const groups = { upcoming: [], skipped: [], sent: [] };
+  (d?.issues || []).forEach(i => groups[i.state === 'Skipped' ? 'skipped' : i.state === 'Sent' ? 'sent' : 'upcoming'].push(i));
+  groups.upcoming.sort((a, b) => a.send_date.localeCompare(b.send_date));
+  groups.skipped.sort((a, b) => b.send_date.localeCompare(a.send_date)); groups.sent.sort((a, b) => b.send_date.localeCompare(a.send_date));
+  const shown = groups[tab], EMPTY = { upcoming: 'Nothing coming up yet.', skipped: 'No weeks have been skipped.', sent: 'Nothing has gone out yet.' };
   return (
     <Layout title={<>The Weekly <em>Scaffolding</em></>} intro="One issue a week. Numbers count only the issues that went out, so a week that was skipped doesn’t take a number." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
       {d?.error && <p className="em-banner bad" role="status">{d.error}</p>}
       {!d ? <p className="ops-empty">Reading the issues…</p> : (
         <section className="soc-panel" aria-label="Issues">
-          <div className="ph"><h2>Issues</h2>{d.canEdit && !has && <button className="soc-btn small primary" onClick={() => make(upcoming)}>Start {long(upcoming)}</button>}</div>
-          {!d.issues.length ? <p className="ops-empty">No issues yet.</p> : <ul className="em-list">{d.issues.map(i => (
+          <div className="ph"><div className="soc-seg" role="group" aria-label="Which issues">{[['upcoming', 'Coming up'], ['skipped', 'Skipped'], ['sent', 'Sent']].map(([k, l]) => <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{l} <span className="mono">{groups[k].length}</span></button>)}</div>
+            {d.canEdit && !has && <button className="soc-btn small primary" onClick={() => make(upcoming)}>Start {long(upcoming)}</button>}</div>
+          {!shown.length ? <p className="ops-empty">{EMPTY[tab]}</p> : <ul className="em-list">{shown.map(i => (
             <li key={i.send_date} className="em-row"><div className="b"><span className="mono meta">{long(i.send_date)}</span><br />
               <b>{i.number ? `No. ${i.number}` : 'No number'}</b>{i.subject ? ` · ${i.subject}` : ''}
               <span className="chips"><span className={`gchip ${STATE_CLASS[i.state] || ''}`}>{i.state}</span></span></div>
@@ -49,7 +57,9 @@ function Editor({ date }) {
   const run = async (key, fn, ok) => { setBusy(key); setErr(''); setMsg(''); try { await fn(); if (ok) setMsg(ok); } catch (e) { setErr(e.message); if (e.checks) setDlg(x => x && { ...x, checks: e.checks, needNote: true }); } setBusy(''); };
   if (!d) return <Layout title="Issue" intro="" panel={false} setPanel={() => {}} d={null}>{err ? <p className="hint err" role="alert">{err}</p> : <p className="ops-empty">Opening…</p>}</Layout>;
   const i = d.issue, dis = !d.canEdit || !d.editable || !!busy;
-  const keys = ['subject', 'preview_text', 'events_intro', 'reflection_headline', 'reflection_body', 'reflection_url', 'ps'];
+  const keys = ['subject', 'preview_text', 'events_intro', 'reflection_headline', 'reflection_body', 'reflection_url', 'ps', 'featured_offer_title', 'featured_offer_text', 'featured_offer_url', 'featured_offer_button',
+    'pilgrimage_title', 'pilgrimage_body', 'pilgrimage_url', 'pilgrimage_button', 'video_title', 'video_meta', 'video_caption', 'video_url', 'video_thumbnail',
+    'tarka_issue', 'tarka_title', 'tarka_author', 'tarka_teaser', 'tarka_url'];
   const changed = Object.fromEntries(keys.filter(k => (f[k] || '') !== (i.values[k] || '')).map(k => [k, f[k] || '']));
   const save = () => run('save', async () => { await post({ action: 'save', date, changes: changed }); await load(); }, 'Saved.');
   const field = (k, label, extra = {}) => <label className="em-f"><span className="cap">{label}</span>{extra.area ? <textarea rows={extra.rows || 5} value={f[k] || ''} disabled={dis} onChange={e => setF({ ...f, [k]: e.target.value })} /> : <input value={f[k] || ''} disabled={dis} onChange={e => setF({ ...f, [k]: e.target.value })} />}</label>;
@@ -61,11 +71,19 @@ function Editor({ date }) {
       {!d.editable && <p className="em-banner" role="status">This issue is {i.state.toLowerCase()}, so it can’t be changed here.</p>}
       {d.gaps.length > 0 && d.editable && <p className="em-banner bad" role="status">Still blank: {d.gaps.join(', ')}.</p>}
       <div className="em-edit"><div>
-        <section className="soc-panel" aria-label="Writing">
-          <div className="ph"><h2>This week’s issue</h2></div>
-          {field('subject', 'Subject')}{field('preview_text', 'Preview text')}{field('reflection_headline', 'Theme (the reflection’s headline)')}
-          {field('reflection_body', 'Reflection', { area: true, rows: 7 })}{field('reflection_url', 'Reflection link')}
-          {field('events_intro', 'Line above “This week at EP”')}{field('ps', 'P.S.', { area: true, rows: 3 })}
+        <section className="soc-panel" aria-label="Subject line">
+          <div className="ph"><h2>Subject line</h2><span className="sub">What people see in their inbox. Past issues start with “THE SCAFFOLDING:”.</span></div>
+          {field('subject', 'Subject')}{field('preview_text', 'Preview text')}
+        </section>
+        <section className="soc-panel" aria-label="The Weekly Reflection">
+          <div className="ph"><h2>The Weekly Reflection</h2><span className="sub">Everyone gets this.</span></div>
+          {field('reflection_headline', 'Headline')}
+          {field('reflection_body', 'Reflection', { area: true, rows: 9 })}{field('reflection_url', 'Link to the full reflection (optional)')}
+        </section>
+        <section className="soc-panel" aria-label="Wisdom School Weekly">
+          <div className="ph"><h2>Wisdom School Weekly</h2><span className="sub">Only Wisdom School members see this. Leave it blank to leave it out.</span></div>
+          {field('pilgrimage_title', 'Title')}{field('pilgrimage_body', 'Piece (with its sign-off)', { area: true, rows: 9 })}
+          <div className="em-two">{field('pilgrimage_url', 'Button link')}{field('pilgrimage_button', 'Button text (default: Continue the journey →)')}</div>
         </section>
         <section className="soc-panel" aria-label="Verse">
           <div className="ph"><h2>Sanskrit verse</h2><span className="sub">Chosen from the verified Quote Library. The diacritics are copied, never typed.</span></div>
@@ -76,8 +94,27 @@ function Editor({ date }) {
         </section>
         <section className="soc-panel" aria-label="This week at EP">
           <div className="ph"><h2>This week at EP</h2><span className="sub">Filled in from the Master Schedule. Fix a time or title in Programming, not here.</span></div>
+          {field('events_intro', 'A line above the events (optional)')}
           {!d.events.length ? <p className="ops-empty">Nothing public is scheduled for this week.</p> : <ul className="em-list">{d.events.map(e => <li key={e.id} className="em-row"><div className="b"><span className="mono meta">{e.date} {e.time}</span><br /><b>{e.title}</b>{e.enrolled_only && <span className="gchip">Enrolled students only</span>}</div></li>)}</ul>}
           {d.left_out.length > 0 && <p className="sub">Left out on the schedule: {d.left_out.map(e => e.title).join('; ')}.</p>}
+        </section>
+        <section className="soc-panel" aria-label="Free video">
+          <div className="ph"><h2>Free video</h2><span className="sub">“A Window into Sādhana School”. A YouTube link brings its own picture. Leave it blank to leave it out.</span></div>
+          {field('video_title', 'Video title')}{field('video_url', 'Video link')}
+          {field('video_caption', 'A few lines about it', { area: true, rows: 5 })}
+          <div className="em-two">{field('video_meta', 'Small line under the title (optional)')}{field('video_thumbnail', 'Picture link, if it isn’t YouTube (optional)')}</div>
+        </section>
+        <section className="soc-panel" aria-label="Latest from Tarka">
+          <div className="ph"><h2>Latest from Tarka</h2><span className="sub">Leave it blank to leave it out.</span></div>
+          {field('tarka_title', 'Essay title')}<div className="em-two">{field('tarka_author', 'Author')}{field('tarka_issue', 'Tarka issue number')}</div>
+          {field('tarka_teaser', 'Opening lines', { area: true, rows: 5 })}{field('tarka_url', 'Link to the essay')}
+        </section>
+        <section className="soc-panel" aria-label="Featured offer"><div className="ph"><h2>Featured offer</h2><span className="sub">Optional. One offer just above “Study With Us”. Leave it blank for none.</span></div>
+          {field('featured_offer_title', 'Offer title')}{field('featured_offer_text', 'A few lines about it', { area: true, rows: 3 })}
+          <div className="em-two">{field('featured_offer_url', 'Link')}{field('featured_offer_button', 'Button text (default: Learn more →)')}</div></section>
+        <section className="soc-panel" aria-label="P.S.">
+          <div className="ph"><h2>P.S.</h2><span className="sub">Sits after “Study With Us”, just above the footer.</span></div>
+          {field('ps', 'P.S.', { area: true, rows: 3 })}
         </section></div>
         <aside className="em-pre" aria-label="Preview"><iframe title="Newsletter preview" sandbox="" srcDoc={`<!doctype html><meta charset="utf-8"><body style="margin:0;background:#EFE9DA">${html}`} style={{ width: '100%', height: 640 }} />
           <p className="sub">The preview shows what is saved. Save, then it updates.</p></aside></div>

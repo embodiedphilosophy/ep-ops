@@ -9,6 +9,7 @@ import { longDate } from '@/lib/dates';
 import Shell, { opsUser } from '../Shell';
 import SiteEditor from './SiteEditor';
 import { tableOf } from '@/lib/ops/sitetables';
+import { EmailViews } from '../email/EmailKit';
 import { NextPosts } from './SocialEngine';
 import { draftUrl } from '@/lib/kit';
 import { promoRows } from '@/lib/ops/promo';
@@ -44,8 +45,8 @@ export default async function Content({ searchParams }) {
   if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/email');
   const tab = sp.tab;
   return (
-    <Shell user={user} current={`content-${tab}`} desc="Promo emails, media and the website copy teachers sent for review." eyebrow="Teachers · Email · Launches" title="Teachers & Email"
-      head={<nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={`/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
+    <Shell user={user} current={tab === 'email' ? 'email-emails' : `content-${tab}`} desc="The promo emails planned for each event: written and adjusted here, checked against Kit." eyebrow="Teachers · Email · Launches" title="Promo emails"
+      head={tab === 'email' ? <EmailViews on="promo" /> : <nav className="ops-filters" aria-label="Content">{tabs.map(([k, l]) => <a key={k} href={`/ops/content?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{l}</a>)}</nav>}>
       {tab === 'email' && <Email canEdit={canEditSite(user)} />}
       {tab === 'email' && <SiteEditor scope="email" initial="scaffolding" base="/ops/content?tab=email&" />}
       {tab === 'media' && <Media />}

@@ -10,7 +10,7 @@ export default async function Page({ searchParams }) {
   const user = await opsUser(isStaff);
   const sp = await searchParams;
   return (
-    <Shell user={user} current="social-compose">
+    <Shell user={user} current="social">
       <div className="soc">
         <header className="soc-head">
           <div><span className="eyebrow">Content · Social</span><h1>{sp?.row ? 'Edit' : 'New'} <em>post</em></h1></div>

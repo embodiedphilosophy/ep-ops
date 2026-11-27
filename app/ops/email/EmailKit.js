@@ -48,13 +48,17 @@ export function useSide(panel) {
   const adopt = async x => { if (!confirm(`Take “${x.subject}” into the Ops plan?\n\nThen you can edit it here and drag it on the calendar. Kit is not changed.`)) return; setFail(''); try { const r = await fetch('/api/ops/email/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'adopt', kit_id: x.kit_id }) }), j = await r.json(); if (!r.ok) throw new Error(j.error); window.location.href = `/ops/email/edit?id=${j.id}`; } catch (e) { setFail(e.message || 'Couldn’t do that'); } };
   return side;
 }
-export function Layout({ children, panel, setPanel, d, title, intro }) {
+// Emails is one menu item with three views: the list, the calendar, and the promo emails planned per event
+export const EMAIL_VIEWS = [['list', 'List', '/ops/email/emails'], ['calendar', 'Calendar', '/ops/email/calendar'], ['promo', 'Promo emails by event', '/ops/content?tab=email']];
+export const EmailViews = ({ on }) => <nav className="ops-filters em-views" aria-label="Emails view">{EMAIL_VIEWS.map(([k, l, h]) => <a key={k} href={h} aria-current={k === on ? 'page' : undefined}>{l}</a>)}</nav>;
+export function Layout({ children, panel, setPanel, d, title, intro, view }) {
   return (
     <div className="soc">
       <header className="soc-head">
         <div><span className="eyebrow">Teachers · Email · Launches</span><h1>{title}</h1><p>{intro}</p></div>
         <div className="soc-act"><button className="soc-btn" aria-pressed={panel} onClick={() => setPanel(!panel)}>{panel ? 'Hide' : 'Show'} Programming</button></div>
       </header>
+      {view && <EmailViews on={view} />}
       <div className={`em-layout${panel ? ' panel' : ''}`}><div>{children}</div>{panel && <Panel d={d} />}</div>
     </div>);
 }
@@ -67,7 +71,14 @@ export function ThisWeek() {
     <li className="em-row" key={e.id}>
       <div className="b"><span className="mono meta">{day(e.date)}{e.time ? ` · ${e.time}` : ''} · {e.id}</span><br /><Chip program={e.program} /> <b>{e.title}</b>
         {e.missing.length > 0 && <span className="chips"><span className="gchip bad">Missing in Programming: {e.missing.join(', ')}</span></span>}</div>
-      <span className="gchip">{e.planned ? `${e.inKit} of ${e.planned} in Kit` : 'No emails planned'}{e.drafts ? ` · ${e.drafts} draft${e.drafts === 1 ? '' : 's'}` : ''}</span>
+      <div className="em-evmails">
+        {e.planned > 0 && <span className="gchip">{e.inKit} of {e.planned} promo emails in Kit · <a href="/ops/content?tab=email">Promo emails</a></span>}
+        {e.emails?.length ? <ul aria-label={`Emails for ${e.title}`}>{e.emails.map(m => (
+          <li key={m.key}><span className="mono meta">{m.date ? day(m.date) : ''}{m.state ? ` · ${m.state}` : ''}</span> <span className="t">{m.label}</span>{' '}
+            <a href={m.href} {...(m.external ? { target: '_blank', rel: 'noreferrer' } : {})}>{m.where}{m.external ? ' ↗' : ''}</a></li>))}</ul>
+          : !e.planned && <span className="sub">No emails yet.</span>}
+        <a className="soc-btn small" href={e.add}>+ Plan an email</a>
+      </div>
     </li>);
   return (
     <Layout title={<>This <em>week</em></>} intro="What is on this week, which emails are in Kit for it, and what needs tidying first." panel={panel} setPanel={setPanel} d={d}>
@@ -105,12 +116,12 @@ export function Emails() {
   });
   const canEdit = d?.canEdit;
   const attach = x => { const ev = d.events.find(e => e.id === pick[x.kit_id]); if (!ev) return; 
-    if (!confirm(`Put “${x.subject}” under ${ev.title} (${ev.id})?\n\nThis adds [${ev.id}] to the email’s internal description in Kit. Nothing else in Kit changes, and nothing is sent.`)) return;
+    if (!confirm(`Put “${x.subject}” under ${ev.title} (${ev.id})?\n\n${x.state === 'sent' ? 'It’s already been sent, so the match is kept in Ops only. Kit isn’t changed' : `This adds [${ev.id}] to the email’s internal description in Kit. Nothing else in Kit changes`}, and nothing is sent.`)) return;
     run('a' + x.kit_id, { action: 'attach', kit_id: x.kit_id, event_id: ev.id, confirm: true }, `Matched to ${ev.title}`)(); };
   const away = () => { const n = sel.size; if (!n || !confirm(`Put away ${n} email${n === 1 ? '' : 's'}?\n\nThey are hidden here. Nothing is deleted, and nothing in Kit changes: you can bring them back, or archive them in Kit yourself.`)) return;
     run('away', { action: 'archive', kit_ids: [...sel], confirm: true }, j => `${j.changed} put away`)(); };
   return (
-    <Layout title={<>Email<em>s</em></>} intro="Every Kit email from the last 60 days and the next 90, matched to its event. Anything Kit has that Ops can’t place waits in “Not matched”." panel={panel} setPanel={setPanel} d={side}>
+    <Layout view="list" title={<>Email<em>s</em></>} intro="Every Kit email from the last 60 days and the next 90, matched to its event. Anything Kit has that Ops can’t place waits in “Not matched”." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}{fail && <p className="hint err" role="alert">{fail}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <Banner d={d} reload={load} busy={!!busy} />
       {d && <>

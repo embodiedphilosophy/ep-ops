@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { fillCopy } from '@/lib/teachcopy-defaults';
 import { upload } from '@vercel/blob/client';
 
 // ---------- small helpers ----------
@@ -14,11 +15,9 @@ const programOf = o => PROGRAM[o.program] || o.host || 'Embodied Philosophy';
 const has = (o, kind) => o.deliverables.some(d => d.kind === kind);
 const hasClip = o => o.deliverables.some(d => /clip|video/i.test(d.task));
 const dateRange = o => o.end && o.end !== o.start ? `${fmt(o.start)} – ${fmt(o.end)}` : fmt(o.start);
-const PROMO_GUIDE = [
-  ['First email: the announcement', 'Goes out about five weeks before. Introduce the course and why it matters now.'],
-  ['Second email: the invitation', 'About three weeks before. Go deeper: a story, a teaching or a question students will explore with you.'],
-  ['Third email: last call', 'The week it begins. Short and warm: who it’s for, and what they’ll miss.'],
-];
+// The words on every screen come from Ops (Faculty → Onboarding → the Onboarding Copy tab), with defaults in lib/teachcopy-defaults.js
+const CopyCtx = createContext({});
+const useT = () => { const c = useContext(CopyCtx); return (k, v) => fillCopy(c, k, v); };
 
 async function post(path, body) {
   const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
@@ -32,13 +31,17 @@ function Avatar({ name, photo, size = 150 }) {
 }
 
 // ---------- the flow ----------
-export default function Onboarding({ data }) {
+// embedded: shown inside Ops (Faculty → Onboarding) as a preview: no header or demo bar, every step open, onStep says which one
+export default function Onboarding({ data, embedded = false, onStep }) {
   const as = data.actingAs || undefined;
   const pendingOfferings = data.offerings.filter(o => !['submitted', 'published'].includes(String(o.page?.status || '').toLowerCase()));
   const anyCircle = data.offerings.some(o => o.circle);
 
   const steps = useMemo(() => {
-    const s = [{ key: 'welcome', label: 'Welcome' }, { key: 'profile', label: 'Bio & headshot' }];
+    const s = [{ key: 'welcome', label: 'Welcome' }];
+    // The agreement step shows while there's an agreement to sign (it stays in the list once they've signed it here)
+    if (data.agreement?.status === 'needed') s.push({ key: 'agreement', label: 'Agreement' });
+    s.push({ key: 'profile', label: 'Bio & headshot' });
     pendingOfferings.forEach((o, i) => {
       const suffix = pendingOfferings.length > 1 ? ` ${i + 1}` : '';
       s.push({ key: `course:${o.key}`, label: `Your offering${suffix}`, offering: o.key }, { key: `preview:${o.key}`, label: `Course page${suffix}`, offering: o.key });
@@ -48,9 +51,9 @@ export default function Onboarding({ data }) {
     return s;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startAt = data.needed ? 0 : steps.length - 1;
+  const startAt = data.needed || embedded ? 0 : steps.length - 1;
   const [step, setStep] = useState(startAt);
-  const [reached, setReached] = useState(data.needed ? 0 : steps.length - 1);
+  const [reached, setReached] = useState(data.needed && !embedded ? 0 : steps.length - 1);
   const [toast, setToast] = useState('');
   const top = useRef(null);
   const say = m => { setToast(m); clearTimeout(say.t); say.t = setTimeout(() => setToast(''), 2800); };
@@ -65,6 +68,8 @@ export default function Onboarding({ data }) {
     role: data.onFile?.role || 'Guest teacher', updating: !data.onFile, saved: data.profileDone,
   });
 
+  const [agreement, setAgreement] = useState(data.agreement || { status: 'none' });
+
   // course pages, keyed by offering
   const [pages, setPages] = useState(() => Object.fromEntries(data.offerings.map(o => [o.key, {
     title: o.page?.title || '', subtitle: o.page?.subtitle || '', summary: o.page?.summary || o.summary || '', explore: o.page?.explore || '',
@@ -74,13 +79,15 @@ export default function Onboarding({ data }) {
   }])));
   const setPage = (key, patch) => setPages(p => ({ ...p, [key]: { ...p[key], ...patch, submitted: patch.submitted ?? false } }));
 
-  const cur = steps[step];
+  const cur = steps[Math.min(step, steps.length - 1)];
+  useEffect(() => { onStep?.(cur.key.split(':')[0]); }, [cur.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const offering = cur.offering ? data.offerings.find(o => o.key === cur.offering) : null;
   const name = profile.name || data.nameGuess || '';
   const first = name.split(' ')[0] || 'there';
 
   const view = {
     welcome: () => <Welcome data={data} first={first} next={next} />,
+    agreement: () => <Agreement data={data} agreement={agreement} setAgreement={setAgreement} name={name} first={first} as={as} next={next} say={say} />,
     profile: () => <Profile data={data} profile={profile} setProfile={setProfile} as={as} next={next} say={say} />,
     course: () => <Course o={offering} page={pages[offering.key]} setPage={p => setPage(offering.key, p)} as={as} next={next} say={say} />,
     preview: () => <Preview o={offering} page={pages[offering.key]} profile={profile} as={as} say={say}
@@ -89,16 +96,17 @@ export default function Onboarding({ data }) {
     circle: () => <Circle data={data} pages={pages} as={as} next={next} />,
     dashboard: () => <Dashboard data={data} first={first} pages={pages} next={next} />,
     emails: () => <Emails data={data} pages={pages} next={next} />,
-    done: () => <Done data={data} first={first} profile={profile} pages={pages} as={as} steps={steps} go={go} />,
+    done: () => <Done data={data} first={first} profile={profile} pages={pages} agreement={agreement} as={as} steps={steps} go={go} />,
   }[cur.key.split(':')[0]];
 
   return (
-    <div className="t-wrap">
-      {data.actingAs && <div className="t-demo">Trying it out as <b>{data.actingAs}</b>. Nothing is saved or sent. <a href="/teach">Back to the teacher list</a></div>}
-      <header className="t-top" ref={top}>
+    <CopyCtx.Provider value={data.copy || {}}>
+    <div className={`t-wrap${embedded ? ' t-embedded' : ''}`}>
+      {data.actingAs && !embedded && <div className="t-demo">Trying it out as <b>{data.actingAs}</b>. Nothing is saved or sent. <a href="/teach">Back to the teacher list</a></div>}
+      {!embedded && <header className="t-top" ref={top}>
         <a href="/" className="ops-logo"><img src="/brand/ep-mark-black.png" alt="Embodied Philosophy" width="34" height="36" /><span>Teachers</span></a>
         <div className="t-who">{name ? `${name} · ` : ''}{data.email} · <a href="/api/ops/logout">Sign out</a></div>
-      </header>
+      </header>}
       <div className="t-shell">
         <nav className="t-rail" aria-label="Onboarding steps">
           <ol>
@@ -116,23 +124,64 @@ export default function Onboarding({ data }) {
       </div>
       <div className={`t-toast ${toast ? 'on' : ''}`} role="status" aria-live="polite">{toast}</div>
     </div>
+    </CopyCtx.Provider>
   );
 }
 
 // ---------- steps ----------
+// Read and sign the General Teaching Agreement (typed name + consent). Only shown when one is still to sign.
+function Agreement({ data, agreement, setAgreement, name, first, as, next, say }) {
+  const t = useT();
+  const [signer, setSigner] = useState(''), [agree, setAgree] = useState(false), [busy, setBusy] = useState(false), [err, setErr] = useState('');
+  const when = iso => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+  if (agreement.status === 'signed') return (
+    <div className="t-stack">
+      <div><span className="eyebrow">Agreement</span><h1 className="t-h1">{t('agreement_signed_title', { first })}</h1>
+        <p className="t-lede">Signed by {agreement.signer} on {when(agreement.signed_at)} and countersigned by {agreement.countersigned_by} for Embodied Philosophy.{data.actingAs ? ' (Trying it out: nothing was saved.)' : ' A copy is on its way to your inbox.'}</p></div>
+      <div className="t-actions">
+        <button className="btn btn-primary" onClick={next}>Continue to your bio</button>
+        {agreement.link && <a className="btn btn-ghost" href={agreement.link} target="_blank" rel="noreferrer">Read or print it</a>}
+      </div>
+    </div>
+  );
+  const ok = signer.trim().length >= 3 && agree;
+  const sign = async e => {
+    e.preventDefault(); if (!ok) return;
+    setBusy(true); setErr('');
+    try { const j = await post('/api/teach/agreement', { as, name: signer, agree }); setAgreement(j.agreement); say('Agreement signed'); }
+    catch (x) { setErr(x.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="t-stack">
+      <div><span className="eyebrow">Agreement</span><h1 className="t-h1">{t('agreement_title', { first })}</h1>
+        <p className="t-lede">{t('agreement_lede', { first })}</p></div>
+      <div className="t-card t-contract" tabIndex={0} aria-label="The agreement">{agreement.text}</div>
+      <form className="t-stack" style={{ gap: 14 }} onSubmit={sign}>
+        <div className="t-field"><label htmlFor="t-sig">Type your full name to sign</label>
+          <input id="t-sig" type="text" value={signer} onChange={e => setSigner(e.target.value)} placeholder={name} autoComplete="name" /></div>
+        <label className="t-consent"><input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /> <span>I have read this agreement and agree to it. Typing my name counts as my signature.</span></label>
+        {err && <p className="t-error">{err}</p>}
+        <div className="t-actions"><button className="btn btn-primary" type="submit" disabled={busy || !ok}>{busy ? 'Signing…' : 'Sign the agreement'}</button></div>
+        <p className="t-small t-muted">Questions about anything in it? Reply to your onboarding email before you sign and we’ll talk it through.</p>
+      </form>
+    </div>
+  );
+}
+
 function Welcome({ data, first, next }) {
+  const t = useT();
   if (!data.offerings.length) return (
     <div className="t-stack">
       <div><span className="eyebrow">Welcome</span><h1 className="t-h1">Hello, {first}</h1>
-        <p className="t-lede">You aren’t on the schedule for any upcoming sessions yet. Once the team adds you, your offering will appear here.</p></div>
+        <p className="t-lede">{t('welcome_none', { first })}</p></div>
       <div className="t-actions"><button className="btn btn-primary" onClick={next}>Review my profile</button></div>
     </div>
   );
   return (
     <div className="t-stack">
       <div><span className="eyebrow">{data.onFile ? 'Welcome back' : 'Welcome'}</span>
-        <h1 className="t-h1">{data.onFile ? `Good to have you back, ${first}` : `We’re glad you’re teaching with us, ${first}`}</h1>
-        <p className="t-lede">This takes about fifteen minutes. By the end, your course page will be with our team for review, you’ll know how to use your dashboard, and you’ll know which emails to expect.</p></div>
+        <h1 className="t-h1">{t(data.onFile ? 'welcome_title_back' : 'welcome_title', { first })}</h1>
+        <p className="t-lede">{t('welcome_lede', { first })}</p></div>
       {data.offerings.map(o => (
         <div key={o.key} className="t-card">
           <dl className="t-offer">
@@ -160,6 +209,7 @@ function Welcome({ data, first, next }) {
 }
 
 function Profile({ data, profile, setProfile, as, next, say }) {
+  const t = useT();
   const [busy, setBusy] = useState(false), [err, setErr] = useState(''), [photoMsg, setPhotoMsg] = useState(''), [over, setOver] = useState(false);
   const fileRef = useRef(null);
   const P = profile, set = patch => setProfile(p => ({ ...p, ...patch }));
@@ -196,8 +246,8 @@ function Profile({ data, profile, setProfile, as, next, say }) {
 
   if (data.onFile && !P.updating) return (
     <div className="t-stack">
-      <div><span className="eyebrow">Bio & headshot</span><h1 className="t-h1">We have you on file</h1>
-        <p className="t-lede">This is how you appear on the Teachers page and your course page. Update it if anything has changed.</p></div>
+      <div><span className="eyebrow">Bio & headshot</span><h1 className="t-h1">{t('profile_onfile_title')}</h1>
+        <p className="t-lede">{t('profile_onfile_lede')}</p></div>
       <div className="t-card t-onfile"><Avatar name={P.name} photo={P.photo} size={96} />
         <div><h3 className="t-h3">{P.name}</h3><div className="t-role">{P.role}</div><p className="t-muted">{P.bio}</p>
           {!P.photo && <p className="t-small" style={{ marginTop: 10 }}><span className="t-pill warn">No headshot on file</span> Your initials show until you add one.</p>}</div></div>
@@ -212,8 +262,8 @@ function Profile({ data, profile, setProfile, as, next, say }) {
   const ok = P.name.trim() && w >= 60 && w <= 100 && P.photo;
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Bio & headshot</span><h1 className="t-h1">{data.onFile ? 'Update your profile' : 'Introduce yourself'}</h1>
-        <p className="t-lede">Your bio appears on your course page and the Teachers page. Please write it in the third person.</p></div>
+      <div><span className="eyebrow">Bio & headshot</span><h1 className="t-h1">{data.onFile ? 'Update your profile' : t('profile_title')}</h1>
+        <p className="t-lede">{t('profile_lede')}</p></div>
       {nameField}
       <div className="t-card t-shot">
         <Avatar name={P.name} photo={P.photo} />
@@ -222,14 +272,14 @@ function Profile({ data, profile, setProfile, as, next, say }) {
             onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
             onDrop={e => { e.preventDefault(); setOver(false); pick(e.dataTransfer.files[0]); }}>
             <b>{P.photo ? 'Replace headshot' : 'Add a headshot'}</b>
-            <span className="t-small t-muted">Square works best, at least 800 × 800 px, JPG or PNG. Drop a file here or click to choose.</span>
+            <span className="t-small t-muted">{t('profile_photo_hint')}</span>
           </button>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e => pick(e.target.files[0])} />
           {photoMsg && <div className="t-small t-muted">{photoMsg}</div>}
         </div>
       </div>
       <div className="t-field"><label htmlFor="t-bio">Short bio</label>
-        <span className="hint">60–100 words. Lead with what you teach, and the lineage or scholarship behind it.</span>
+        <span className="hint">{t('profile_bio_hint')}</span>
         <textarea id="t-bio" rows={6} value={P.bio} onChange={e => set({ bio: e.target.value })} />
         <span className={`t-count ${w === 0 ? '' : w < 60 || w > 100 ? 'bad' : 'good'}`}>{w} words{w && w < 60 ? ' · a little more, please' : ''}{w > 100 ? ' · please trim to 100' : ''}</span>
       </div>
@@ -248,6 +298,7 @@ function Field({ id, label, hint, children }) {
 }
 
 function Course({ o, page, setPage, as, next, say }) {
+  const t = useT();
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false), [up, setUp] = useState('');
   const fileRef = useRef(null);
   const needsReadings = has(o, 'readings'), needsPromo = has(o, 'promo'), clip = hasClip(o);
@@ -280,23 +331,23 @@ function Course({ o, page, setPage, as, next, say }) {
 
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Your offering</span><h1 className="t-h1">Tell students what they’ll find</h1>
-        <p className="t-lede">This becomes your course page{needsPromo ? '' : ' and the description in our emails'}. You’ll see a preview next.</p></div>
+      <div><span className="eyebrow">Your offering</span><h1 className="t-h1">{t('course_title')}</h1>
+        <p className="t-lede">{t('course_lede', { emails: needsPromo ? '' : ' and the description in our emails' })}</p></div>
       <div className="t-card t-slim"><span className="t-small t-muted">From the calendar:</span> <b>{programOf(o)}</b> · {multi ? `${o.sessions.length} sessions, ${dateRange(o)}` : long(o.start)}{o.time ? ` · ${o.time}` : ''}{o.price ? ` · ${o.price}` : ''}
         <br /><span className="t-small t-muted">Dates, times and price are set by the EP team. Reply to any of our emails if something looks wrong.</span></div>
-      <Field id="c-title" label="Public title" hint="Short and evocative. The subtitle can carry the detail."><input type="text" {...bind('title')} placeholder={o.title} /></Field>
+      <Field id="c-title" label="Public title" hint={t('course_title_hint')}><input type="text" {...bind('title')} placeholder={o.title} /></Field>
       <Field id="c-subtitle" label="One-line subtitle"><input type="text" {...bind('subtitle')} /></Field>
-      <Field id="c-summary" label="Description (2–3 sentences)" hint="The first thing people read on your page.">
+      <Field id="c-summary" label="Description (2–3 sentences)" hint={t('course_summary_hint')}>
         <textarea {...bind('summary')} /><span className="t-count">{words(page.summary)} words</span></Field>
       <div className="t-grid2">
-        <Field id="c-explore" label="What we’ll explore" hint="One per line, three to five."><textarea {...bind('explore')} /></Field>
-        <Field id="c-audience" label="Who it’s for" hint="Experience level, and anything students should know before joining."><textarea {...bind('audience')} /></Field>
+        <Field id="c-explore" label="What we’ll explore" hint={t('course_explore_hint')}><textarea {...bind('explore')} /></Field>
+        <Field id="c-audience" label="Who it’s for" hint={t('course_audience_hint')}><textarea {...bind('audience')} /></Field>
       </div>
 
       {needsReadings && (
         <fieldset className="t-card t-fieldset">
           <legend className="t-h3">Readings</legend>
-          <p className="t-small t-muted">You can share all your readings now, or send them a week before {multi ? 'each session' : 'the course'}. If you send them weekly, your dashboard and reminder emails will prompt you.</p>
+          <p className="t-small t-muted">{t('readings_intro', { when: multi ? 'each session' : 'the course' })}</p>
           <div className="t-radios">
             {[['all', multi ? 'I’ll share all readings now' : 'I’ll share the readings now'], ['weekly', multi ? 'I’ll send them a week before each session' : 'I’ll send them a week before'], ['none', 'There are no readings']].map(([v, l]) => (
               <label key={v}><input type="radio" name={`rm-${o.key}`} checked={page.readings_mode === v} onChange={() => setPage({ readings_mode: v })} /> {l}</label>
@@ -313,14 +364,14 @@ function Course({ o, page, setPage, as, next, say }) {
       {needsPromo && (
         <fieldset className="t-card t-fieldset">
           <legend className="t-h3">Three promotional emails</legend>
-          <p className="t-small t-muted">Because this is your own course, we’ll send three emails to our community in your voice. Write a blurb for each (about 80–150 words). We’ll add the dates, links and design.</p>
-          {PROMO_GUIDE.map(([l, h], i) => (
+          <p className="t-small t-muted">{t('promo_intro')}</p>
+          {[1, 2, 3].map(n => [t(`promo_${n}_label`), t(`promo_${n}_hint`)]).map(([l, h], i) => (
             <Field key={i} id={`c-promo_${i + 1}`} label={l} hint={h}><textarea {...bind(`promo_${i + 1}`)} /><span className="t-count">{words(page[`promo_${i + 1}`])} words</span></Field>
           ))}
         </fieldset>
       )}
 
-      {clip && <Field id="c-promo_clip" label="Promo video link" hint="A 30–60 second clip for ads and social. A Google Drive or Dropbox link is fine."><input type="url" placeholder="https://" {...bind('promo_clip')} /></Field>}
+      {clip && <Field id="c-promo_clip" label="Promo video link" hint={t('clip_hint')}><input type="url" placeholder="https://" {...bind('promo_clip')} /></Field>}
 
       {err && <p className="t-error">{err}</p>}
       <div className="t-actions"><button className="btn btn-primary" disabled={busy} onClick={toPreview}>Preview my page</button><button className="btn t-link" onClick={saveDraft}>Save draft</button></div>
@@ -354,6 +405,7 @@ export function CoursePageView({ o, page, profile, cta }) {
 }
 
 function Preview({ o, page, profile, as, say, onApproved, onEdit }) {
+  const t = useT();
   const [busy, setBusy] = useState(false), [err, setErr] = useState('');
   const approve = async () => {
     if (page.submitted) { onApproved(); return; }
@@ -363,8 +415,8 @@ function Preview({ o, page, profile, as, say, onApproved, onEdit }) {
   };
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Course page</span><h1 className="t-h1">Here’s your page</h1>
-        <p className="t-lede">This is a draft. Nothing is public until you approve it and the EP team publishes it.</p></div>
+      <div><span className="eyebrow">Course page</span><h1 className="t-h1">{t('preview_title')}</h1>
+        <p className="t-lede">{t('preview_lede')}</p></div>
       <div className="t-browser"><div className="bar"><i /><i /><i /><span>embodiedphilosophy.com/courses/…</span></div>
         <CoursePageView o={o} page={page} profile={profile} /></div>
       {err && <p className="t-error">{err}</p>}
@@ -374,6 +426,7 @@ function Preview({ o, page, profile, as, say, onApproved, onEdit }) {
 }
 
 function Circle({ data, pages, as, next }) {
+  const t = useT();
   const offerings = data.offerings.filter(o => o.circle);
   const [state, setState] = useState({});
   const run = async o => {
@@ -386,8 +439,8 @@ function Circle({ data, pages, as, next }) {
   const host = offerings[0]?.course_host || 'your course host';
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Circle teaching space</span><h1 className="t-h1">Your course lives in Circle</h1>
-        <p className="t-lede">Circle is where your students gather, find session links and materials, and talk with you between sessions.</p></div>
+      <div><span className="eyebrow">Circle teaching space</span><h1 className="t-h1">{t('circle_title')}</h1>
+        <p className="t-lede">{t('circle_lede')}</p></div>
       {offerings.map(o => {
         const st = state[o.key] || { busy: true };
         return (
@@ -401,33 +454,25 @@ function Circle({ data, pages, as, next }) {
       {done && <p className="t-small">If Circle sent you an invitation, accept it to set your password, then sign in at <b>{data.circleHost}</b>.</p>}
       <h2 className="t-h2">How to teach in Circle</h2>
       <div className="t-guide">
-        <div className="t-card"><div className="when">Before each session</div><h3 className="t-h3">Post your readings</h3><p className="t-small t-muted">If you didn’t share them all up front, post readings in your course space a week before each session: choose <b>New post</b> and attach files or links. Students are notified when you post.</p></div>
-        <div className="t-card"><div className="when">Live sessions</div><h3 className="t-h3">Teach on Zoom, linked from Circle</h3><p className="t-small t-muted">Each session appears as an <b>Event</b> in your space with the Zoom link. Your reminder emails carry the same link.</p></div>
-        <div className="t-card"><div className="when">The day after each session</div><h3 className="t-h3">Send your slides as a PDF</h3><p className="t-small t-muted">{host} posts the recording, and your slides once you send them, in the space. You don’t need to upload the recording yourself.</p></div>
-        <div className="t-card"><div className="when">Between sessions</div><h3 className="t-h3">Answer questions in the threads</h3><p className="t-small t-muted">Students comment under posts; reply there so everyone benefits. In <b>Notifications</b>, turn on email digests so you don’t miss anything.</p></div>
+        {[1, 2, 3, 4].map(n => <div key={n} className="t-card"><div className="when">{t(`circle_${n}_when`)}</div><h3 className="t-h3">{t(`circle_${n}_title`)}</h3><p className="t-small t-muted">{t(`circle_${n}_body`, { host })}</p></div>)}
       </div>
       <div className="t-actions"><button className="btn btn-primary" onClick={next}>Continue</button></div>
     </div>
   );
 }
 
-const TOUR = [
-  ['Past due', 'Anything late shows here first, in red, so nothing slips.', 'late'],
-  ['This week', 'What needs doing in the next seven days. Tick the box when it’s done; the EP team sees it straight away.', 'week'],
-  ['Coming up', 'Everything further out, with due dates worked out from your teaching schedule.', 'up'],
-  ['Teaching & meetings', 'Your sessions for the next three weeks, each with its Zoom link. This is the one place to find your link.', 'meet'],
-  ['Recently done', 'What you’ve finished, including what you just completed here.', 'done'],
-];
+const TOUR = [['Past due', 'tour_1', 'late'], ['This week', 'tour_2', 'week'], ['Coming up', 'tour_3', 'up'], ['Teaching & meetings', 'tour_4', 'meet'], ['Recently done', 'tour_5', 'done']];
 function Dashboard({ data, first, pages, next }) {
+  const T = useT();
   const [i, setI] = useState(0);
   const t = data.tasks, lit = z => (TOUR[i][2] === z ? 'lit' : '');
   const List = ({ items, done }) => items.length ? <ul className="t-mtasks">{items.slice(0, 5).map(x => <li key={x.id} className={done ? 'is-done' : ''}><span className="n">{x.name}</span><span className="m">{fmt(x.due)}</span></li>)}</ul> : <p className="t-small t-muted">Nothing here.</p>;
   const o = data.offerings[0];
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Your dashboard</span><h1 className="t-h1">A quick tour of your dashboard</h1>
-        <p className="t-lede">From now on, your dashboard is home base. Bookmark it: everything you owe us and every Zoom link is there. Sign in with this email any time.</p></div>
-      <div className="t-tour"><div className="num">{i + 1}</div><div><h3>{TOUR[i][0]}</h3><p>{TOUR[i][1]}</p>
+      <div><span className="eyebrow">Your dashboard</span><h1 className="t-h1">{T('dash_title')}</h1>
+        <p className="t-lede">{T('dash_lede')}</p></div>
+      <div className="t-tour"><div className="num">{i + 1}</div><div><h3>{TOUR[i][0]}</h3><p>{T(TOUR[i][1])}</p>
         <div className="t-row" style={{ marginTop: 12 }}>{i > 0 && <button className="btn btn-outline-light" onClick={() => setI(i - 1)}>Back</button>}{i < TOUR.length - 1 ? <button className="btn btn-primary" onClick={() => setI(i + 1)}>Next</button> : <span className="t-small">That’s the tour.</span>}<span className="t-small" style={{ opacity: .7 }}>{i + 1} of {TOUR.length}</span></div></div></div>
       <div className="t-mock" aria-label="Your dashboard">
         <div className="mhead"><span>Embodied Philosophy</span><span>Sign out</span></div>
@@ -450,6 +495,7 @@ function Dashboard({ data, first, pages, next }) {
 }
 
 function Emails({ data, pages, next }) {
+  const t = useT();
   const [copied, setCopied] = useState('');
   const rows = [];
   const today = data.today;
@@ -472,28 +518,30 @@ function Emails({ data, pages, next }) {
   const copy = () => { navigator.clipboard?.writeText(addr).then(() => setCopied('Copied'), () => setCopied('Select it and copy')); };
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">Emails to expect</span><h1 className="t-h1">What lands in your inbox, and when</h1>
-        <p className="t-lede">We keep email to a minimum. Reminders go only to the people teaching and hosting that session, never to a list.</p></div>
+      <div><span className="eyebrow">Emails to expect</span><h1 className="t-h1">{t('emails_title')}</h1>
+        <p className="t-lede">{t('emails_lede')}</p></div>
       <div className="t-card"><ol className="t-timeline">{rows.map((r, i) => (
         <li key={i} className={r.event ? 'event' : ''}><span className="when">{r.when === today ? 'Today' : fmt(r.when, { month: 'short', day: 'numeric' })}</span><span className="node" /><div><div className="what">{r.what}</div>{r.who && <div className="t-small t-muted">{r.who}</div>}</div></li>
       ))}</ol></div>
-      <div className="t-card"><h3 className="t-h3">Make sure they reach you</h3><p className="t-small t-muted" style={{ marginBottom: 10 }}>Add our address to your contacts so reminders don’t end up in spam or Promotions.</p>
+      <div className="t-card"><h3 className="t-h3">Make sure they reach you</h3><p className="t-small t-muted" style={{ marginBottom: 10 }}>{t('emails_contacts')}</p>
         <div className="t-row"><code className="t-code">{addr}</code><button className="btn btn-ghost" onClick={copy}>Copy</button><span className="t-small t-muted">{copied}</span></div></div>
       <div className="t-actions"><button className="btn btn-primary" onClick={next}>Continue</button></div>
     </div>
   );
 }
 
-function Done({ data, first, profile, pages, as, steps, go }) {
+function Done({ data, first, profile, pages, agreement, as, steps, go }) {
+  const t = useT();
   const [state, setState] = useState(data.onboarded ? 'done' : 'idle'), [err, setErr] = useState('');
   const finish = async () => { setState('busy'); try { await post('/api/teach/finish', { as }); setState('done'); } catch (e) { setErr(e.message); setState('idle'); } };
   useEffect(() => { if (state === 'idle' && profile.saved) finish(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const profileIdx = steps.findIndex(s => s.key === 'profile');
   return (
     <div className="t-stack">
-      <div><span className="eyebrow">All set</span><h1 className="t-h1">Thank you, {first}. You’re ready.</h1>
-        <p className="t-lede">From here on, your dashboard is the place to check. We’ll email you when your course page goes live.</p></div>
+      <div><span className="eyebrow">All set</span><h1 className="t-h1">{t('done_title', { first })}</h1>
+        <p className="t-lede">{t('done_lede')}</p></div>
       <div className="t-card"><ul className="t-checks">
+        {data.agreement?.status === 'needed' && <li className={agreement.status === 'signed' ? 'on' : ''}><span className="tick">{agreement.status === 'signed' ? '✓' : ''}</span><span><b>Teaching agreement</b> · <span className="t-muted">{agreement.status === 'signed' ? 'Signed and countersigned' : 'Not signed yet'}</span></span></li>}
         <li className={profile.saved ? 'on' : ''}><span className="tick">{profile.saved ? '✓' : ''}</span><span><b>Bio & headshot</b> · <span className="t-muted">{profile.saved ? 'Saved' : 'Not saved yet'}</span></span></li>
         {data.offerings.map(o => <li key={o.key} className={pages[o.key]?.submitted ? 'on' : ''}><span className="tick">{pages[o.key]?.submitted ? '✓' : ''}</span><span><b>{pages[o.key]?.title || o.title}</b> · <span className="t-muted">{pages[o.key]?.submitted ? 'Course page sent for review' : 'Course page not sent yet'}</span></span></li>)}
         {data.offerings.length > 0 && <li className="on"><span className="tick">✓</span><span><b>Reminders</b> · <span className="t-muted">First one {addDays(data.offerings[0].start, -7) >= data.today ? `arrives ${fmt(addDays(data.offerings[0].start, -7), { month: 'long', day: 'numeric' })}` : 'is on its way'}</span></span></li>}

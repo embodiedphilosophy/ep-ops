@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { Layout, useSide } from './EmailKit';
+import Campaigns from '../social/Campaigns';
 
 const API = '/api/ops/email/launches';
 const post = async body => { const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const j = await res.json().catch(() => ({})); if (!res.ok) throw new Error(j.error || 'Couldn’t save that'); return j; };
@@ -21,7 +22,7 @@ function List({ wizard, setWizard }) {
   const load = useCallback(async () => { const res = await fetch(API).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the launches'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
   return (
-    <Layout title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts, landing page and tasks, counted from key dates." panel={panel} setPanel={setPanel} d={side}>
+    <Layout title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
       {!d ? <p className="ops-empty">Reading the launches…</p> : wizard ? <Wizard d={d} start={wizard} close={() => setWizard(null)} done={id => { window.location.href = `/ops/email/launches?id=${id}`; }} /> : <>
         <section className="soc-panel" aria-label="Launches">
@@ -35,6 +36,8 @@ function List({ wizard, setWizard }) {
           <div className="ph"><h2>Suggested</h2><span className="sub">Launches on the list that don’t exist here yet.</span></div>
           <ul className="em-list">{d.suggestions.map(s => <li key={s.name} className="em-row"><div className="b"><b>{s.name}</b><br /><span className="sub">{Object.entries(s.dates).map(([k, v]) => `${k} ${day(v)}`).join(' · ')}{s.note ? ` · ${s.note}` : ''}</span></div>
             <button className="soc-btn small" onClick={() => setWizard(s)}>Set up</button></li>)}</ul></section>}
+        {/* What used to be Social → Coming up & campaigns: which events to promote, social countdowns, clip requests */}
+        <Campaigns embedded />
       </>}
     </Layout>);
 }
@@ -90,7 +93,7 @@ function Board({ id }) {
   const keep = async () => { const name = prompt('Name this playbook'); if (!name) return; try { await post({ action: 'savePlaybook', id, name }); setMsg('Saved as a playbook.'); } catch (e) { setErr(e.message); } };
   return (
     <Layout title={<>{L.name}</>} intro={`${L.kind || 'Launch'} · ${L.status}${d.event ? ` · ${d.event.title}` : ''}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/email/launches">← All launches</a></p>
+      <p><a href="/ops/email/launches">← All launches</a>{d.event && <> · <a href={`/ops/email/launches#${d.event.key ? `countdown-${d.event.key}` : 'coming-up'}`}>Social countdown and promotion for this event</a></>}</p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <section className="soc-panel" aria-label="Timeline">
         <div className="ph"><h2>Timeline</h2><span className="soc-act">{d.canEdit && ['Planning', 'Live', 'Done'].filter(s => s !== L.status).map(s => <button key={s} className="soc-btn small" onClick={() => set({ status: s }, `Marked ${s.toLowerCase()}.`)}>Mark {s.toLowerCase()}</button>)}
