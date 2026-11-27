@@ -105,7 +105,7 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             {tagged ? <>
               <div className="track">{perPillar.map(([n, c, k]) => <div key={n} style={{ width: `${100 * k / tagged}%`, background: c }} />)}</div>
               <div className="key">{perPillar.map(([n, c, k], i) => { const pc = Math.round(100 * k / tagged), dv = pc - (target[i] ?? 0); return <span key={n}><i style={{ background: c }} />{n} {k} · <span className="mono">{pc}%</span> {Math.abs(dv) >= 10 && <span style={{ color: '#83341F' }}>{dv > 0 ? '+' : '−'}{Math.abs(dv)}</span>}</span>; })}</div>
-            </> : <span className="sub" style={{ fontSize: 12, color: '#5A5346' }}>Shows once this week’s feed posts are tagged Content, Practice or Marketing.</span>}
+            </> : <span className="sub" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>Shows once this week’s feed posts are tagged Content, Practice or Marketing.</span>}
           </div>
           <div className="stats">
             <div className="stat"><span className="v">{feedDays}<small>/7</small></span><span>days with a feed post · daily</span></div>
@@ -200,7 +200,7 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
           <div className="ph">
             <div><h2>Day categories</h2><span className="sub">Each day has a standing post category. The calendar shows whether it’s covered.</span></div>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className="sub"><b className="mono" style={{ color: '#1E1A14' }}>{filled}/7</b> filled this week</span>
+              <span className="sub"><b className="mono" style={{ color: 'var(--ink)' }}>{filled}/7</b> filled this week</span>
               {data.canCategory && <button type="button" className="soc-btn small" aria-pressed={editing} onClick={() => setEditing(x => !x)}>{editing ? 'Done' : 'Edit day categories'}</button>}
             </div>
           </div>
@@ -213,10 +213,10 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
               <label><input type="radio" name="scope" checked={scope === 'week'} onChange={() => setScope('week')} /> This week only</label>
             </div></>}
           <div className="soc-legend">
-            <span><i style={{ background: '#20302A' }} />Filled</span>
-            <span><i style={{ background: '#F2E8D6', border: '1px solid #B98A3E' }} />Filled, awaiting approval</span>
-            <span><i style={{ border: '1.5px dashed #A5432A' }} />Not filled</span>
-            <span><i style={{ background: '#EFE7D8' }} />Missed (day passed)</span>
+            <span><i style={{ background: 'var(--pine)' }} />Filled</span>
+            <span><i style={{ background: 'var(--card)', border: '1px solid var(--ochre)' }} />Filled, awaiting approval</span>
+            <span><i style={{ border: '1.5px dashed var(--accent)' }} />Not filled</span>
+            <span><i style={{ background: 'var(--line-in)' }} />Missed (day passed)</span>
           </div>
         </section>
       </>}
@@ -252,7 +252,7 @@ function ListView({ posts, cats }) {
           <td className="mono" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{day(p.publish_date)} {time(p.publish_time_ET)}</td>
           <td>{kindLabel(p) || (isFeed(p) ? 'Feed' : 'Story')}</td><td>{p.pillar || '—'}</td>
           <td><a href={`/ops/social/compose?row=${p._row}`}>{title(p).slice(0, 80)}</a></td>
-          <td>{categoryFor(p.publish_date, cats) || '—'}</td><td style={{ color: '#5A5346' }}>{p.template_id || '—'}</td>
+          <td>{categoryFor(p.publish_date, cats) || '—'}</td><td style={{ color: 'var(--ink-soft)' }}>{p.template_id || '—'}</td>
           <td><span className={`soc-badge ${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></td>
         </tr>))}
         {!posts.length && <tr><td colSpan={7}>Nothing planned.</td></tr>}</tbody>
@@ -293,7 +293,7 @@ function FeedView({ live, t, warn }) {
   return (
     <div className="soc-main">
       <div className="soc-phone feed">
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 16px 10px' }}><b style={{ fontSize: 15 }}>Instagram</b><span className="sub" style={{ fontSize: 11, color: '#5A5346' }}>feed preview · soonest first</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 16px 10px' }}><b style={{ fontSize: 15 }}>Instagram</b><span className="sub" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>feed preview · soonest first</span></div>
         <div className="soc-stories">{stories.length ? stories.map(p => <span key={p._row}><i />{short(p.publish_date)}</span>) : <span className="sub">No stories planned</span>}</div>
         <div className="soc-feed">{feed.map(p => (
           <article key={p._row} className={p.status === 'Expired' ? 'out' : ''}>

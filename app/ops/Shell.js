@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/ops/auth';
 import { listTasks } from '@/lib/ops/taskstore';
 import { dedupe, needsYouFor } from '@/lib/ops/tasks';
-import { navFor, isTeacher, isStaff } from '@/lib/ops/nav';
+import { navFor, isTeacher, isStaff, SIDEBAR } from '@/lib/ops/nav';
 import { clockAvailable } from '@/lib/ops/hours';
 import ClockWidget from './ClockWidget';
 
@@ -38,9 +38,9 @@ export default async function Shell({ user, current, title, eyebrow, desc, head,
   const withHeads = main.flatMap((i, n) => i.section && i.section !== main[n - 1]?.section
     ? [<span key={`h-${i.section}`} className="ops-nav-sec" aria-hidden="true">{i.section}</span>, link(i)] : [link(i)]);
   return (
-    <div className="ops-shell">
+    <div className={`ops-shell${SIDEBAR === 'pine' ? ' pine' : ''}`}>
       <aside className="ops-side">
-        <a href="/ops" className="ops-brand"><span className="w1">EP Ops</span><span className="w2">General Manager</span></a>
+        <a href="/ops" className="ops-brand"><img src={`/brand/ep-wordmark-${SIDEBAR === 'pine' ? 'white' : 'black'}.png`} alt="Embodied Philosophy" width={184} height={45} /></a>
         {items.length > 1 && <form action="/ops/search" className="ops-search" role="search"><input name="q" placeholder="Search" aria-label="Search the dashboard" /></form>}
         {items.length > 1 && <nav className="ops-nav" aria-label="Dashboard">{withHeads}</nav>}
         {more.length > 0 && <nav className="ops-nav more" aria-label="More">{more.map(link)}</nav>}
