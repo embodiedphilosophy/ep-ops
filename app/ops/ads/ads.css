@@ -126,3 +126,24 @@
 .ops-shell .ads-chip { min-height: 44px }
 .ops-shell .ads-chip button { min-width: 44px; min-height: 44px }
 .ops-shell .ads .mono, .ops-shell .ads-result { overflow-wrap: anywhere }
+/* a campaign in Meta (Ads PR 3): spend against the cap, results per ad set, the rules, what the Ad Agent did */
+.ops-shell .ads-bar { height: 10px; border-radius: var(--r-pill); background: var(--card); overflow: hidden }
+.ops-shell .ads-bar > span { display: block; height: 100%; background: var(--pine); border-radius: var(--r-pill) }
+.ops-shell .ads-live-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+.ops-shell .ads-trend { display: inline-flex; align-items: flex-end; gap: 3px; height: 26px }
+.ops-shell .ads-trend i { display: block; width: 9px; background: var(--pine); border-radius: 2px 2px 0 0; min-height: 2px }
+.ops-shell .ads-trend i.none { background: var(--line) }
+.ops-shell .ads-more { margin: 0 }
+.ops-shell .ads-more summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .ads-more .ads-table { min-width: 460px }
+.ops-shell .ads-acts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.ops-shell .ads-acts li { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line-in); scroll-margin-top: 80px }
+.ops-shell .ads-acts li:target, .ops-shell .ads-acts li.on { background: #FBF9F4 }
+.ops-shell .ads-acts .t { flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.ops-shell .ads-acts .t b { font-weight: 600 }
+.ops-shell .ads-acts .t span { font-size: 13px }
+.ops-shell .ads-acts .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.ops-shell .ads-pill.dry { background: #F4E3C4; color: #6B4C14 }
+.ops-shell .ads-pill.bad { background: #F2D9D2; color: #8A2E18 }
+.ops-shell .ads-ruleslist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px }
+@media (max-width: 800px) { .ops-shell .ads-live-kpis { grid-template-columns: minmax(0, 1fr) } }
