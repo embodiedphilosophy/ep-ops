@@ -20,7 +20,7 @@ export function AddProgram({ tracks, past = [] }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = k => e => setF(s => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
-  if (!open) return <button className="chip primary" onClick={() => setOpen(true)}>+ Add program</button>;
+  if (!open) return <button className="chip primary" onClick={() => setOpen(true)}>Add a program</button>;
   const n = Math.max(0, Math.min(60, Number(f.count) || 0));
   const dates = f.start && n ? sessionDates(f.start, n, f.every) : [];
   const slug = seriesSlug(f.series || (f.name && f.start ? `${f.name}-${f.start.slice(0, 7)}` : ''));

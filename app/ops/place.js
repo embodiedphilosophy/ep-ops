@@ -7,7 +7,7 @@ import { viewsFor } from '@/lib/ops/nav';
 // components, data and API calls (the old page runs and its content is placed inside the one shared shell). Nothing is re-implemented.
 const LOADERS = {
   programs: {
-    index: () => import('./events/page'), launches: () => import('./email/launches/page'),
+    index: () => import('./programs/Index'), launches: () => import('./email/launches/page'),
     library: () => import('./library/page'), landing: () => import('./landing/page'), recordings: () => import('./email/media/page'),
   },
   people: { faculty: () => import('./team/page'), profiles: () => import('./email/teachers/page'), hours: () => import('./hours/page') },
