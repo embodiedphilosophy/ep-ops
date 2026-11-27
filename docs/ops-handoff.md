@@ -326,6 +326,9 @@ One page, three columns: a **phone preview** (4:5 or 1:1 for feed posts, 9:16 fo
 - **CHITHEADS** latest episodes (the podcast feed). **Tarka milestones** is a placeholder until the Tarka area exists (the Tarka Operations sheet will feed it).
 - Tests: `scripts/ops-test/email-media.sh` (12 checks, mock team member) and `email-media.cjs` (browser, desktop and phone); each needs a fresh `run.sh`.
 
+## EP Ops 2, step 1: clean-up (ep-ops half)
+- Deleted the two stray folders that came in by accident with an earlier pull request: `ep-ops-program-title/` and `ops-fix/`. Every file in them was an older copy of a file that is still in the real tree (checked file by file: seven identical, two older versions of `app/ops/ops.css` and `lib/calendar.js`), and nothing imports them.
+- Still to do, in ep-website, after confirming which project runs the jobs: remove the leftover copy of `/ops`, `/teach` and `lib/ops/*` and the five duplicated crons.
 ## Newsletter: featured offer
 - The Newsletter editor has an optional **Featured offer** (title, a few lines, link, button text; the button defaults to "Learn more →"). It sits between the week's events and "Study With Us", in both the Kit editor blocks (`lib/scaffoldtree.js`) and the HTML fallback (`lib/scaffolding.js`), and is left out when blank. The four columns (Featured Offer Title / Text / URL / Button) are added to the Weekly Scaffolding tab the first time one is saved.
 - Test: `scripts/ops-test/email-newsletter-offer.sh` (11 checks, fresh `run.sh`).
