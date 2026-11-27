@@ -28,7 +28,7 @@ export default function ReviewPage({ closes }) {
     <div className="soc">
       <header className="soc-head">
         <div><span className="eyebrow">Content · Social</span><h1>Review <em>&amp; approve</em></h1><p>{closes}</p></div>
-        <div className="soc-act"><a className="soc-btn" href="/ops/settings?view=team">Who can approve</a><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
+        <div className="soc-act"><a className="soc-btn" href="/ops/settings?view=team&s=signoffs">Who can approve</a><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
       </header>
       <div className="soc-review">
         <div className="main">

@@ -19,7 +19,7 @@ export default async function InvitationsView() {
         <aside className="ops-col">
           <h2>Invite a teacher</h2>
           <InviteForm offerings={offs} templates={templates.map(t => t.name)} kinds={KINDS} units={FEE_UNITS} />
-          <p className="ops-meta" style={{ marginTop: 16 }}>When they say yes they are added to every session (Teachers and reminder emails) and sent their onboarding link. With an agreement, they read and sign it online first; it is countersigned for EP automatically and archived here. Agreements live in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</p>
+          <p className="ops-meta" style={{ marginTop: 16 }}>When they say yes they are added to every session (Teachers and reminder emails) and sent their onboarding link. With an agreement, they read and sign it online first; it is countersigned for EP automatically and archived here. Agreements live in <a href="/ops/settings?view=templates&s=contracts">Settings → Contracts</a>.</p>
         </aside>
       </div>
     </Shell>

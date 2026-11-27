@@ -105,7 +105,7 @@ function ThisTeacher({ d, stepKey, email, reload, setMsg, setErr }) {
     <section className="ob-card"><h3>For this teacher</h3>
       {!offs.length ? <p className="sub">Not on any upcoming session. Add them to one in <a href="/ops/programs">Programming</a> or with an <a href="/ops/people?view=invitations">invitation</a>.</p>
         : offs.map(x => <div key={x.key}><b>{x.title}</b><ul className="ob-list">{x.deliverables.map(t => <li key={t.task}>{t.task}</li>)}{!x.deliverables.length && <li>No deliverables for this track</li>}</ul></div>)}
-      <p className="sub">Sessions and dates: <a href="/ops/programs">Programming</a>. What teachers owe, by track: <a href="/ops/settings?t=templates">Settings → Task templates</a> (rows assigned to Teacher).</p>
+      <p className="sub">Sessions and dates: <a href="/ops/programs">Programming</a>. What teachers owe, by track: <a href="/ops/settings?view=templates&s=templates">Settings → Task templates</a> (rows assigned to Teacher).</p>
     </section>);
   if (stepKey === 'profile') return (
     <section className="ob-card"><h3>For this teacher</h3>
@@ -116,7 +116,7 @@ function ThisTeacher({ d, stepKey, email, reload, setMsg, setErr }) {
   if (stepKey === 'agreement') return (
     <section className="ob-card"><h3>For this teacher</h3>
       <p className="sub">They haven’t signed an agreement yet, so they read and sign the General Teaching Agreement here, before their bio. It lists their current offerings; the fee reads “as agreed with EP in writing for each offering”. Jacob countersigns automatically and the signed copy is archived in <a href="/ops/people?view=invitations">People → Invitations</a>.</p>
-      <p className="sub">Teachers who signed an agreement with their invitation skip this step, and so do staff and contractors on the Team tab. To change the wording, add a row named “General Teaching Agreement” in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</p>
+      <p className="sub">Teachers who signed an agreement with their invitation skip this step, and so do staff and contractors on the Team tab. To change the wording, add a row named “General Teaching Agreement” in <a href="/ops/settings?view=templates&s=contracts">Settings → Contracts</a>.</p>
     </section>);
   if (stepKey === 'circle') return <section className="ob-card"><h3>For this teacher</h3><p className="sub">This step gives them access to their course in Circle. It shows only for Circle tracks (Sādhana School, SSWW, seasonal).</p></section>;
   return null;

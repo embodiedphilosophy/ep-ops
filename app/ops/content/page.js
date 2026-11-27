@@ -8,6 +8,7 @@ import { addDays } from '@/lib/ops/tasks';
 import { longDate } from '@/lib/dates';
 import Shell, { opsUser } from '../Shell';
 import SiteEditor from './SiteEditor';
+import { settingsHref } from '@/lib/ops/settingsgroups';
 import { tableOf } from '@/lib/ops/sitetables';
 import { EmailViews } from '../email/EmailKit';
 import { NextPosts } from './SocialEngine';
@@ -36,9 +37,9 @@ export default async function Content({ searchParams }) {
     const s = String(sp.s || '');
     const to = { review: 'review', health: 'review', history: 'published', quotes: 'library', captions: 'library', rules: 'rules', art: 'library', images: 'library', promo: 'library', videos: 'library', categories: 'library', sources: 'library' }[s];
     const keep = ['art', 'promo', 'videos', 'categories', 'sources', 'quotes', 'captions'].includes(s) ? `&s=${s}` : '';
-    redirect(to === 'rules' ? '/ops/settings?view=social-rules' : to ? `/ops/publish?view=${to}${keep}` : '/ops/publish');
+    redirect(to === 'rules' ? '/ops/settings?view=templates&s=social-rules' : to ? `/ops/publish?view=${to}${keep}` : '/ops/publish');
   }
-  if (sp?.tab === 'website') redirect(`/ops/settings${sp?.t ? `?t=${encodeURIComponent(sp.t)}` : ''}`);
+  if (sp?.tab === 'website') redirect(sp?.t ? settingsHref(String(sp.t)) : '/ops/settings');
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   // The old Overview (status board, Next posts) is gone: This week is the new front page, and Next posts lives in Social
   if (sp?.tab === 'media') redirect('/ops/programs?view=recordings');

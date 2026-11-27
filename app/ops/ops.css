@@ -1312,3 +1312,38 @@
   .ops-shell .st-links a, .ops-shell .st-chips a { min-height: 44px }
   .ops-shell .st-rows li { min-height: 44px }
 }
+
+/* Business and Settings (EP Ops 2, step 8): money pages as white panels; Settings as a list of sections beside the section. Tokens from step 2. */
+.ops-shell .bz-panel { margin: 16px 0 0; padding: 16px 18px; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--shadow); min-width: 0 }
+.ops-shell .bz-panel > .ops-sub:first-child { margin-top: 0 }
+.ops-shell .bz-panel .ops-table-wrap { overflow-x: auto; max-width: 100% }
+.ops-shell .bz-funnel { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px }
+.ops-shell .bz-funnel li { display: flex; flex-direction: column; gap: 6px; padding: 14px; background: var(--card); border-radius: var(--r-panel); min-width: 0 }
+.ops-shell .bz-funnel .n { font-size: 13px; font-weight: 600; overflow-wrap: anywhere }
+.ops-shell .bz-funnel .v { font-family: var(--serif); font-weight: 600; font-variant-numeric: lining-nums; font-size: 32px; line-height: 1.05 }
+.ops-shell .bz-funnel .bar { display: block; height: 6px; background: var(--hair); border-radius: 3px; overflow: hidden }
+.ops-shell .bz-funnel .bar span { display: block; height: 100%; background: var(--accent) }
+.ops-shell .bz-funnel .sub { font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .pr-person { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px }
+.ops-shell .pr-person:hover { text-decoration-color: var(--accent) }
+
+.ops-shell .ops-setgrid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start }
+.ops-shell .ops-setlist { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 12px; padding: 8px; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--shadow) }
+.ops-shell .ops-setitem { display: flex; flex-direction: column }
+.ops-shell .ops-setitem .g { margin: 10px 10px 2px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft) }
+.ops-shell .ops-setitem:first-child .g { margin-top: 4px }
+.ops-shell .ops-setlist a { display: flex; align-items: center; min-height: 36px; padding: 6px 10px; border-radius: var(--r-ctl); color: var(--ink); font-size: 14px; text-decoration: none }
+.ops-shell .ops-setlist a:hover { background: var(--line-in) }
+.ops-shell .ops-setlist a[aria-current=page] { background: var(--sand); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent) }
+.ops-shell .ops-setbody { min-width: 0 }
+.ops-shell .ops-setbody > .ops-site > .ops-empty:first-child, .ops-shell .ops-setbody > .soc > .ops-empty:first-child { margin-top: 0 }
+@media (max-width: 800px) {
+  .ops-shell .ops-setgrid { grid-template-columns: minmax(0, 1fr); gap: 14px }
+  .ops-shell .ops-setlist { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding: 4px; gap: 4px }
+  .ops-shell .ops-setitem { flex-direction: row; align-items: center; flex: none }
+  .ops-shell .ops-setitem .g { display: none }
+  .ops-shell .ops-setlist a { min-height: 44px; white-space: nowrap }
+  .ops-shell .ops-setlist a[aria-current=page] { box-shadow: none; background: var(--pine); color: #fff }
+  .ops-shell .bz-panel { padding: 14px }
+  .ops-shell .bz-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}

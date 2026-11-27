@@ -12,7 +12,7 @@ const cookie = require('fs').readFileSync(__dirname + '/out/cookie.txt', 'utf8')
     await c.addCookies([{ name: 'ep_ops', value: cookie, domain: 'localhost', path: '/' }]);
     const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message));
     await p.goto('http://localhost:3100/ops/settings?t=sreadings', { waitUntil: 'networkidle' });
-    const nav = await p.locator('.ops-set-nav a').allInnerTexts();
+    const nav = await p.locator('.ops-setlist a').allInnerTexts();
     assert.ok(nav.includes('Reading assignments'), 'listed in Settings: ' + nav);
     await p.getByText('isn’t in the calendar sheet yet').or(p.locator('button:text-is("Add a row")')).first().waitFor();
     if (await p.locator('button:text-is("Create it")').count()) { await p.locator('button:text-is("Create it")').click(); await p.waitForSelector('.ops-site-row', { timeout: 60000 }); }
