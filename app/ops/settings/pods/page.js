@@ -1,16 +1,5 @@
-import { canEditSite } from '@/lib/ops/nav';
-import Shell, { opsUser } from '../../Shell';
-import PodsAdmin from './PodsAdmin';
+import { redirect } from 'next/navigation';
 
+// Moved in EP Ops 2 (step 7): this address redirects to its new home (lib/ops/redirects.mjs does it first; this is the fallback)
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Study pods — Embodied Philosophy', robots: { index: false, follow: false } };
-
-// Sādhana School study pods: approve students who ask to lead one, and give each begun pod its chat link.
-export default async function PodsPage() {
-  const user = await opsUser(canEditSite);
-  return (
-    <Shell user={user} current="settings" eyebrow="Sādhana School" title="Study pods">
-      <PodsAdmin />
-    </Shell>
-  );
-}
+export default function Page() { redirect('/ops/students?view=pods'); }

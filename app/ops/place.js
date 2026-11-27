@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Shell from './Shell';
 import { currentUser } from '@/lib/ops/auth';
-import { viewsFor } from '@/lib/ops/nav';
+import { viewsFor, canSupport, canEditSite } from '@/lib/ops/nav';
 
 // One of the eight places. A place is a page with views (tabs); each view shows what the old page showed, using that page's own
 // components, data and API calls (the old page runs and its content is placed inside the one shared shell). Nothing is re-implemented.
@@ -18,8 +18,8 @@ const LOADERS = {
     promo: () => import('./content/page'), reminders: () => import('./publish/RemindersView'), video: () => import('./publish/VideoView'),
   },
   students: {
-    support: () => import('./support/page'), mentee: () => import('./mentee-year/page'), 'one-to-ones': () => import('./one-to-ones/page'), pods: () => import('./settings/pods/page'),
-    polls: () => import('./settings/polls/page'), partners: () => import('./settings/partners/page'), ce: () => import('./ce/page'),
+    overview: () => import('./students/Overview'), support: () => import('./students/SupportView'), mentee: () => import('./students/MenteeView'),
+    pods: () => import('./students/PodsView'), 'one-to-ones': () => import('./students/OneToOnesView'), ce: () => import('./students/CeView'),
   },
   business: { finance: () => import('./insights/page'), payroll: () => import('./payroll/page') },
   settings: { tables: () => import('./settings/Tables'), team: () => import('./social/team/page'), 'social-rules': () => import('./publish/LibraryView'), reminders: () => import('./email/reminders/page') },
@@ -39,8 +39,12 @@ function wanted(place, sp) {
     if (v === 'email-calendar') return { view: 'calendar', sp: { ...sp, view: 'calendar', show: 'email' } };
     if (v === 'compose-email') return { view: 'compose', sp: { ...sp, view: 'compose', kind: 'email' } };
   }
+  // Students: the older Surveys and Partners views are tabs of the Mentee year (the old Settings pages)
+  if (place === 'students' && (v === 'polls' || v === 'partners')) return { view: 'mentee', sp: { ...sp, view: 'mentee', tab: v === 'polls' ? 'surveys' : 'partners' } };
   return { view: v, sp };
 }
+// Which view an address with no ?view= opens: the first the role may see, except that someone whose work here is only Support (Ichha) opens on Support
+const defaultView = (place, user, views) => (place === 'students' && canSupport(user) && !canEditSite(user) && views.find(v => v.key === 'support')) || views[0];
 // What the old page needs as its `params` (the social sections were one page with a section name)
 const paramsFor = (place, view, sp, extra) => (place === 'publish' && (view === 'library' || view === 'published')) ? { section: view }
   : (place === 'settings' && view === 'social-rules') ? { section: 'rules' } : extra || {};
@@ -51,7 +55,7 @@ export async function renderPlace(place, { searchParams, params } = {}) {
   const views = viewsFor(place, user);
   if (!views.length) redirect('/ops');
   const { view: want, sp } = wanted(place, sp0);
-  const view = views.find(v => v.key === want) || views[0];
+  const home = defaultView(place, user, views), view = views.find(v => v.key === want) || home;
   const mod = await LOADERS[place][view.key]();
   const props = { searchParams: Promise.resolve(sp), params: Promise.resolve(paramsFor(place, view.key, sp, await params)) };
   // the old pages that read ?tab= for their own tabs keep working: the Promo emails view is the Content page's email tab
@@ -60,7 +64,7 @@ export async function renderPlace(place, { searchParams, params } = {}) {
   const qs = o => new URLSearchParams(Object.entries(o).filter(([, v]) => v)).toString();
   const tabs = views.length > 1 && (
     <nav className="ops-filters" aria-label={`${place} views`}>
-      {views.map(v => <a key={v.key} href={`/ops/${place}${v === views[0] ? '' : `?${qs({ view: v.key })}`}`} aria-current={v.key === view.key ? 'page' : undefined}>{v.label}</a>)}
+      {views.map(v => <a key={v.key} href={`/ops/${place}${v === home ? '' : `?${qs({ view: v.key })}`}`} aria-current={v.key === view.key ? 'page' : undefined}>{v.label}</a>)}
     </nav>);
   // Unwrap: the old page returned <Shell ...>content</Shell>. Keep its content, title and own header tabs inside the one shell.
   if (el?.type === Shell) {

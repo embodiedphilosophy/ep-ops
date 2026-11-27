@@ -1280,3 +1280,35 @@
   .ops-shell .pp-find input[name=q] { max-width: none }
   .ops-shell .pp-actions .chip { min-height: 44px }
 }
+/* Students (EP Ops 2, step 7): the overview, "Who needs looking after". Cards use the panel, status pills and tokens above. */
+.ops-shell .st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start }
+.ops-shell .st-card { margin: 0; min-width: 0; border-radius: var(--r-panel); box-shadow: var(--shadow) }
+.ops-shell .st-card h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 21px }
+.ops-shell .st-card .st-n { font-family: var(--serif); font-weight: 600; font-variant-numeric: lining-nums; font-size: 22px; color: var(--accent) }
+.ops-shell .st-card .st-n:empty { display: none }
+.ops-shell .st-card .ops-empty { margin: 0 0 10px }
+.ops-shell .st-card .st-h { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); margin: 14px 0 4px }
+.ops-shell .st-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px }
+.ops-shell .st-chips a { text-decoration: none; min-height: 32px; display: inline-flex; align-items: center }
+.ops-shell .st-chips a:hover { text-decoration: underline }
+.ops-shell .st-rows, .ops-shell .st-stats { list-style: none; margin: 0; padding: 0 }
+.ops-shell .st-rows li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-in); font-size: 14px; min-width: 0 }
+.ops-shell .st-rows li:first-child { border-top: 0 }
+.ops-shell .st-rows li > a, .ops-shell .st-rows li > span:first-child { min-width: 0; flex: 1; color: var(--ink); text-decoration: none }
+.ops-shell .st-rows li > a:hover b { text-decoration: underline }
+.ops-shell .st-rows b { display: block; font-weight: 600; overflow-wrap: anywhere }
+.ops-shell .st-sub { display: block; font-size: 12.5px; color: var(--ink-soft); overflow-wrap: anywhere }
+.ops-shell .st-when, .ops-shell .st-count { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; font-variant-numeric: tabular-nums }
+.ops-shell .st-count.risk { color: var(--accent); font-weight: 600 }
+.ops-shell .st-count.ok { color: var(--pine); font-weight: 600 }
+.ops-shell .st-stats li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; font-size: 14px }
+.ops-shell .st-stats li i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--none); transform: translateY(0) }
+.ops-shell .st-stats li i.ok { background: var(--pine) } .ops-shell .st-stats li i.soon { background: var(--ochre) } .ops-shell .st-stats li i.risk { background: var(--accent) }
+.ops-shell .st-foot { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .st-links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 12px 0 0; font-size: 13.5px }
+.ops-shell .st-links a { color: var(--accent); display: inline-flex; align-items: center; min-height: 32px }
+@media (max-width: 700px) {
+  .ops-shell .st-grid { grid-template-columns: minmax(0, 1fr) }
+  .ops-shell .st-links a, .ops-shell .st-chips a { min-height: 44px }
+  .ops-shell .st-rows li { min-height: 44px }
+}
