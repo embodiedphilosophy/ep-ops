@@ -12,6 +12,12 @@ export CALENDLY_API_BASE=$M/calendly CALENDLY_TOKEN=mock
 # Tasks and the time clock live in Neon when DATABASE_URL is set: unset it so tests never touch the real database
 # (tasks then come read-only from Motion through the mock; the time clock shows as unavailable).
 unset RESEND_API_KEY CIRCLE_API_TOKEN CRON_SECRET OPS_ORIGIN OPS_LIVE REVALIDATE_SECRET CIRCLE_EVENT_SYNC DATABASE_URL POSTGRES_URL TASKS_BACKEND
+# Ads (Meta): never inherit real settings. The base address points at the Meta mock (:4556) so even a stray call cannot reach Meta; the ads flows set the rest themselves.
+unset META_ADS_TOKEN META_AD_ACCOUNT_ID META_PIXEL_ID META_PAGE_ID META_ADS_LIVE ADS_TEST_DB
+export META_ADS_BASE=http://localhost:4556
+# MOCK_ADS=dry | live (ads-settings.sh only): fake Meta settings so Settings shows the other modes. The token is a throwaway word; the mock accepts any.
+if [ "$MOCK_ADS" = dry ] || [ "$MOCK_ADS" = live ]; then export META_ADS_TOKEN=mock-ads-token-for-the-settings-test META_AD_ACCOUNT_ID=act_MOCK1 META_PIXEL_ID=PIX1 META_PAGE_ID=PAGE1; fi
+[ "$MOCK_ADS" = live ] && export META_ADS_LIVE=live
 export OPS_SECRET="$(cat "$K/out/ops_secret")"
 export CALENDAR_SHEET_ID=mock-sheet SOCIAL_SHEET_ID=mock-social
 export MOCK_LOG="$K/out/mock.log"
