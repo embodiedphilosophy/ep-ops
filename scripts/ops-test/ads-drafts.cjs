@@ -29,7 +29,7 @@ const get = (u, ck_) => fetch(U + u, { redirect: 'manual', headers: { Cookie: `e
   ck('Rebecka is sent away from Finance, Payroll and Audience', (await get('/ops/business', reb)).status === 307 && (await get('/ops/business?view=finance', reb)).status === 307 && (await get('/ops/business?view=payroll', reb)).status === 307 && (await get('/ops/business?view=audience', reb)).status === 307);
   ck('Rebecka can open Ads and its results (the list), but the finance API refuses her', (await (await fetch(`${U}/api/ops/ads`, { headers: { Cookie: `ep_ops=${reb}` } })).json()).campaigns !== undefined);
   const ads = await (await get('/ops/ads', DIRECTOR)).text();
-  ck('Ads has one tab only (Campaigns): no dead Audience library or Audience insights tabs', !/aria-label="ads views"/.test(ads) && !/Audience library|Audience insights/.test(ads));
+  ck('Ads has two tabs (Campaigns and, since PR 4, Audience library): no dead Audience insights tab yet', /aria-label="ads views"/.test(ads) && /Audience library/.test(ads) && !/Audience insights/.test(ads));
 
   const b = await chromium.launch();
   const as = async (c, vp = { width: 1360, height: 900 }) => { const ctx = await b.newContext({ viewport: vp }); await ctx.addCookies([{ name: 'ep_ops', value: c, url: U }]); const p = await ctx.newPage(); p.errs = []; p.posts = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('request', r => r.method() === 'POST' && p.posts.push(r.url())); p.on('dialog', d => d.accept()); return p; };

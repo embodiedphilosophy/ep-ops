@@ -4,6 +4,7 @@ import SocialEngine from '../content/SocialEngine';
 import { Reminders } from '../email/Reminders';
 import SignOffs from './SignOffs';
 import Connections from './Connections';
+import AdsThresholds from './AdsThresholds';
 import { GROUPS, sectionsFor, defaultSection } from '@/lib/ops/settingsgroups';
 import '../social/social.css';
 import '../email/email.css';
@@ -25,6 +26,7 @@ export default async function SettingsGroup({ group, searchParams }) {
   else if (sec.key === 'signoffs') body = await SignOffs();
   else if (sec.key === 'reminders') body = <Reminders />;
   else if (sec.key === 'social-rules') body = <div className="soc"><SocialEngine director={!!user.director} keys={['rules']} base={href(sec.key)} /></div>;
+  else if (sec.key === 'ads-library') body = <AdsThresholds />;
   else body = <Connections />;
   return (
     <Shell user={user} current="settings" eyebrow="Settings" title={g.title} desc={g.desc}>

@@ -147,3 +147,15 @@
 .ops-shell .ads-pill.bad { background: #F2D9D2; color: #8A2E18 }
 .ops-shell .ads-ruleslist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px }
 @media (max-width: 800px) { .ops-shell .ads-live-kpis { grid-template-columns: minmax(0, 1fr) } }
+/* the Audience library (Ads PR 4) */
+.ops-shell .ads-tags { display: flex; flex-wrap: wrap; gap: 4px }
+.ops-shell .ads-tag { display: inline-flex; padding: 2px 9px; border-radius: var(--r-pill); background: var(--card); border: 1px solid var(--line-in); font-size: 12px }
+.ops-shell .ads-linkbtn { border: 0; background: none; padding: 0; min-height: 44px; font: inherit; text-align: left; cursor: pointer; color: var(--ink); text-decoration: underline; text-underline-offset: 2px }
+.ops-shell .ads-table .acts { display: flex; gap: 6px; flex-wrap: wrap }
+.ops-shell .ads-inline input[type=search] { width: 100%; box-sizing: border-box }
+.ops-shell .ads-ideas, .ops-shell .ads-says { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px }
+.ops-shell .ads-json { margin: 8px 0 0; padding: 12px; background: #FBF9F4; border-radius: var(--r-ctl); font-family: var(--mono); font-size: 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere }
+.ops-shell .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+.ops-shell .ads-set .ads-facts label { max-width: 320px }
+.ops-shell .ads-set .ads-facts input { width: 140px }
+.ops-shell .ads-scroll { position: relative }
