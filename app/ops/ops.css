@@ -1178,3 +1178,49 @@
   .ops-shell .btn, .ops-shell .chip, .soc .soc-btn, .soc .soc-btn.small, .ops-shell .ops-filters a { min-height: 44px }
   .ops-shell .ops-head h1.ops-name, .ops-shell .ops-name { font-size: 34px; line-height: 36px }
 }
+
+/* ---------- Programs (EP Ops 2, step 4): the index and the program page ---------- */
+/* Status: a soft pill with the word inside. Terra only for late or at risk. */
+.ops-shell .ops-status { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--line-in); color: var(--ink-soft) }
+.ops-shell .ops-status.ok { background: #E2EAE3; color: var(--pine) }
+.ops-shell .ops-status.soon { background: #F5EBD3; color: var(--soon-text) }
+.ops-shell .ops-status.risk { background: #F4DDD5; color: var(--accent) }
+.ops-shell .pg-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start }
+.ops-shell .pg-add > form { flex-basis: 100% }
+.ops-shell .pg-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px }
+.ops-shell .pg-chips a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); color: var(--ink); font-size: 13px; font-weight: 500; text-decoration: none }
+.ops-shell .pg-chips a:hover { border-color: var(--ink-soft) }
+.ops-shell .pg-chips a[aria-current=page] { background: var(--pine); border-color: var(--pine); color: #fff }
+.ops-shell .pg-chips .n { font-size: 11px; opacity: .75; font-variant-numeric: tabular-nums }
+.ops-shell .pg-scroll, .ops-shell .pg-cal-scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow) }
+.ops-shell .pg-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px }
+.ops-shell .pg-table thead th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 500; color: var(--ink-soft); border-bottom: 1px solid var(--line) }
+.ops-shell .pg-table td { padding: 10px 14px; border-bottom: 1px solid var(--line-in); vertical-align: top }
+.ops-shell .pg-table tbody:last-child tr:last-child td { border-bottom: 0 }
+.ops-shell .pg-table .pg-group th { text-align: left; padding: 14px 14px 6px; font-family: var(--serif); font-size: 17px; font-weight: 600; color: var(--ink); background: var(--panel) }
+.ops-shell .pg-table .pg-name { display: block; font-weight: 600; font-size: 14px; color: var(--ink); text-decoration: none }
+.ops-shell .pg-table .pg-name:hover { color: var(--accent); text-decoration: underline }
+.ops-shell .pg-table .sub { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 1px }
+.ops-shell .pg-table .pg-next { margin-top: 3px }
+.ops-shell .pg-table .sub.late { color: var(--accent); font-weight: 600 }
+.ops-shell .pg-table .pg-when, .ops-shell .pg-table .pg-fac { color: var(--ink-soft) }
+.ops-shell .pg-table .none { color: var(--none) }
+.ops-shell .pg-circle.ok { color: var(--pine); font-weight: 600 } .ops-shell .pg-circle.soon { color: var(--soon-text); font-weight: 600 } .ops-shell .pg-circle.none { color: var(--none) }
+.ops-shell .pg-empty { margin-top: 16px }
+.ops-shell .pg-more { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 18px 2px 0; font-size: 13px; color: var(--ink-soft) }
+.ops-shell .pg-more a { color: var(--ink-soft); display: inline-flex; align-items: center; min-height: 32px; text-decoration: underline; text-underline-offset: 3px }
+.ops-shell .pg-more a[aria-current=page] { color: var(--ink); font-weight: 600 }
+.ops-shell .pg-more .gap { flex: 1 }
+.ops-shell .pg-month { margin-top: 22px }
+.ops-shell .pg-cal { display: grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); min-width: 770px }
+.ops-shell .pg-cal .wd { padding: 8px 10px; font-size: 12px; font-weight: 500; color: var(--ink-soft); border-bottom: 1px solid var(--line) }
+.ops-shell .pg-cal .cell { min-height: 78px; padding: 6px; border-right: 1px solid var(--line-in); border-bottom: 1px solid var(--line-in); display: flex; flex-direction: column; gap: 3px }
+.ops-shell .pg-cal .cell.blank { background: var(--ground); opacity: .5 }
+.ops-shell .pg-cal .cell.today .num { background: var(--pine); color: #fff }
+.ops-shell .pg-cal .num { align-self: flex-start; min-width: 22px; padding: 0 5px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; text-align: center; color: var(--ink-soft) }
+.ops-shell .pg-cal .ev { display: block; padding: 2px 8px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600; line-height: 18px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--line-in); color: var(--ink-soft) }
+.ops-shell .pg-cal .ev.ok { background: #E2EAE3; color: var(--pine) } .ops-shell .pg-cal .ev.soon { background: #F5EBD3; color: var(--soon-text) } .ops-shell .pg-cal .ev.risk { background: #F4DDD5; color: var(--accent) }
+@media (max-width: 700px) {
+  .ops-shell .pg-chips a, .ops-shell .pg-more a { min-height: 44px }
+  .ops-shell .pg-table td a { display: inline-block; min-height: 24px }
+}
