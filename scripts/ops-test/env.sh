@@ -41,3 +41,8 @@ export META_GRAPH_URL=$M/graph META_ACCESS_TOKEN=mock META_IG_USER_ID=IG1 META_A
 export DRIVE_API_BASE=$M/gdrive DRIVE_UPLOAD_USER=jacob@embodiedphilosophy.com SOCIAL_UPLOADS_FOLDER_ID=mockfolder0123456789
 export CRON_SECRET=mock-cron-secret OPS_LIVE=${MOCK_OPS_LIVE:-1}   # MOCK_OPS_LIVE=0: the app starts as it does on a project where the jobs are paused (final-sweep-crons.sh)
 export SOCIAL_INGEST_SECRET=mock-ingest-secret-0123456789
+# Ads PR 2 (campaign drafts): copy drafting goes to the mock Anthropic on :4555, with a throwaway key; the real key is never used (unset first). Pictures are kept inline
+# (no Blob) and Ads tables live in PGlite, an in-process Postgres, so no test touches a real database. All three switches are inert unless set, and are not set in production.
+unset ANTHROPIC_API_KEY ANTHROPIC_BASE
+export ANTHROPIC_BASE=$M/anthropic ANTHROPIC_API_KEY=mock-anthropic-key-not-real ADS_TEST_BLOB=inline ADS_TEST_DB=pglite
+if [ "$MOCK_NOKEY" = 1 ]; then unset ANTHROPIC_API_KEY; fi   # ads-drafts.sh: a run with no drafting key

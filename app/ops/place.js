@@ -4,7 +4,7 @@ import { currentUser } from '@/lib/ops/auth';
 import { viewsFor, canSupport, canEditSite } from '@/lib/ops/nav';
 import { oldSettingsAddress } from '@/lib/ops/settingsgroups';
 
-// One of the eight places. A place is a page with views (tabs); each view shows what the old page showed, using that page's own
+// One of the nine places. A place is a page with views (tabs); each view shows what the old page showed, using that page's own
 // components, data and API calls (the old page runs and its content is placed inside the one shared shell). Nothing is re-implemented.
 // Settings: the four groups are one page given the group's name (app/ops/settings/Group.js)
 const group = g => async () => { const { default: Group } = await import('./settings/Group'); return { default: p => Group({ group: g, ...p }) }; };
@@ -24,6 +24,7 @@ const LOADERS = {
     overview: () => import('./students/Overview'), support: () => import('./students/SupportView'), mentee: () => import('./students/MenteeView'),
     pods: () => import('./students/PodsView'), 'one-to-ones': () => import('./students/OneToOnesView'), ce: () => import('./students/CeView'),
   },
+  ads: { campaigns: () => import('./ads/CampaignsView') },
   business: { finance: () => import('./business/FinanceView'), payroll: () => import('./business/PayrollView'), audience: () => import('./business/AudienceView') },
   settings: { team: group('team'), templates: group('templates'), website: group('website'), connections: group('connections') },
 };

@@ -1,0 +1,128 @@
+/* Ads (Ads PR 2): white panels, serif lining numerals, soft pills, segmented controls. Tokens come from ops.css. */
+.ops-shell .ads { display: flex; flex-direction: column; gap: 16px; max-width: 1180px }
+.ops-shell .ads-panel, .ops-shell .ads-switch { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.ops-shell .ads-panel .ph, .ops-shell .ads-switch .ph, .ops-shell .ads-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center }
+.ops-shell .ads-panel h2, .ops-shell .ads-head h2 { font-family: var(--serif); font-weight: 600; font-size: 24px; margin: 0 }
+.ops-shell .ads-switch h3 { font-family: var(--serif); font-weight: 600; font-size: 22px; margin: 0 }
+.ops-shell .ads .sub { font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .ads .crumb { font-size: 12.5px; color: var(--ink-soft); margin: 0 }
+.ops-shell .ads-mode { margin: 0; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px }
+.ops-shell .ads-note, .ops-shell .ads-note-in { padding: 12px 14px; background: var(--card); border-radius: var(--r-ctl); font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .ads-note p, .ops-shell .ads-note-in { margin: 4px 0 0 }
+.ops-shell .ads-kpis { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.ops-shell .ads-kpis li { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px }
+.ops-shell .ads-kpis .l { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ads-kpis .v { font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1.05; font-variant-numeric: lining-nums }
+.ops-shell .ads-kpis .d { font-size: 12px; color: var(--ink-soft) }
+/* segmented tabs and the yes / no switch */
+.ops-shell .ads-seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--card); border-radius: var(--r-pill); flex-wrap: wrap }
+.ops-shell .ads-seg button { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-soft); font: inherit; font-size: 13px; cursor: pointer }
+.ops-shell .ads-seg button[aria-pressed=true] { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: var(--shadow) }
+.ops-shell .ads-seg button:disabled { opacity: .5; cursor: default }
+.ops-shell .ads-seg .n { margin-left: 4px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft) }
+.ops-shell .ads-steps { display: flex; flex-wrap: wrap; gap: 8px }
+.ops-shell .ads-steps button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); font: inherit; font-size: 13px; cursor: pointer; color: var(--ink) }
+.ops-shell .ads-steps button[aria-current=step] { background: var(--pine); border-color: var(--pine); color: #fff; font-weight: 600 }
+/* soft pills */
+.ops-shell .ads-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--r-pill); background: var(--sand); color: var(--ink); font-size: 12px; font-weight: 500; white-space: nowrap }
+.ops-shell .ads-pill.warn { background: #F4E3C4; color: #6B4C14 }
+.ops-shell .ads-pill.good { background: #DDE8DF; color: var(--pine) }
+.ops-shell .ads-pill.calm { background: #E8E2D4; color: var(--ink-soft) }
+/* tables scroll inside their panel */
+.ops-shell .ads-scroll { overflow-x: auto; max-width: 100% }
+.ops-shell .ads-table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px }
+.ops-shell .ads-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--ink-soft); padding: 8px 10px; border-bottom: 1px solid var(--line) }
+.ops-shell .ads-table td { padding: 10px; border-bottom: 1px solid var(--line-in); vertical-align: top }
+.ops-shell .ads-table .num { font-variant-numeric: lining-nums tabular-nums }
+.ops-shell .ads-table tr.on td { background: #FBF9F4 }
+.ops-shell .ads-name { font-weight: 600; color: var(--ink) }
+.ops-shell .ads-table.copy textarea, .ops-shell .ads-table.copy input { width: 100%; box-sizing: border-box; min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 8px 10px; font: inherit; background: #FBF9F4 }
+.ops-shell .ads-table.copy textarea { min-width: 240px; resize: vertical }
+/* two columns that stack on a phone */
+.ops-shell .ads-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start }
+.ops-shell .ads-cols .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.ops-shell .ads-sets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.ops-shell .ads-sets li { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ads-sets li.on { background: #FBF9F4 }
+.ops-shell .ads-sets .no { font-family: var(--serif); font-size: 24px; width: 24px; font-variant-numeric: lining-nums }
+.ops-shell .ads-sets .b { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.ops-shell .ads-sets .acts { display: flex; gap: 6px }
+.ops-shell .ads-others { list-style: none; margin: 0; padding: 0 }
+.ops-shell .ads-others li { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ads-others li > div { display: flex; flex-direction: column; min-width: 0 }
+.ops-shell .ads-tiles { display: flex; flex-wrap: wrap; gap: 8px }
+.ops-shell .ads-tile { display: flex; flex-direction: column; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px }
+.ops-shell .ads-adv { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-ctl) }
+.ops-shell .ads-adv .cap { display: flex; gap: 10px; align-items: center; font-weight: 600 }
+.ops-shell .ads-adv .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 }
+.ops-shell .ads-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 12px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: 13px }
+.ops-shell .ads-chip button { min-width: 32px; min-height: 32px; border: 0; background: none; cursor: pointer; font-size: 16px }
+/* the five ads */
+.ops-shell .ads-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px }
+.ops-shell .ads-cards button { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; width: 172px; min-height: 44px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); font: inherit; font-size: 13px; text-align: left; cursor: pointer }
+.ops-shell .ads-cards button[aria-pressed=true] { border-color: var(--pine); box-shadow: 0 0 0 1px var(--pine) }
+.ops-shell .ads-cards .sizes { display: flex; gap: 4px; align-items: flex-end; flex-wrap: wrap }
+.ops-shell .ads-cards .sizes img { object-fit: cover; border-radius: 3px; display: block }
+.ops-shell .ads-cards .sizes .blank { display: inline-flex; align-items: center; justify-content: center; background: var(--sand); color: var(--ink-soft); font-size: 8px; border-radius: 3px }
+.ops-shell .ads-pick { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #FBF9F4; border-radius: var(--r-ctl) }
+.ops-shell .ads-pick label, .ops-shell .ads-inline label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .ads-pick select, .ops-shell .ads-pick input[type=text], .ops-shell .ads-pick input:not([type]) { min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 0 10px; font: inherit; background: #fff }
+.ops-shell .ads-inline { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end }
+.ops-shell .ads-inline input, .ops-shell .ads-inline select { min-height: 44px; min-width: 88px; max-width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 0 10px; font: inherit; background: #FBF9F4 }
+.ops-shell .ads-inline .wide { flex: 1 1 260px }
+.ops-shell .ads-inline .wide input { width: 100% }
+.ops-shell .ads-inline b { font-weight: 500; align-self: center }
+/* the phone preview */
+.ops-shell .ads-phone { border: 1px solid var(--line); border-radius: 18px; padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; max-width: 280px; margin: 0 auto; width: 100% }
+.ops-shell .ads-phone .who { display: flex; gap: 8px; align-items: center; font-size: 12px }
+.ops-shell .ads-phone .who > span:last-child { display: flex; flex-direction: column }
+.ops-shell .ads-phone .av { width: 28px; height: 28px; border-radius: 50%; background: var(--pine) }
+.ops-shell .ads-phone .pic { background: var(--sand); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--ink-soft); font-size: 12px; text-align: center }
+.ops-shell .ads-phone.feed .pic { aspect-ratio: 4 / 5 }
+.ops-shell .ads-phone.stories .pic { aspect-ratio: 9 / 16 }
+.ops-shell .ads-phone .pic img { width: 100%; height: 100%; object-fit: cover; display: block }
+.ops-shell .ads-phone .foot { display: flex; gap: 8px; justify-content: space-between; align-items: center; font-size: 13px }
+.ops-shell .ads-phone .btn { padding: 6px 12px; border-radius: 6px; background: var(--card); font-size: 12px; white-space: nowrap }
+.ops-shell .ads-phone .txt { margin: 0; font-size: 13px }
+/* budget, rules, checks */
+.ops-shell .ads-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.ops-shell .ads-choices.two { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+.ops-shell .ads-choices button { display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 12px 14px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); font: inherit; font-size: 13px; cursor: pointer }
+.ops-shell .ads-choices button[aria-checked=true] { border-color: var(--pine); box-shadow: 0 0 0 1px var(--pine) }
+.ops-shell .ads-choices button span { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ads-cap { font-size: 12px; color: var(--ink-soft); display: block }
+.ops-shell .ads-facts { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end }
+.ops-shell .ads-facts > div, .ops-shell .ads-facts > label { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .ads-facts input { min-height: 44px; width: 120px; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 0 10px; font: inherit; background: #FBF9F4 }
+.ops-shell .ads-how { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 13px }
+.ops-shell .ads-how li { display: flex; flex-direction: column; padding-left: 12px; border-left: 2px solid var(--line) }
+.ops-shell .ads-how span { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .ads-rule { display: flex; flex-direction: column; gap: 4px }
+.ops-shell .ads-toggle { display: flex; gap: 10px; align-items: center; min-height: 44px }
+.ops-shell .ads-toggle input { width: 22px; height: 22px }
+.ops-shell .ads-facts-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.ops-shell .ads-facts-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-in); font-size: 13px }
+.ops-shell .ads-facts-list li span { color: var(--ink-soft) }
+.ops-shell .ads-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.ops-shell .ads-checks li { display: flex; gap: 10px; align-items: center; min-height: 44px; border-bottom: 1px solid var(--line-in); font-size: 13.5px }
+.ops-shell .ads-checks .mark { width: 22px; font-weight: 700 }
+.ops-shell .ads-checks li.ok .mark { color: var(--pine) }
+.ops-shell .ads-checks li.no .mark { color: var(--accent) }
+.ops-shell .ads-checks .t { flex: 1 }
+.ops-shell .ads-checks .lnk { min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--ink); text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center }
+.ops-shell .ads-go { display: flex; flex-wrap: wrap; gap: 10px }
+.ops-shell .ads-result { padding: 12px 14px; border-radius: var(--r-ctl); background: #DDE8DF; font-size: 13px }
+.ops-shell .ads-result.dry { background: var(--card) }
+.ops-shell .ads-result ul { margin: 8px 0 0; padding-left: 18px }
+.ops-shell .ads-next { margin-top: 4px }
+@media (max-width: 800px) {
+  .ops-shell .ads-cols { grid-template-columns: minmax(0, 1fr) }
+  .ops-shell .ads-kpis, .ops-shell .ads-choices, .ops-shell .ads-choices.two { grid-template-columns: minmax(0, 1fr) }
+  .ops-shell .ads-cards button { width: calc(50% - 5px) }
+  .ops-shell .ads-panel, .ops-shell .ads-switch { padding: 14px }
+}
+.ops-shell .ads-table.copy td:nth-child(3) { min-width: 170px }
+.ops-shell .ads .soc-btn, .ops-shell .ads .soc-btn.small { min-height: 44px }
+.ops-shell .ads-chip { min-height: 44px }
+.ops-shell .ads-chip button { min-width: 44px; min-height: 44px }
+.ops-shell .ads .mono, .ops-shell .ads-result { overflow-wrap: anywhere }

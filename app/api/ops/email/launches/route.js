@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/ops/auth';
-import { isStaff, canEditEmail } from '@/lib/ops/nav';
+import { isStaff, canEditEmail, canAds } from '@/lib/ops/nav';
 import { loadCalendar } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { readPlain } from '@/lib/ops/store';
@@ -28,7 +28,7 @@ export async function GET(req) {
   const id = new URL(req.url).searchParams.get('id');
   try {
     const [launches, playbooks, plan, snap, cal] = await Promise.all([launchRows(), playbookRows(), planRows({ light: false }).catch(() => []), kitSnapshot(), loadCalendar().catch(() => [])]);
-    const today = todayET(), meta = { canEdit: canEditEmail(user), today };
+    const today = todayET(), meta = { canEdit: canEditEmail(user), today, canAds: canAds(user) };
     const kit = { tags: Object.entries(snap.tags).map(([i, name]) => ({ id: i, name })), segments: Object.entries(snap.segments).map(([i, name]) => ({ id: i, name })) };
     const mine = l => plan.map(r => r.values).filter(v => v.launch_id === l.id && v.status !== 'Not needed');
     if (!id) {

@@ -448,6 +448,17 @@ http.createServer(async (req, res) => {
       res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ id }));
     }
     if (p.startsWith('/gdrive/drive/v3/files/') && p.endsWith('/permissions')) { log('DRIVE shared', p.split('/')[5]); return send(res, 200, { id: 'perm' }); }
+    // Anthropic (Ads PR 2 copy drafting): ANTHROPIC_BASE=$M/anthropic. Deterministic: each source becomes one set (its first sentence, its first words as the headline).
+    // The log line says how many sources came and whether any carried an email address, a link or a merge tag (it must be none: only EP's own plain words are sent).
+    if (p === '/anthropic/v1/messages' && req.method === 'POST') {
+      const raw = await new Promise(r => { let x = ''; req.on('data', c => (x += c)); req.on('end', () => r(x)); }), b = (() => { try { return JSON.parse(raw); } catch { return {}; } })();
+      const src = (() => { try { return JSON.parse(b.messages?.[0]?.content || '{}').sources || []; } catch { return []; } })();
+      const user = String(b.messages?.[0]?.content || '');
+      log('ANTHROPIC', `sources=${src.length}`, /[\w.+-]+@[\w-]+\.\w+/.test(user) ? 'HAS-EMAIL' : 'no-email', /https?:\/\//.test(user) || /\{\{|\{%/.test(user) ? 'HAS-LINK-OR-TAG' : 'no-link', req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY', b.model || '');
+      if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
+      const sets = src.map(s => { const first = String(s.text).split(/(?<=[.!?])\s/)[0].slice(0, 120); return { id: s.id, main_text: first, headline: String(s.text).split(/\s+/).slice(0, 4).join(' ').slice(0, 40) }; });
+      return send(res, 200, { id: 'msg_mock', type: 'message', role: 'assistant', content: [{ type: 'text', text: JSON.stringify({ sets }) }] });
+    }
     if (p.startsWith('/photo/')) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(gradientPng(400, 400)); }
     if (p === '/make-hook' && req.method === 'POST') {
       const b = await body(req);
