@@ -12,9 +12,9 @@ export default function ComposePage({ row, type, date, seeded }) {
   if (data.error) return <p className="ops-empty">{data.error}</p>;
   const posts = data.rows.map(r => ({ ...r.values, status: r.display_status || r.values.status, _row: r.row, _thumb: r.thumb, _src: r.src, _raw: r.values }));
   const recentColourways = posts.filter(x => x.colourway).sort((a, b) => (b.publish_date || '').localeCompare(a.publish_date || '')).map(x => x.colourway);
-  const back = () => { window.location.href = '/ops/publish'; };
+  const back = () => { window.location.href = '/ops/publish?show=social'; };
   const i = row ? posts.findIndex(p => p._row === Number(row)) : -1;
-  if (row && i < 0) return <p className="ops-empty">That post isn’t in the plan any more. <a href="/ops/publish">Back to the calendar</a></p>;
+  if (row && i < 0) return <p className="ops-empty">That post isn’t in the plan any more. <a href="/ops/publish?show=social">Back to the calendar</a></p>;
   const nav = to => () => { window.location.href = `/ops/publish?view=compose&row=${to._row}`; };
   if (!row) {
     const p = blankPost(seed);

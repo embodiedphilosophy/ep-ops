@@ -1,17 +1,5 @@
-import Shell, { opsUser } from '../../Shell';
-import { isStaff, canPublishSocial, canEditSocial, canEditEvents } from '@/lib/ops/nav';
-import ThisWeek from '../ThisWeek';
-import '../social.css';
+import { redirect } from 'next/navigation';
 
+// Moved in EP Ops 2 (step 6): this address redirects to its new home (lib/ops/redirects.mjs does it first; this is the fallback)
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'This Week at EP — Embodied Philosophy', robots: { index: false, follow: false } };
-
-// The standing Sunday 09:00 ET carousel: built from the Master Schedule, nothing posts until someone presses a button (design: "This Week at EP")
-export default async function Page() {
-  const user = await opsUser(isStaff);
-  return (
-    <Shell user={user} current="social-thisweek">
-      <ThisWeek canEdit={canEditSocial(user)} canPublish={canPublishSocial(user)} canSchedule={canEditEvents(user)} />
-    </Shell>
-  );
-}
+export default function Page() { redirect('/ops/publish?view=this-week'); }

@@ -42,7 +42,7 @@ export async function GET(req) {
     }
     const l = launches.find(x => x.id === id); if (!l) return NextResponse.json({ error: 'No such launch' }, { status: 404 });
     const ev = await eventOf(l.event_id), items = [];
-    for (const v of mine(l)) items.push({ lane: 'email', key: v.id, title: v.subject || v.step || 'Email', date: v.planned_date, status: v.status, href: `/ops/publish?view=compose-email&id=${v.id}` });
+    for (const v of mine(l)) items.push({ lane: 'email', key: v.id, title: v.subject || v.step || 'Email', date: v.planned_date, status: v.status, href: `/ops/publish?view=compose&kind=email&id=${v.id}` });
     if (ev) { const label = eventLabel(ev), social = await readPlain('Weekly Plan', { sheet: 'social', light: true }).catch(() => ({ rows: [] }));
       for (const r of social.rows) if (r.values.linked_event === label && r.values.status !== 'Deleted') items.push({ lane: 'social', key: r.values.post_id, title: String(r.values.caption || r.values.pillar || 'Post').split('\n')[0].slice(0, 60), date: r.values.publish_date, status: r.values.status || 'Proposed', href: `/ops/publish?view=compose&row=${r.row}` }); }
     for (const s of l.steps) if (s.type !== 'email') items.push({ lane: s.type, key: `${s.type}:${s.step}`, title: s.step, date: s.date, status: 'Planned', href: '' });

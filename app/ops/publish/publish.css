@@ -1,0 +1,68 @@
+/* EP Ops 2, step 6: Publish. The one calendar and the Compose frame. Uses the ops.css tokens (step 2); nothing here defines a colour of its own
+   except the four kind colours of the calendar, which are the ones the old calendars already used (Pine for email, Ochre for social,
+   Terra-dark for video, sand for automatic). */
+.ops-shell .pub, .ops-shell .pub-compose { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.ops-shell .pub-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between }
+.ops-shell .pub-chips, .ops-shell .pub-kinds { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.ops-shell .pub-cap { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .pub-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); color: var(--ink); font-size: 13.5px; font-weight: 500; text-decoration: none }
+.ops-shell .pub-chip[aria-current=page] { background: var(--pine); border-color: var(--pine); color: #fff }
+.ops-shell .pub-chip .n { font-size: 11px; opacity: .75 }
+.ops-shell .pub-new { display: inline-flex; gap: 8px; flex-wrap: wrap }
+.ops-shell .pub-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.ops-shell .pub-seg { display: inline-flex; gap: 4px; margin-left: auto }
+.ops-shell .pub-ov { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; min-height: 44px }
+
+.ops-shell .pub-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch }
+.ops-shell .pub-grid { display: grid; grid-template-columns: repeat(7, minmax(132px, 1fr)); gap: 0; min-width: 940px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: var(--panel) }
+.ops-shell .pub-grid .dow { padding: 6px 8px; font-size: 11px; font-weight: 600; color: var(--ink-soft); border-right: 1px solid var(--line); background: var(--ground) }
+.ops-shell .pub-cell { min-height: 112px; padding: 4px; display: flex; flex-direction: column; gap: 3px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0 }
+.ops-shell .pub-grid.week .pub-cell { min-height: 280px }
+.ops-shell .pub-cell.dim { background: var(--ground); opacity: .7 }
+.ops-shell .pub-cell.today { outline: 2px solid var(--accent); outline-offset: -2px }
+.ops-shell .pub-cell .dn { font-size: 12px; color: var(--ink-soft) }
+.ops-shell .pub-ev { font-size: 10.5px; border-left: 3px solid var(--dashed); padding-left: 4px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ops-shell .pub-it { display: flex; flex-direction: column; gap: 1px; padding: 3px 6px; border-radius: 6px; font-size: 11.5px; line-height: 1.3; text-decoration: none; color: var(--ink); background: var(--sand); border-left: 3px solid var(--dashed); min-width: 0 }
+.ops-shell .pub-it .k { font-size: 10px; opacity: .8 }
+.ops-shell .pub-it .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500 }
+.ops-shell .pub-it .s { font-size: 10px; opacity: .8 }
+.ops-shell .pub-it.k-email { border-left-color: var(--pine) }
+.ops-shell .pub-it.k-social { background: var(--card); border-left-color: var(--ochre) }
+.ops-shell .pub-it.k-video { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent) }
+.ops-shell .pub-it.k-auto { background: repeating-linear-gradient(135deg, var(--sand) 0 6px, var(--line-in) 6px 12px); border-left-color: var(--ink-soft) }
+.ops-shell .pub-it.conflict { box-shadow: 0 0 0 2px var(--ochre) }
+.ops-shell .pub-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.ops-shell .pub-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+.ops-shell .pub-list .pub-it { flex: 1 1 260px }
+.ops-shell .pub-key { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-soft); margin: 0 }
+.ops-shell .pub-key i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; background: var(--sand); border-left: 3px solid var(--dashed) }
+.ops-shell .pub-key .k-email i { border-left-color: var(--pine) } .ops-shell .pub-key .k-social i { background: var(--card); border-left-color: var(--ochre) }
+.ops-shell .pub-key .k-video i { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent) } .ops-shell .pub-key .k-auto i { border-left-color: var(--ink-soft) }
+
+/* Compose: three columns, details | preview | checks. The three editors keep their own markup; this only places it. */
+.ops-shell .pub-kinds { padding-bottom: 2px }
+.ops-shell .pub-compose .soc-compose { display: flex; flex-direction: column; gap: 12px }
+@media (min-width: 1101px) {
+  .ops-shell .pub-compose.k-post .cmp-cols { grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr) }
+  .ops-shell .pub-compose.k-post .cmp-details { order: 1 } .ops-shell .pub-compose.k-post .cmp-phone { order: 2 } .ops-shell .pub-compose.k-post .cmp-media { order: 3 }
+}
+@media (min-width: 1201px) { .ops-shell .pub-compose.k-email .em-edit { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px) minmax(220px, 280px) } }
+@media (max-width: 1200px) { .ops-shell .pub-compose.k-email .em-checks { grid-column: 1 / -1 } }
+.ops-shell .pub-compose .em-checks { position: sticky; top: 12px; align-self: start }
+.ops-shell .pub-compose .em-checks ul, .ops-shell .pub-yt-checks ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.ops-shell .pub-compose .g.ok { color: var(--pine) } .ops-shell .pub-compose .g.bad { color: var(--accent-hover) }
+.ops-shell .pub-compose.k-video .pub-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(200px, 260px); gap: 18px; align-items: start }
+.ops-shell .pub-compose.k-video .pub-cols .ops-yt-meta { order: 1 } .ops-shell .pub-compose.k-video .pub-cols .ops-yt-media { order: 2 } .ops-shell .pub-compose.k-video .pub-cols .pub-yt-checks { order: 3 }
+.ops-shell .pub-yt-checks { padding: 14px; border-radius: var(--r-ctl); background: var(--sand); position: sticky; top: 12px }
+@media (max-width: 1100px) { .ops-shell .pub-compose.k-video .pub-cols { grid-template-columns: minmax(0, 1fr) } .ops-shell .pub-compose.k-video .pub-cols > * { order: 0 !important } }
+
+@media (max-width: 760px) {
+  .ops-shell .pub-seg { margin-left: 0 }
+  .ops-shell .pub-bar { align-items: flex-start }
+}
+
+.ops-shell .pub-menu { position: relative }
+.ops-shell .pub-menu summary { list-style: none; cursor: pointer } .ops-shell .pub-menu summary::-webkit-details-marker { display: none }
+.ops-shell .pub-menu div { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: flex; flex-direction: column; min-width: 180px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 20px rgba(30, 26, 20, .12); overflow: hidden }
+.ops-shell .pub-menu div a { min-height: 44px; display: flex; align-items: center; padding: 0 16px; color: var(--ink); text-decoration: none; font-size: 14px }
+.ops-shell .pub-menu div a:hover { background: var(--sand) }

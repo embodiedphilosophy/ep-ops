@@ -17,7 +17,8 @@ function range(view, cursor) {
   return view === 'list' ? [first, last, 1] : [mondayOf(first), add(mondayOf(last), 6), 0];
 }
 
-export function EmailCalendar() {
+// embedded: shown inside Publish › Calendar (its Email kind): the old List / Calendar / Promo sub-menu is left out
+export function EmailCalendar({ embedded = false }) {
   const [view, setView] = useState('month'); const [cursor, setCursor] = useState(today());
   const [d, setD] = useState(null); const [err, setErr] = useState(''); const [msg, setMsg] = useState('');
   const [showEv, setShowEv] = useState(true); const [showSocial, setShowSocial] = useState(true); const [panel, setPanel] = useState(false); const side = useSide(panel);
@@ -38,10 +39,10 @@ export function EmailCalendar() {
     try { await post({ action: 'reschedule', id: item.id, date, confirm: sched }); setMsg(sched ? 'Rescheduled in Kit.' : `Moved to ${long(date)}.`); await load(true); } catch (e) { setErr(e.message); }
   };
   const open = async item => {
-    if (item.kind === 'plan') { window.location.href = `/ops/publish?view=compose-email&id=${item.id}`; return; }
+    if (item.kind === 'plan') { window.location.href = `/ops/publish?view=compose&kind=email&id=${item.id}`; return; }
     if (item.kind === 'auto') { window.location.href = '/ops/publish?view=email'; return; }
     if (!canEdit || !confirm(`Take “${item.title}” into the Ops plan?\n\nThen you can edit it here and drag it to another day. Kit is not changed.`)) return;
-    try { const j = await post({ action: 'adopt', kit_id: item.kit_id }); window.location.href = `/ops/publish?view=compose-email&id=${j.id}`; } catch (e) { setErr(e.message); }
+    try { const j = await post({ action: 'adopt', kit_id: item.kit_id }); window.location.href = `/ops/publish?view=compose&kind=email&id=${j.id}`; } catch (e) { setErr(e.message); }
   };
   const Chip = ({ i }) => {
     const [bg, fg] = colourOf(i.program || (i.kind === 'auto' ? 'MM' : ''));
@@ -56,7 +57,7 @@ export function EmailCalendar() {
     return (
       <div className={`em-cell${dim ? ' dim' : ''}${date === today() ? ' today' : ''}`} onDragOver={e => canEdit && e.preventDefault()} onDrop={e => { e.preventDefault(); try { move(JSON.parse(e.dataTransfer.getData('text/plain')), date); } catch {} }} aria-label={long(date)}>
         <div className="dn"><span className="mono">{at(date).getUTCDate()}</span>{warn.length > 0 && <span className="em-warn" title={warn.map(w => w.text).join('\n')} aria-label={warn.map(w => w.text).join('. ')}>⚠</span>}
-          {canEdit && <a className="plus" href={`/ops/publish?view=compose-email&date=${date}`} aria-label={`New email on ${long(date)}`}>+</a>}</div>
+          {canEdit && <a className="plus" href={`/ops/publish?view=compose&kind=email&date=${date}`} aria-label={`New email on ${long(date)}`}>+</a>}</div>
         {auto.length > 0 && <div className="em-auto" title="Automatic reminders (Kit sends these on its own)">{auto.length} automatic</div>}
         {mine.map(i => <Chip key={i.key} i={i} />)}
         {showEv && (d?.events || []).filter(e => e.date === date).map(e => <span key={e.id} className="em-ev" style={{ borderLeftColor: colourOf(e.program)[0] }}>{e.title}</span>)}
@@ -67,7 +68,7 @@ export function EmailCalendar() {
   const month = cursor.slice(0, 7);
   const title = view === 'week' ? `${long(from)} – ${long(to)}` : at(cursor).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   return (
-    <Layout view="calendar" title={<>Email <em>calendar</em></>} intro="Every email by the day it goes out, coloured by programme. Drag one to move it. Scheduled emails ask first." panel={panel} setPanel={setPanel} d={side}>
+    <Layout view={embedded ? undefined : 'calendar'} title={<>Email <em>calendar</em></>} intro="Every email by the day it goes out, coloured by programme. Drag one to move it. Scheduled emails ask first." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <div className="soc-act em-bar">
         <button className="soc-btn small" onClick={() => step(-1)} aria-label="Earlier">←</button><b className="mono">{title}</b><button className="soc-btn small" onClick={() => step(1)} aria-label="Later">→</button>

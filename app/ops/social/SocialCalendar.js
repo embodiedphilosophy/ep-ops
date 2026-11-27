@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useView, api, day, time, kindLabel } from '../content/SocialEngine';
+import { api, day, time, kindLabel } from '../content/SocialEngine';
 import { POST_TYPES, isFeed, timeKey, readSlides } from '@/lib/ops/socialengine';
 import { rhythmWarnings, weekAhead, isTextHeavy, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
 
@@ -17,8 +17,9 @@ const title = p => String(p.caption || '').split('\n').find(Boolean) || (p.media
 const VIEWS = [['week', 'Week'], ['month', 'Month'], ['list', 'List'], ['grid', 'Grid'], ['feed', 'Feed']];
 
 // The Social calendar: "Week of 23 November at a glance" and everything that hangs off it (the design's Main screen).
-export default function SocialCalendar({ cards, reviewCount, dateLine }) {
-  const [data, reload] = useView('plan');
+// plan: [data, reload] from useView('plan'), read once by Publish › Calendar and shared with the merged calendar
+export default function SocialCalendar({ cards, reviewCount, dateLine, plan }) {
+  const [data, reload] = plan;
   const [mode, setMode] = useState('week');
   const [start, setStart] = useState(monOf(nyToday()));
   const [monthOf, setMonthOf] = useState(nyToday().slice(0, 7));
