@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Layout, useSide } from './EmailKit';
 import Campaigns from '../social/Campaigns';
+import { AdsChoice, AdsPanel, startValue, centsOf } from '../ads/AdsSwitch';
+import { Pill } from '../ads/Campaigns';
+import { adDates, startingBudget } from '@/lib/ops/adsplan';
 
 const API = '/api/ops/email/launches';
 const post = async body => { const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const j = await res.json().catch(() => ({})); if (!res.ok) throw new Error(j.error || 'Couldn’t save that'); return j; };
@@ -25,6 +28,9 @@ function List({ wizard, setWizard, scope }) {
   const [d, setD] = useState(null); const [err, setErr] = useState(''); const [panel, setPanel] = useState(false); const side = useSide(panel);
   const load = useCallback(async () => { const res = await fetch(API).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the launches'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
+  // Ads (directors and the Ads role): a small status beside each launch that runs Meta ads
+  const [ads, setAds] = useState({});
+  useEffect(() => { if (d?.canAds) fetch('/api/ops/ads').then(r => r.json()).then(j => setAds(Object.fromEntries((j.campaigns || []).filter(c => c.launch_id).map(c => [c.launch_id, c])))).catch(() => {}); }, [d?.canAds]);
   return (
     <Layout embedded={!!scope} title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
@@ -33,7 +39,7 @@ function List({ wizard, setWizard, scope }) {
           <div className="ph"><h2>Launches</h2>{d.canEdit && <button className="soc-btn small primary" onClick={() => setWizard(scope ? { event_id: scope.eventIds[0], name: scope.name } : {})}>New launch</button>}</div>
           {!d.launches.filter(l => mine(scope, l)).length ? <p className="ops-empty">{scope ? 'No launch for this program yet. Use “New launch” to start one.' : 'No launches yet. Start one from the suggestions below.'}</p> : <ul className="em-list">{d.launches.filter(l => mine(scope, l)).map(l => (
             <li key={l.id} className="em-row"><div className="b"><span className="mono meta">{l.first ? `${day(l.first)} – ${day(l.last)}` : 'No dates yet'} · {l.kind || 'Launch'}</span><br /><b>{l.name}</b>
-              <span className="chips"><span className="gchip">{l.status}</span><span className="gchip">{l.emails ? `${l.scheduled} of ${l.emails} emails scheduled` : 'No emails'}</span></span></div>
+              <span className="chips"><span className="gchip">{l.status}</span><span className="gchip">{l.emails ? `${l.scheduled} of ${l.emails} emails scheduled` : 'No emails'}</span>{ads[l.id] && <a href={`/ops/ads/${ads[l.id].id}`} aria-label="Meta ads for this launch"><span className="gchip">Ads · </span><Pill status={ads[l.id].status} /></a>}</span></div>
               <a className="soc-btn small" href={linkTo(scope, l.id)}>Open</a></li>))}</ul>}
         </section>
         {d.canEdit && d.suggestions.filter(s => mine(scope, s)).length > 0 && <section className="soc-panel" aria-label="Suggested launches">
@@ -48,7 +54,8 @@ function List({ wizard, setWizard, scope }) {
 
 function Wizard({ d, start, close, done }) {
   const [step, setStep] = useState(1); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
-  const [f, setF] = useState({ name: start.name || '', kind: start.kind || '', event_id: start.event_id || '', playbook_id: start.playbook_id || d.playbooks[0]?.id || '', dates: start.dates || {}, landing_url: '', tag_name: '', audience: { include: [], exclude: [] }, make_drafts: true });
+  const [f, setF] = useState({ name: start.name || '', kind: start.kind || '', event_id: start.event_id || '', playbook_id: start.playbook_id || d.playbooks[0]?.id || '', dates: start.dates || {}, landing_url: '', tag_name: '', audience: { include: [], exclude: [] }, make_drafts: true, ads: startValue({ test: startingBudget(start.playbook_id || d.playbooks[0]?.id, 'test'), advantage: startingBudget('', 'advantage') }, null) });
+  const [madeId, setMadeId] = useState('');
   const [gen, setGen] = useState({ steps: [], missing: [] });
   const pb = d.playbooks.find(p => p.id === f.playbook_id);
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
@@ -58,7 +65,14 @@ function Wizard({ d, start, close, done }) {
   const create = async () => {
     const n = gen.steps.filter(s => s.type === 'email').length;
     if (!confirm(`Create “${f.name}”?\n\n${n} email${n === 1 ? '' : 's'} will be planned${f.make_drafts ? ` and made as drafts in Kit${f.tag_name ? `, and the tag “${f.tag_name}” made in Kit if it isn’t there` : ''}` : ''}. Nothing is scheduled or sent.`)) return;
-    setBusy(true); setErr(''); try { const j = await post({ action: 'create', confirm: true, ...f, steps: gen.steps }); done(j.id); } catch (e) { setErr(e.message); setBusy(false); }
+    setBusy(true); setErr('');
+    let j; try { const { ads, ...rest } = f; j = await post({ action: 'create', confirm: true, ...rest, steps: gen.steps }); } catch (e) { setErr(e.message); setBusy(false); return; }
+    // Meta ads (directors and the Ads role): saying yes makes the draft campaign. The launch is already made; if the draft fails, say so and keep the link.
+    if (d.canAds && f.ads.on) {
+      try { const res = await fetch('/api/ops/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'saveSwitch', launch_id: j.id, on: true, goal: f.ads.goal, structure: f.ads.structure, daily_cents: centsOf(f.ads) }) }); const a = await res.json().catch(() => ({})); if (!res.ok) throw new Error(a.error || 'Couldn’t make the draft'); }
+      catch (e) { setErr(`The launch was made, but the ads draft wasn’t: ${e.message}. Open the launch to try again.`); setMadeId(j.id); setBusy(false); return; }
+    }
+    done(j.id);
   };
   const aud = f.audience.include;
   const addAud = v => { if (!v) return; const [type, id] = v.split(':'), name = (type === 'tag' ? d.kit.tags : d.kit.segments).find(x => String(x.id) === id)?.name || ''; if (!aud.some(x => x.type === type && String(x.id) === id)) set('audience', { ...f.audience, include: [...aud, { type, id: Number(id), name }] }); };
@@ -82,6 +96,8 @@ function Wizard({ d, start, close, done }) {
         {gen.missing.length > 0 && <p className="em-banner bad" role="status">Left out: steps counted from {gen.missing.join(', ')}, which has no date. Go back and add it.</p>}
         <ul className="em-list">{gen.steps.map((s, i) => <li key={i} className="em-row"><div className="b"><span className="gchip" style={{ background: LANE_COLOUR[s.type], color: '#fff' }}>{s.type}</span> <b>{s.step}</b>
           <div className="em-two"><input type="date" aria-label={`Date for ${s.step}`} value={s.date} onChange={e => edit(i, 'date', e.target.value)} />{s.type === 'email' && <input aria-label={`Subject for ${s.step}`} placeholder={`${s.step}: ${f.name}`} value={s.subject || ''} onChange={e => edit(i, 'subject', e.target.value)} />}</div></div></li>)}</ul>
+        {d.canAds && <AdsChoice v={f.ads} set={p => set('ads', { ...f.ads, ...p })} dates={adDates(f.dates)} budgets={{ test: startingBudget(f.playbook_id, 'test'), advantage: startingBudget('', 'advantage') }} />}
+        {madeId && <p><a href={linkTo(scope, madeId)}>Open the launch</a></p>}
         <label className="em-sw"><input type="checkbox" checked={f.make_drafts} onChange={e => set('make_drafts', e.target.checked)} /> Also make the emails as drafts in Kit{f.tag_name ? ' and the tag' : ''}</label>
         <div className="soc-act"><button className="soc-btn" onClick={() => setStep(3)}>Back</button><button className="soc-btn primary" disabled={busy || !gen.steps.length} onClick={create}>{busy ? 'Creating…' : 'Create the launch'}</button></div></>}
     </section>);
@@ -104,6 +120,7 @@ function Board({ id, scope }) {
           {d.canEdit && <button className="soc-btn small" onClick={keep}>Save as a playbook</button>}</span></div>
         <Timeline d={d} />
       </section>
+      {d.canAds && <section className="soc-panel" aria-label="Meta ads"><div className="ph"><h2>Meta ads</h2></div><AdsPanel launchId={id} /></section>}
       <section className="soc-panel" aria-label="Everything in this launch"><div className="ph"><h2>Everything in it</h2></div>
         {d.lanes.map(([k, label]) => { const its = d.items.filter(i => i.lane === k).sort((a, b) => (a.date || '9').localeCompare(b.date || '9')); return (
           <div key={k}><h3 className="ops-sub">{label} <span>{its.length || ''}</span></h3>{!its.length ? <p className="ops-empty">Nothing yet.</p> : <ul className="em-list">{its.map(i => <li key={i.key} className="em-row"><div className="b"><span className="mono meta">{day(i.date)} · {i.status}</span><br />{i.href ? <a href={i.href}>{i.title}</a> : i.title}</div></li>)}</ul>}</div>); })}

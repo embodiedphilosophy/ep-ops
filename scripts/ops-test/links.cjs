@@ -90,13 +90,15 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   t('the Payroll role asking for Audience gets Payroll', /<h1>Payroll<\/h1>/.test(await (await get('/ops/business?view=audience', cookie('stephanie@example.com'))).text()));
   t('Business is not reachable for a teacher', (await get('/ops/business', cookie('abha@example.com'))).status === 307);
   t('Settings is not reachable for a teacher', (await get('/ops/settings', cookie('abha@example.com'))).status === 307);
+  for (const v of ['', '?view=campaigns']) { const r = await get('/ops/ads' + v); t(`/ops/ads${v} loads`, r.status === 200, String(r.status)); }
   console.log('-- the older stubs');
   for (const [u, to] of [['/ops/content?tab=email', '/ops/publish'], ['/ops/content?tab=media', '/ops/programs'], ['/ops/content?tab=review', '/ops/people'], ['/ops/content', '/ops/publish'], ['/ops/content?tab=social&s=review', '/ops/publish'], ['/ops/content?tab=website', '/ops/settings'], ['/ops/admin', '/ops/tasks'], ['/ops/admin?t=links', '/ops/settings'], ['/ops/content?tab=social&s=rules', '/ops/settings']]) {
     let res = await get(u); const loc = res.headers.get('location'); t(`${u} → ${to}`, res.status === 307 && loc && new URL(loc, B).pathname === to, `${res.status} ${loc}`);
   }
   console.log('-- the sidebar for each role');
   const places = h => [...h.matchAll(/class="ops-nav[^"]*"[^>]*>([\s\S]*?)<\/nav>/g)].flatMap(m => [...m[1].matchAll(/href="(\/ops[^"]*)"/g)].map(x => x[1]));
-  const roles = [['director', DIRECTOR, ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/business', '/ops/settings']],
+  const roles = [['director', DIRECTOR, ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/ads', '/ops/students', '/ops/business', '/ops/settings']],
+    ['Ads role (Rebecka): Ads, but not Business or Settings', cookie('rebecka@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/ads', '/ops/students']],
     ['events staff (Irene)', cookie('irene@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/settings']],
     ['events staff (Floss)', cookie('floss@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/settings']],
     ['support (Ichha)', cookie('ichha@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students']],
@@ -111,6 +113,7 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   const ichha = cookie('ichha@example.com'), pub = await get('/ops/students?view=ce', ichha), html = await pub.text();
   t('a view the role may not see falls back to the first allowed one', pub.status === 200 && !/CE credits/.test((html.match(/aria-label="students views"[\s\S]*?<\/nav>/) || [''])[0]));
   t('a teacher is sent away from Publish', (await get('/ops/publish', cookie('abha@example.com'))).status === 307);
+  t('Ads is not reachable for Floss, Irene, Ichha, Carolyn, Stephanie or a teacher', (await Promise.all(['floss', 'irene', 'ichha', 'carolyn', 'stephanie', 'abha'].map(n => get('/ops/ads', cookie(n + '@example.com'))))).every(r => r.status === 307));
   t('Business is not reachable for Floss', (await get('/ops/business', cookie('floss@example.com'))).status === 307);
   console.log('-- addresses the code writes into emails, digests and pages');
   const found = new Set();

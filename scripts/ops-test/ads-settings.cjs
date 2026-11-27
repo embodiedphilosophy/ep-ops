@@ -29,7 +29,7 @@ const metaLog = async () => (await (await fetch('http://localhost:4556/__log')).
   const html = await p.content();
   ck(`[${MODE}] no value is on the page (not the key, the account, the pixel or the Page)`, !/mock-ads-token|act_MOCK1|PIX1|PAGE1|IG1/.test(html));
   ck(`[${MODE}] read only: no buttons or links in the row`, await row.locator('button, a, input').count() === 0);
-  ck(`[${MODE}] the sidebar has no Ads place (that is PR 2)`, !/\bAds\b/.test(await p.locator('nav').first().innerText()));
+  ck(`[${MODE}] the director’s sidebar has the Ads place (added in Ads PR 2), and it works in every mode`, /\bAds\b/.test(await p.locator('nav').first().innerText()) && (await (await fetch(U + '/ops/ads', { headers: { Cookie: `ep_ops=${DIRECTOR}` }, redirect: 'manual' })).status) === 200);
   ck(`[${MODE}] opening Settings asked Meta nothing`, (await metaLog()).total === 0);
 
   // roles: only directors open Connections and jobs
@@ -54,11 +54,11 @@ const metaLog = async () => (await (await fetch('http://localhost:4556/__log')).
   for (const u of pages) { const r = await fetch(U + u, { redirect: 'manual', headers: { Cookie: `ep_ops=${DIRECTOR}` } }); await r.arrayBuffer(); codes.push(r.status); }
   ck(`[${MODE}] ${pages.length} pages loaded as a director (none broke)`, codes.every(c => c < 500), codes.join(','));
   ck(`[${MODE}] loading every page asked Meta nothing, in any mode (even Live)`, (await metaLog()).total === 0);
-  // The database: nothing in the app makes the Ads tables. The built app has no trace of them, and the app's log has no mention.
-  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/(adsstore|adsdb)\.js$/.test(f));
-  ck(`[${MODE}] no source file in app/ or lib/ uses the Ads store`, srcHit.length === 0, srcHit.join(' '));
-  let built = ''; try { built = execFileSync('grep', ['-rlE', 'ads_campaigns|ensureAdsTables', path.join(__dirname, '../../.next/server')]).toString().trim(); } catch (e) { built = ''; }
-  ck(`[${MODE}] the built app contains no Ads table or ensureAdsTables`, built === '', built);
+  // The database: loading pages never makes the Ads tables (the app's log has no mention), and only Ads code may use the store.
+  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/ads[a-z]*\.js$|app\/api\/ops\/ads\/route\.js$/.test(f));
+  ck(`[${MODE}] only Ads code uses the Ads store (lib/ops/ads*.js and the Ads route): no other page, API or library file (Ads PR 2: the store is used by Ads, and by nothing else)`, srcHit.length === 0, srcHit.join(' '));
+  let traced = ''; try { traced = execFileSync('grep', ['-rlE', 'electric-sql', path.join(__dirname, '../../.next/server'), '--include=*.nft.json']).toString().trim(); } catch (e) { traced = ''; }
+  ck(`[${MODE}] the build does not trace PGlite (a test tool) into any route`, traced === '', traced);
   const log = fs.readFileSync(path.join(__dirname, 'out/next.log'), 'utf8');
   ck(`[${MODE}] the app's log has no Ads database or Meta line, and no key`, !/ads_|ensureAds|\[meta-ads\]|mock-ads-token/.test(log));
   await b.close();
