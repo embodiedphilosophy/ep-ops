@@ -129,5 +129,5 @@ export function Timeline({ d }) {
 export function LaunchTimeline({ id }) {
   const [d, setD] = useState(null); const [err, setErr] = useState('');
   useEffect(() => { fetch(`${API}?id=${encodeURIComponent(id)}`).then(r => r.json().then(j => r.ok ? setD(j) : setErr(j.error || 'Couldn’t read this launch'))).catch(() => setErr('Couldn’t read this launch')); }, [id]);
-  return err ? <p className="hint err" role="alert">{err}</p> : d ? <Timeline d={d} /> : <p className="ops-empty">Reading the launch…</p>;
+  return err ? <p className="hint err" role="alert">{err}</p> : d ? <div className="soc"><Timeline d={d} /></div> : <p className="ops-empty">Reading the launch…</p>;
 }

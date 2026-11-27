@@ -1246,3 +1246,9 @@
 .ops-shell .pg-sessions { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel) }
 .ops-shell .ops-wsp .ops-edit, .ops-shell .ops-wsp .ops-program { background: var(--panel); border-radius: var(--r-panel) }
 @media (max-width: 860px) { .ops-shell .pg-two { grid-template-columns: 1fr } }
+.ops-shell .ops-head h1.ops-name.ops-title-edit { margin: 0 }
+.ops-shell .ops-name.ops-title-edit button { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; min-height: 0; height: auto }
+.ops-shell .ops-name.ops-title-edit button span[aria-hidden] { font: 500 14px var(--sans); color: var(--ink-soft); margin-left: 10px }
+.ops-shell .ops-title-form input { font-family: var(--serif); font-size: 28px; font-weight: 600 }
+.ops-shell .pg-sessions { border: 0; box-shadow: none }
+.ops-shell .ops-wsp .ops-program { padding: 14px 18px; border: 1px solid var(--line); box-shadow: var(--shadow) }

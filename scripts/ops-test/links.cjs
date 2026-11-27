@@ -8,7 +8,7 @@ const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8')
 const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { Cookie: `ep_ops=${ck}` } });
 (async () => {
   const { REDIRECTS } = await import(path.join(__dirname, '../../lib/ops/redirects.mjs'));
-  const samples = { '/ops/email/emails': '?show=unlinked', '/ops/email/edit': '?id=EM001', '/ops/events': '?event=E002', '/ops/social/compose': '?row=12', '/ops/social/library': '?s=sources', '/ops/library/:id': '', '/ops/email/launches': '' };
+  const samples = { '/ops/email/emails': '?show=unlinked', '/ops/email/edit': '?id=EM001', '/ops/events': '?range=3m', '/ops/social/compose': '?row=12', '/ops/social/library': '?s=sources', '/ops/library/:id': '', '/ops/email/launches': '' };
   console.log('-- every old address, with its query string');
   for (const r of REDIRECTS) {
     if (r.has || r.missing) continue;
@@ -21,6 +21,18 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
       if (!r.source.includes(':id')) { const final = await get(got.pathname + got.search); t(`${src}${q} lands on a page that loads (no second redirect)`, final.status === 200, `${final.status} ${final.headers.get('location')}`); }
     }
   }
+  console.log('-- one program is its own page (EP Ops 2, step 4)');
+  for (const [u, to] of [['/ops/events?event=P-sadhana-fall-2026', '/ops/programs/P-sadhana-fall-2026'], ['/ops/programs?event=P-sadhana-fall-2026', '/ops/programs/P-sadhana-fall-2026'], ['/ops/events?event=2026-12-01-wsml&all=1', '/ops/programs/2026-12-01-wsml'], ['/ops/events?event=E002', '/ops/programs/E002']]) {
+    const res = await get(u), loc = res.headers.get('location') || '';
+    t(`${u} redirects once to ${to}`, res.status === 307 && new URL(loc, B).pathname === to, `${res.status} ${loc}`);
+  }
+  { const res = await get('/ops/events?event=2026-12-01-wsml&show=past'), loc = res.headers.get('location') || '';
+    t('a past session (?show=past&event=) stays on the Past list', res.status === 307 && new URL(loc, B).pathname === '/ops/programs' && /show=past/.test(loc) && /event=2026-12-01-wsml/.test(loc), loc);
+    const r2 = await get('/ops/programs?show=past&event=2026-12-01-wsml'); t('/ops/programs?show=past&event= loads the Past list', r2.status === 200); }
+  for (const tab of ['', '?tab=sessions', '?tab=faculty', '?tab=launch', '?tab=circle', '?tab=recordings', '?tab=library']) { const r = await get('/ops/programs/P-sadhana-fall-2026' + tab); t(`program page ${tab || '(overview)'} loads`, r.status === 200, String(r.status)); }
+  { const r = await get('/ops/programs/E002'); t('a session ID opens its program (one redirect to the program key)', r.status === 307 || r.status === 200, String(r.status)); }
+  t('a teacher can open a program page', (await get('/ops/programs/P-sadhana-fall-2026', cookie('abha@example.com'))).status === 200);
+  t('a teacher is not offered the Launch tab', !/tab=launch/.test(await (await get('/ops/programs/P-sadhana-fall-2026', cookie('abha@example.com'))).text()));
   console.log('-- the older stubs');
   for (const [u, to] of [['/ops/content?tab=email', '/ops/publish'], ['/ops/content?tab=media', '/ops/programs'], ['/ops/content?tab=review', '/ops/people'], ['/ops/content', '/ops/publish'], ['/ops/content?tab=social&s=review', '/ops/publish'], ['/ops/content?tab=website', '/ops/settings'], ['/ops/admin', '/ops/tasks'], ['/ops/admin?t=links', '/ops/settings']]) {
     let res = await get(u); const loc = res.headers.get('location'); t(`${u} → ${to}`, res.status === 307 && loc && new URL(loc, B).pathname === to, `${res.status} ${loc}`);

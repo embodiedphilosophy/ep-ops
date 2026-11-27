@@ -53,8 +53,9 @@ export default async function ProgramPage({ params, searchParams }) {
 
   const today = todayET(), full = await loadCalendar().catch(() => []);
   const all = (r.program ? full.filter(e => e.series === r.program && !/cancel/i.test(e.status)) : r.events).slice().sort((a, b) => a.date.localeCompare(b.date));
-  const ids = all.map(e => evId(e)).filter(Boolean);
-  const group = groupOf(r), groupLabel = (GROUPS.find(g => g[0] === group) || [])[1] || r.track;
+  // upcoming sessions first: a new launch starts on the next one (the Launches wizard offers upcoming sessions)
+  const ids = [...all.filter(e => e.date >= today), ...all.filter(e => e.date < today)].map(e => evId(e)).filter(Boolean);
+  const group = groupOf(r), groupLabel = (GROUPS.find(g => g[0] === group) || [])[1] || '';
   const tabs = TABS.filter(([k]) => k === 'overview' || k === 'sessions' || (k === 'faculty') || (staff && ['launch', 'recordings'].includes(k)) || (editor && k === 'circle') || (canEditSite(user) && k === 'library'));
   const tab = tabs.some(t => t[0] === first(sp.tab)) ? first(sp.tab) : 'overview';
   const base = `/ops/programs/${encodeURIComponent(key)}`;
@@ -83,8 +84,8 @@ export default async function ProgramPage({ params, searchParams }) {
   if (tab === 'overview') body = await Overview({ r, all, user, tasks, today, launch, staff, teacherView, editor, base, full });
   else if (tab === 'sessions') body = (
     <div className="ops-wsp">
-      <table className="pg-table pg-sessions"><thead><tr><th>#</th><th>Date</th><th>Session</th><th>Teacher</th></tr></thead>
-        <tbody>{all.map((e, i) => <tr key={e.sched_id || e.id}><td>{i + 1}</td><td className="pg-when">{short(e.date)}</td><td><b>{e.module_title || e.title}</b></td><td className="pg-fac">{e.teachers || <span className="none">No teacher yet</span>}</td></tr>)}</tbody></table>
+      <div className="pg-scroll"><table className="pg-table pg-sessions"><thead><tr><th>#</th><th>Date</th><th>Session</th><th>Teacher</th></tr></thead>
+        <tbody>{all.map((e, i) => <tr key={e.sched_id || e.id}><td>{i + 1}</td><td className="pg-when">{short(e.date)}</td><td><b>{e.module_title || e.title}</b></td><td className="pg-fac">{e.teachers || <span className="none">No teacher yet</span>}</td></tr>)}</tbody></table></div>
       {(editor || teacherView) && r.program && <ProgramEditor key={`p-${r.key}-${r.title}-${r.parent}`} series={r.program} />}
       {editor && <EventEditor key={r.key} label={r.program ? 'Edit one session' : undefined} sessions={r.events.filter(e => e.sched_id).map(e => ({ id: e.sched_id, date: e.date, track: e.track, label: `${short(e.date)} · ${e.title}` }))} />}
     </div>);

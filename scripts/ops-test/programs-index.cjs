@@ -61,14 +61,14 @@ let bad = 0; const ck = (n, c, x = '') => { if (!c) { bad++; console.log('FAIL',
   ck('a calendar session links to its program', /\/ops\/programs\?(event|.*)/.test(first), first);
   ck('List and Calendar switch back', await p.getByRole('link', { name: 'List', exact: true }).count() === 1);
 
-  // a row opens the program (the drawer for now; the program page comes in 4b), and the older modes still work
-  await p.goto(U + '/ops/programs'); await p.locator('.pg-name', { hasText: 'Fall 2026 wk 6' }).click(); await p.waitForSelector('.ops-drawer'); await p.waitForSelector('.ops-modules li', { timeout: 15000 });
-  ck('a row opens the program with its readiness and modules', await p.locator('.ops-drawer h3', { hasText: 'Tasks' }).count() > 0 && await p.locator('.ops-modules li').count() > 0);
+  // a row opens the program , and the older modes still work
+  await p.goto(U + '/ops/programs'); await p.locator('.pg-name', { hasText: 'Fall 2026 wk 6' }).click(); await p.waitForURL(/\/ops\/programs\/P-sadhana-fall-2026/); await p.waitForSelector('.ops-tiles');
+  ck('a row opens the program page with its count cards and Is it ready?', await p.locator('.ops-tile').count() === 4 && await p.locator('section[aria-label="Is it ready?"]').count() === 1);
   for (const [show, text] of [['past', 'Add past event'], ['cancelled', 'Cancelled'], ['done', 'Recently done']]) {
     await p.goto(U + `/ops/programs?show=${show}`); await p.waitForSelector('main.ops');
     ck(`?show=${show} still opens the old list`, (await p.locator('main.ops').innerText()).includes(text));
   }
-  await p.goto(U + '/ops/events?event=2026-12-01-wsml'); await p.waitForSelector('.ops-drawer'); ck('/ops/events?event=… still opens that session', /event=2026-12-01-wsml/.test(p.url()) && /Sanctifying/.test(await p.locator('.ops-drawer h2').innerText()), p.url());
+  await p.goto(U + '/ops/events?event=2026-12-01-wsml'); await p.waitForSelector('h1.ops-name'); ck('/ops/events?event=… opens that session as a program page', /\/ops\/programs\/2026-12-01-wsml/.test(p.url()) && /Sanctifying/.test(await p.locator('h1.ops-name').innerText()), p.url());
   ck('no page errors (director)', !p.errs.length, p.errs.join());
 
   // each role
