@@ -30,9 +30,9 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   await p.fill('#pg-emails', 'jacob@embodiedphilosophy.com');
   ok(/Dec 23/.test(await p.locator('.ops-program-add').innerText()), 'preview shows the last session date');
   await p.locator('button', { hasText: 'Add 4 sessions' }).click();
-  await p.waitForURL(/event=P-spanda/, { timeout: 15000 });
+  await p.waitForURL(/programs\/P-spanda/, { timeout: 15000 });
   await p.waitForSelector('.ops-modules li', { timeout: 15000 });
-  ok(await p.locator('.ops-modules li').count() === 4, 'drawer lists 4 sessions');
+  ok(await p.locator('.ops-modules li').count() === 4, 'the Sessions tab lists 4 modules');
 
   // 3. Name two modules
   const li = p.locator('.ops-modules li');
@@ -60,12 +60,12 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   ok(g.shared?.['Parent Program'] === 'Wisdom School', 'part of Wisdom School');
 
   // 5b. Rename from the heading; part-of from For every session
-  await p.goto(`${BASE}/ops/events?event=P-spanda-karikas-a-close-reading-2026-12`, { waitUntil: 'networkidle' });
-  ok(/Wisdom School/i.test(await p.locator('.ops-drawer .ops-parent').innerText()), 'drawer shows what it falls under');
-  await p.locator('.ops-drawer .ops-title-edit button').click();
+  await p.goto(`${BASE}/ops/events?event=P-spanda-karikas-a-close-reading-2026-12&tab=sessions`, { waitUntil: 'networkidle' });
+  ok(/Wisdom School/i.test(await p.locator('.ops-parent').innerText()), 'the program page shows what it falls under');
+  await p.locator('h1.ops-title-edit button').click();
   await p.fill('.ops-title-form input', 'Spanda Kārikās Close Reading');
   await p.locator('button', { hasText: 'Save title' }).click();
-  await p.waitForFunction(() => /Spanda Kārikās Close Reading/.test(document.querySelector('.ops-drawer h2')?.innerText || ''), null, { timeout: 15000 });
+  await p.waitForFunction(() => /Spanda Kārikās Close Reading/.test(document.querySelector('h1.ops-name')?.innerText || ''), null, { timeout: 15000 });
   const g3 = await p.evaluate(async () => (await fetch('/api/ops/program?series=spanda-karikas-a-close-reading-2026-12')).json());
   ok(g3.sessions.every(s => s.values['Program Name'] === 'Spanda Kārikās Close Reading'), 'title renamed on every session');
   ok(g3.sessions[0].values['Public Title'] === 'Spanda Kārikās Close Reading: The vibration of awareness', 'website title follows the rename');
@@ -89,13 +89,13 @@ const api = (p, body) => p.evaluate(async b => { const r = await fetch('/api/ops
   // 8. The new program on the list, as one row; the existing series drawer opens
   await p.goto(`${BASE}/ops/events?all=1`, { waitUntil: 'networkidle' });
   ok((await p.locator('.pg-name').allInnerTexts()).filter(t => /Spanda Kārikās Close Reading/.test(t)).length === 1, 'new program is one row');
-  await p.goto(`${BASE}/ops/events?event=P-sadhana-fall-2026`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/events?event=P-sadhana-fall-2026&tab=sessions`, { waitUntil: 'networkidle' });
   await p.waitForSelector('.ops-modules li', { timeout: 15000 });
   ok(await p.locator('.ops-modules li').count() >= 5, 'existing series opens as a program');
 
   // Phone width
   await p.setViewportSize({ width: 390, height: 844 });
-  await p.goto(`${BASE}/ops/events?event=P-spanda-karikas-a-close-reading-2026-12`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/events?event=P-spanda-karikas-a-close-reading-2026-12&tab=sessions`, { waitUntil: 'networkidle' });
   await p.waitForSelector('.ops-modules li', { timeout: 15000 });
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no sideways scroll on a phone');
   await p.screenshot({ path: __dirname + '/out/program-phone.png', fullPage: false });

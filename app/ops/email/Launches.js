@@ -10,34 +10,38 @@ const add = (s, n) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.get
 const span = (a, b) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5);
 const LANE_COLOUR = { email: '#A5432A', social: '#3E6B5A', page: '#2E3F7F', task: '#B98A3E' };
 
-export function Launches() {
+// scope (on a program's Launch tab): { eventIds, name, base } narrows the list to that program's launches, starts a new one on it and keeps the links inside the program
+export function Launches({ scope }) {
   const [id, setId] = useState(null); const [wizard, setWizard] = useState(null); const [ready, setReady] = useState(false);
   useEffect(() => { setId(new URLSearchParams(window.location.search).get('id')); setReady(true); }, []);
   if (!ready) return null;
-  return id ? <Board id={id} /> : <List wizard={wizard} setWizard={setWizard} />;
+  return id ? <Board id={id} scope={scope} /> : <List wizard={wizard} setWizard={setWizard} scope={scope} />;
 }
 
-function List({ wizard, setWizard }) {
+const linkTo = (scope, id) => scope?.base ? `${scope.base}&id=${id}` : `/ops/programs?view=launches&id=${id}`;
+const mine = (scope, x) => !scope || (x.event_id && scope.eventIds.includes(String(x.event_id).toUpperCase()));
+
+function List({ wizard, setWizard, scope }) {
   const [d, setD] = useState(null); const [err, setErr] = useState(''); const [panel, setPanel] = useState(false); const side = useSide(panel);
   const load = useCallback(async () => { const res = await fetch(API).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the launches'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
   return (
-    <Layout title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote." panel={panel} setPanel={setPanel} d={side}>
+    <Layout embedded={!!scope} title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
-      {!d ? <p className="ops-empty">Reading the launches…</p> : wizard ? <Wizard d={d} start={wizard} close={() => setWizard(null)} done={id => { window.location.href = `/ops/programs?view=launches&id=${id}`; }} /> : <>
+      {!d ? <p className="ops-empty">Reading the launches…</p> : wizard ? <Wizard d={d} start={wizard} close={() => setWizard(null)} done={id => { window.location.href = linkTo(scope, id); }} /> : <>
         <section className="soc-panel" aria-label="Launches">
-          <div className="ph"><h2>Launches</h2>{d.canEdit && <button className="soc-btn small primary" onClick={() => setWizard({})}>New launch</button>}</div>
-          {!d.launches.length ? <p className="ops-empty">No launches yet. Start one from the suggestions below.</p> : <ul className="em-list">{d.launches.map(l => (
+          <div className="ph"><h2>Launches</h2>{d.canEdit && <button className="soc-btn small primary" onClick={() => setWizard(scope ? { event_id: scope.eventIds[0], name: scope.name } : {})}>New launch</button>}</div>
+          {!d.launches.filter(l => mine(scope, l)).length ? <p className="ops-empty">{scope ? 'No launch for this program yet. Use “New launch” to start one.' : 'No launches yet. Start one from the suggestions below.'}</p> : <ul className="em-list">{d.launches.filter(l => mine(scope, l)).map(l => (
             <li key={l.id} className="em-row"><div className="b"><span className="mono meta">{l.first ? `${day(l.first)} – ${day(l.last)}` : 'No dates yet'} · {l.kind || 'Launch'}</span><br /><b>{l.name}</b>
               <span className="chips"><span className="gchip">{l.status}</span><span className="gchip">{l.emails ? `${l.scheduled} of ${l.emails} emails scheduled` : 'No emails'}</span></span></div>
-              <a className="soc-btn small" href={`/ops/programs?view=launches&id=${l.id}`}>Open</a></li>))}</ul>}
+              <a className="soc-btn small" href={linkTo(scope, l.id)}>Open</a></li>))}</ul>}
         </section>
-        {d.canEdit && d.suggestions.length > 0 && <section className="soc-panel" aria-label="Suggested launches">
+        {d.canEdit && d.suggestions.filter(s => mine(scope, s)).length > 0 && <section className="soc-panel" aria-label="Suggested launches">
           <div className="ph"><h2>Suggested</h2><span className="sub">Launches on the list that don’t exist here yet.</span></div>
-          <ul className="em-list">{d.suggestions.map(s => <li key={s.name} className="em-row"><div className="b"><b>{s.name}</b><br /><span className="sub">{Object.entries(s.dates).map(([k, v]) => `${k} ${day(v)}`).join(' · ')}{s.note ? ` · ${s.note}` : ''}</span></div>
+          <ul className="em-list">{d.suggestions.filter(s => mine(scope, s)).map(s => <li key={s.name} className="em-row"><div className="b"><b>{s.name}</b><br /><span className="sub">{Object.entries(s.dates).map(([k, v]) => `${k} ${day(v)}`).join(' · ')}{s.note ? ` · ${s.note}` : ''}</span></div>
             <button className="soc-btn small" onClick={() => setWizard(s)}>Set up</button></li>)}</ul></section>}
         {/* What used to be Social → Coming up & campaigns: which events to promote, social countdowns, clip requests */}
-        <Campaigns embedded />
+        {!scope && <Campaigns embedded />}
       </>}
     </Layout>);
 }
@@ -83,32 +87,47 @@ function Wizard({ d, start, close, done }) {
     </section>);
 }
 
-function Board({ id }) {
+function Board({ id, scope }) {
   const [d, setD] = useState(null); const [err, setErr] = useState(''); const [msg, setMsg] = useState(''); const [panel, setPanel] = useState(false); const side = useSide(panel);
   const load = useCallback(async () => { const res = await fetch(`${API}?id=${id}`).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read this launch'); return; } setD(j); }, [id]);
   useEffect(() => { load(); }, [load]);
-  if (!d) return <Layout title="Launch" intro="" panel={false} setPanel={() => {}} d={null}>{err ? <p className="hint err" role="alert">{err}</p> : <p className="ops-empty">Opening…</p>}</Layout>;
-  const L = d.launch, from = add(d.from, -2), n = Math.max(14, span(from, add(d.to, 3))), days = Array.from({ length: n + 1 }, (_, i) => add(from, i));
+  if (!d) return <Layout embedded={!!scope} title="Launch" intro="" panel={false} setPanel={() => {}} d={null}>{err ? <p className="hint err" role="alert">{err}</p> : <p className="ops-empty">Opening…</p>}</Layout>;
+  const L = d.launch;
   const set = async (changes, ok) => { setErr(''); setMsg(''); try { await post({ action: 'update', id, changes }); setMsg(ok); await load(); } catch (e) { setErr(e.message); } };
   const keep = async () => { const name = prompt('Name this playbook'); if (!name) return; try { await post({ action: 'savePlaybook', id, name }); setMsg('Saved as a playbook.'); } catch (e) { setErr(e.message); } };
   return (
-    <Layout title={<>{L.name}</>} intro={`${L.kind || 'Launch'} · ${L.status}${d.event ? ` · ${d.event.title}` : ''}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/programs?view=launches">← All launches</a>{d.event && <> · <a href={`/ops/programs?view=launches#${d.event.key ? `countdown-${d.event.key}` : 'coming-up'}`}>Social countdown and promotion for this event</a></>}</p>
+    <Layout embedded={!!scope} title={<>{L.name}</>} intro={`${L.kind || 'Launch'} · ${L.status}${d.event ? ` · ${d.event.title}` : ''}`} panel={panel} setPanel={setPanel} d={side}>
+      <p><a href={scope?.base || '/ops/programs?view=launches'}>← All launches</a>{d.event && <> · <a href={`/ops/programs?view=launches#${d.event.key ? `countdown-${d.event.key}` : 'coming-up'}`}>Social countdown and promotion for this event</a></>}</p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <section className="soc-panel" aria-label="Timeline">
         <div className="ph"><h2>Timeline</h2><span className="soc-act">{d.canEdit && ['Planning', 'Live', 'Done'].filter(s => s !== L.status).map(s => <button key={s} className="soc-btn small" onClick={() => set({ status: s }, `Marked ${s.toLowerCase()}.`)}>Mark {s.toLowerCase()}</button>)}
           {d.canEdit && <button className="soc-btn small" onClick={keep}>Save as a playbook</button>}</span></div>
-        <div className="em-tl" role="group" aria-label="Launch timeline"><div className="em-tl-in" style={{ width: days.length * 34 + 110 }}>
-          <div className="em-tl-head" style={{ marginLeft: 110 }}>{days.map((x, i) => <span key={x} style={{ width: 34 }} className={x === d.today ? 'now' : ''}>{i % 7 === 0 || x === d.today ? day(x).slice(4) : ''}</span>)}</div>
-          {d.lanes.map(([k, label]) => { const ends = []; const placed = d.items.filter(i => i.lane === k && i.date).sort((x, y) => x.date.localeCompare(y.date)).map(i => { const left = span(from, i.date) * 34; let row = ends.findIndex(e => e + 4 <= left); if (row < 0) row = ends.length; ends[row] = left + 130; return { ...i, left, row }; });
-            return <div key={k} className="em-tl-lane" style={{ minHeight: Math.max(46, ends.length * 24 + 16) }}><b className="em-tl-l">{label}</b><div className="em-tl-t" style={{ width: days.length * 34 }}>
-              {placed.map(i => { const st = { left: i.left, top: 6 + i.row * 24, width: 130, background: LANE_COLOUR[k] }; return i.href ? <a key={i.key} href={i.href} className="em-tl-i" style={st} title={`${i.title} · ${day(i.date)} · ${i.status}`}>{i.title}</a>
-                : <span key={i.key} className="em-tl-i" style={st} title={`${i.title} · ${day(i.date)} · ${i.status}`}>{i.title}</span>; })}</div></div>; })}
-        </div></div>
+        <Timeline d={d} />
       </section>
       <section className="soc-panel" aria-label="Everything in this launch"><div className="ph"><h2>Everything in it</h2></div>
         {d.lanes.map(([k, label]) => { const its = d.items.filter(i => i.lane === k).sort((a, b) => (a.date || '9').localeCompare(b.date || '9')); return (
           <div key={k}><h3 className="ops-sub">{label} <span>{its.length || ''}</span></h3>{!its.length ? <p className="ops-empty">Nothing yet.</p> : <ul className="em-list">{its.map(i => <li key={i.key} className="em-row"><div className="b"><span className="mono meta">{day(i.date)} · {i.status}</span><br />{i.href ? <a href={i.href}>{i.title}</a> : i.title}</div></li>)}</ul>}</div>); })}
       </section>
     </Layout>);
+}
+
+// The launch timeline (the Board's, and the program Overview's): one lane per kind of thing, dated items along the days
+export function Timeline({ d }) {
+  const from = add(d.from, -2), n = Math.max(14, span(from, add(d.to, 3))), days = Array.from({ length: n + 1 }, (_, i) => add(from, i));
+  return (
+    <div className="em-tl" role="group" aria-label="Launch timeline"><div className="em-tl-in" style={{ width: days.length * 34 + 110 }}>
+          <div className="em-tl-head" style={{ marginLeft: 110 }}>{days.map((x, i) => <span key={x} style={{ width: 34 }} className={x === d.today ? 'now' : ''}>{i % 7 === 0 || x === d.today ? day(x).slice(4) : ''}</span>)}</div>
+          {d.lanes.map(([k, label]) => { const ends = []; const placed = d.items.filter(i => i.lane === k && i.date).sort((x, y) => x.date.localeCompare(y.date)).map(i => { const left = span(from, i.date) * 34; let row = ends.findIndex(e => e + 4 <= left); if (row < 0) row = ends.length; ends[row] = left + 130; return { ...i, left, row }; });
+            return <div key={k} className="em-tl-lane" style={{ minHeight: Math.max(46, ends.length * 24 + 16) }}><b className="em-tl-l">{label}</b><div className="em-tl-t" style={{ width: days.length * 34 }}>
+              {placed.map(i => { const st = { left: i.left, top: 6 + i.row * 24, width: 130, background: LANE_COLOUR[k] }; return i.href ? <a key={i.key} href={i.href} className="em-tl-i" style={st} title={`${i.title} · ${day(i.date)} · ${i.status}`}>{i.title}</a>
+                : <span key={i.key} className="em-tl-i" style={st} title={`${i.title} · ${day(i.date)} · ${i.status}`}>{i.title}</span>; })}</div></div>; })}
+        </div></div>
+  );
+}
+
+// The same timeline for one launch, read from the same API as the Board (a program's Overview)
+export function LaunchTimeline({ id }) {
+  const [d, setD] = useState(null); const [err, setErr] = useState('');
+  useEffect(() => { fetch(`${API}?id=${encodeURIComponent(id)}`).then(r => r.json().then(j => r.ok ? setD(j) : setErr(j.error || 'Couldn’t read this launch'))).catch(() => setErr('Couldn’t read this launch')); }, [id]);
+  return err ? <p className="hint err" role="alert">{err}</p> : d ? <div className="soc"><Timeline d={d} /></div> : <p className="ops-empty">Reading the launch…</p>;
 }

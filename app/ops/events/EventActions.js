@@ -22,7 +22,7 @@ export function AddEvent({ tracks }) {
     const j = await post({ action: 'add', ...f });
     setBusy(false);
     if (j.error) return setErr(j.error);
-    router.push(`/ops/programs?all=1&event=${j.key}`); router.refresh(); setOpen(false);
+    router.push(`/ops/programs/${encodeURIComponent(j.key)}`); router.refresh(); setOpen(false);
   };
   return (
     <form className="ops-edit ops-add" onSubmit={save}>
@@ -94,7 +94,7 @@ export function SessionActions({ id, date }) {
     setBusy(false); setMsg(j.error || j.message);
     if (!j.error) {
       if (body.action === 'cancel') router.push('/ops/programs?show=cancelled');
-      else if (j.key) router.push(`/ops/programs?all=1&event=${j.key}`);
+      else if (j.key) router.push(`/ops/programs/${encodeURIComponent(j.key)}?tab=sessions`);
       router.refresh();
     }
   };

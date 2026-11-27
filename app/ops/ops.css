@@ -1224,3 +1224,31 @@
   .ops-shell .pg-chips a, .ops-shell .pg-more a { min-height: 44px }
   .ops-shell .pg-table td a { display: inline-block; min-height: 24px }
 }
+
+/* The program page: tabs, count cards, panels */
+.ops-shell .ops-eyebrow .ops-crumb { font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 400 }
+.ops-shell .ops-eyebrow .ops-crumb a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px }
+.ops-shell .ops-wsp { display: flex; flex-direction: column; gap: 16px }
+.ops-shell .ops-wsp .ops-tiles { margin: 0 }
+.ops-shell .ops-tile .l.sub { font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .ops-tile.late .l.sub { color: var(--accent); font-weight: 600 }
+.ops-shell .pg-two { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start }
+.ops-shell .pg-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 16px 18px; min-width: 0; overflow-x: auto }
+.ops-shell .pg-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px }
+.ops-shell .pg-card-head h2 { margin: 0; font-family: var(--sans); font-size: 16px; font-weight: 600; text-transform: none; letter-spacing: 0 }
+.ops-shell .pg-card-head a { font-size: 13px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px }
+.ops-shell .pg-ready { list-style: none; margin: 0; padding: 0 }
+.ops-shell .pg-ready li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-in); font-size: 13.5px }
+.ops-shell .pg-ready li:last-child { border-bottom: 0 }
+.ops-shell .pg-ready .sub, .ops-shell .pg-gap { font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .pg-dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; margin: 10px 0 0; font-size: 13px }
+.ops-shell .pg-dl dt { color: var(--ink-soft) } .ops-shell .pg-dl dd { margin: 0; overflow-wrap: anywhere }
+.ops-shell .pg-sessions { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel) }
+.ops-shell .ops-wsp .ops-edit, .ops-shell .ops-wsp .ops-program { background: var(--panel); border-radius: var(--r-panel) }
+@media (max-width: 860px) { .ops-shell .pg-two { grid-template-columns: 1fr } }
+.ops-shell .ops-head h1.ops-name.ops-title-edit { margin: 0 }
+.ops-shell .ops-name.ops-title-edit button { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; min-height: 0; height: auto }
+.ops-shell .ops-name.ops-title-edit button span[aria-hidden] { font: 500 14px var(--sans); color: var(--ink-soft); margin-left: 10px }
+.ops-shell .ops-title-form input { font-family: var(--serif); font-size: 28px; font-weight: 600 }
+.ops-shell .pg-sessions { border: 0; box-shadow: none }
+.ops-shell .ops-wsp .ops-program { padding: 14px 18px; border: 1px solid var(--line); box-shadow: var(--shadow) }

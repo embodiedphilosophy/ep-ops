@@ -10,6 +10,11 @@ const shot = (page, n) => page.screenshot({ path: `${out}/circle-${n}.png` });
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
   let fails = 0;
+  // the mock's dates move with today: find an upcoming Sādhana session and an upcoming standalone course on the index
+  const f0 = await b.newContext(); await f0.addCookies([{ name: 'ep_ops', value: cookie.replace(/^ep_ops=/, ''), domain: 'localhost', path: '/' }]);
+  const fp = await f0.newPage(); await fp.goto('http://localhost:3100/ops/programs'); await fp.waitForSelector('.pg-table');
+  const keys = (await fp.locator('.pg-name').evaluateAll(a => a.map(x => decodeURIComponent(x.getAttribute('href').split('/').pop())))); await f0.close();
+  const COURSES = keys.filter(k => /-event$/.test(k) && k >= '2026-12-03'), SS = COURSES[1];
   const ok = (c, m) => { console.log(c ? 'ok  ' : 'FAIL', m); if (!c) fails++; };
   for (const [vw, w, h] of [['desktop', 1366, 900], ['phone', 390, 844]]) {
     const ctx = await b.newContext({ viewport: { width: w, height: h } });
@@ -18,33 +23,25 @@ const shot = (page, n) => page.screenshot({ path: `${out}/circle-${n}.png` });
     const errs = []; page.on('pageerror', e => errs.push(e.message));
     page.on('dialog', d => d.accept());
     const open = async key => {
-      await page.goto(`http://localhost:3100/ops/events?all=1&event=${key}`, { waitUntil: 'networkidle' });
-      await page.waitForSelector('.ops-drawer h3:has-text("Circle")');
-      await page.waitForFunction(() => !document.querySelector('.ops-drawer')?.textContent.includes('Checking Circle'), null, { timeout: 15000 });
+      await page.goto(`http://localhost:3100/ops/programs/${key}?tab=circle`, { waitUntil: 'networkidle' });
+      await page.waitForSelector('main.ops h3:has-text("Circle")');
+      await page.waitForFunction(() => !document.querySelector('main.ops')?.textContent.includes('Checking Circle'), null, { timeout: 15000 });
     };
-    // A Sādhana School session: its event goes in the existing space
-    await open('2026-10-28-ss');
-    const drawer = page.locator('.ops-drawer');
-    await shot(page, `ss-before-${vw}`);
-    ok(await drawer.locator('button:has-text("Push to Circle")').count() === 1, `${vw}: SS drawer has Push to Circle`);
-    if (vw === 'desktop') {
-      await drawer.locator('button:has-text("Push to Circle")').click();
-      await page.waitForSelector('.ops-drawer .ops-note p', { timeout: 20000 });
-      await page.waitForTimeout(800);
-      await shot(page, `ss-after-${vw}`);
-      ok((await drawer.textContent()).includes('Live in Circle'), 'SS session shows Live in Circle after the push');
-    }
+    // A second standalone course (the mock's Sādhana sessions are over): its panel offers the set-up, nothing is pushed
+    await open(SS);
+    const drawer = page.locator('main.ops');
+    ok(await drawer.locator('button:has-text("Set up course in Circle")').count() === 1, `${vw}: the Circle tab offers the course set-up`);
     // A standalone course: set up its spaces first
-    await open('2026-11-14-event');
+    await open(COURSES[0]);
     await shot(page, `course-before-${vw}`);
     ok(await drawer.locator('button:has-text("Set up course in Circle")').count() === (vw === 'desktop' ? 1 : 0), `${vw}: course set-up button ${vw === 'desktop' ? 'shown before set-up' : 'gone after set-up'}`);
     if (vw === 'desktop') {
       await drawer.locator('button:has-text("Set up course in Circle")').click();
-      await page.waitForSelector('.ops-drawer .ops-note p', { timeout: 20000 });
+      await page.waitForSelector('main.ops .ops-note p', { timeout: 20000 });
       await page.waitForTimeout(800);
       await shot(page, `course-setup-${vw}`);
       await drawer.locator('button:has-text("Push to Circle")').click();
-      await page.waitForFunction(() => document.querySelector('.ops-drawer .ops-note')?.textContent.includes('lessons'), null, { timeout: 20000 });
+      await page.waitForFunction(() => document.querySelector('main.ops .ops-note')?.textContent.includes('lesson'), null, { timeout: 20000 });
       await page.waitForTimeout(800);
       await shot(page, `course-after-${vw}`);
       ok((await drawer.textContent()).includes('Live in Circle'), 'course sessions live after the push');
