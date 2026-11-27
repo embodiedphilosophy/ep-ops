@@ -48,7 +48,7 @@ export default async function Search({ searchParams }) {
     const pseen = new Set();
     for (const m of team) if (hit(m.name, m.email, m.roles.join(' '), m.type)) { pseen.add(m.email); people.push({ href: `mailto:${m.email}`, title: m.name, sub: [m.type, m.roles.join(', '), m.email].filter(Boolean).join(' · ') }); }
     for (const p of profiles) if (!pseen.has(p.email) && hit(p.name, p.email, p.role)) people.push({ href: `mailto:${p.email}`, title: p.name || p.email, sub: ['Teacher', p.role, p.email].filter(Boolean).join(' · ') });
-    const inv = invites.filter(i => hit(i.name, i.email, i.offering_title, i.kind)).map(i => ({ href: '/ops/people?tab=invitations', title: `${i.name} · ${i.offering_title}`, sub: `${STATUS_LABEL[i.status] || i.status} · ${i.kind}` }));
+    const inv = invites.filter(i => hit(i.name, i.email, i.offering_title, i.kind)).map(i => ({ href: '/ops/people?view=invitations', title: `${i.name} · ${i.offering_title}`, sub: `${STATUS_LABEL[i.status] || i.status} · ${i.kind}` }));
     const tk = tickets.filter(t => hit(t.subject, t.requester?.name, t.requester?.email)).map(t => ({ href: `/ops/students?view=support&tab=${['pending', 'hold'].includes(t.status) ? 'waiting' : t.kind === 'person' ? 'reply' : 'other'}&t=${t.id}`, title: t.subject, sub: `${t.requester?.name || t.requester?.email || 'Unknown'} · ${t.status}` }));
     groups = [['Programs and sessions', sessions], ['Tasks', ts], ['People', people], ['Invitations', inv], ['Support tickets', tk]].filter(([, l]) => l.length);
   }

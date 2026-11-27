@@ -1,13 +1,5 @@
-import Shell, { opsUser } from '../../Shell';
-import { isStaff } from '@/lib/ops/nav';
-import { Teachers } from '../Teachers';
-import '../../social/social.css';
-import '../email.css';
+import { redirect } from 'next/navigation';
 
+// Moved in EP Ops 2 (step 5): this address redirects to its new home (lib/ops/redirects.mjs does it first; this is the fallback)
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Teachers — Embodied Philosophy', robots: { index: false, follow: false } };
-
-export default async function Page() {
-  const user = await opsUser(isStaff);
-  return <Shell user={user} current="email-teachers"><Teachers /></Shell>;
-}
+export default function Page() { redirect('/ops/people?needs=profile'); }

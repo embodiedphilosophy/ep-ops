@@ -17,7 +17,7 @@ const call = (p, path, body) => p.evaluate(async ([u, b]) => { const r = await f
   p.on('pageerror', e => console.log('PAGE ERROR', e.message));
 
   // 0. No agreement yet: the form says where to add one
-  await p.goto(`${BASE}/ops/team?tab=invitations`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/people?view=invitations`, { waitUntil: 'networkidle' });
   ok(/Settings → Contracts/.test(await p.locator('main.ops').innerText()), 'asks for a contract first');
   // 1. Add the standard agreement in Settings → Contracts
   ok((await call(p, '/api/ops/site', { tab: 'contracts', create: true })).ok, 'Contract Templates tab made');
@@ -25,7 +25,7 @@ const call = (p, path, body) => p.evaluate(async ([u, b]) => { const r = await f
     body: 'Teaching agreement\n\nBetween Embodied Philosophy and {{teacher_name}} ({{teacher_email}}).\nOffering: {{offering}}, {{sessions}} session(s): {{dates}}.\nFee: {{fee}}.\n\n{{terms}}\n\nSigned {{today}}. For EP: {{director}}.' } })).ok, 'agreement added');
 
   // 2. Invite through the form (SS season), preview, send
-  await p.goto(`${BASE}/ops/team?tab=invitations`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/people?view=invitations`, { waitUntil: 'networkidle' });
   await p.fill('#iv-name', 'Tova Olsson');
   await p.fill('#iv-email', 'tova@example.com');
   await p.selectOption('#iv-kind', 'Sādhana School');
@@ -64,7 +64,7 @@ const call = (p, path, body) => p.evaluate(async ([u, b]) => { const r = await f
   const log = fs.readFileSync(__dirname + '/out/mock.log', 'utf8');
   ok(/Faculty invitation","Schedule".*Teachers & Hosts/.test(log) || /WROTE 'Schedule'![F]\d+ \[\[".*Tova Olsson/.test(log), 'teacher name written to the season’s sessions');
   ok(/tova@example\.com/.test(log.split('\n').filter(l => /Event Details/.test(l)).join('\n')), 'reminder email written to the season’s sessions');
-  await p.goto(`${BASE}/ops/team?tab=invitations`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/people?view=invitations`, { waitUntil: 'networkidle' });
   ok(/Signed/.test(await p.locator('.ops-invites').innerText()), 'staff list shows Signed');
 
   // 5. A flat fee for a session already taught shows on Finance → To pay; mark it paid

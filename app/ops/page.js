@@ -5,7 +5,7 @@ import { meetingsFor, loadTeam, dedupe, needsOwner, needsYouFor, groupByEvent, a
 import { eventOptions, staffNames } from '@/lib/ops/pickers';
 import AddTask from './AddTask';
 import { teamHours, clockAvailable } from '@/lib/ops/hours';
-import { HoursDecide } from './hours/HoursActions';
+import { HoursDecide } from './people/HoursActions';
 import { waitingOnYou } from '@/lib/ops/waiting';
 import { oneToOnes } from '@/lib/ops/onetoones';
 import { todayET } from '@/lib/events';

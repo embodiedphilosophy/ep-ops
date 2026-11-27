@@ -7,7 +7,7 @@ import { todayET } from '@/lib/events';
 import { updatePlain, addPlain } from '@/lib/ops/store';
 import { planRows } from '@/lib/ops/emailplan';
 import { sendEmail, layout, esc } from '@/lib/ops/email';
-import { directory, teacherRows, EDITABLE, lower, words, parse, diffWords, STALE_DAYS } from '@/lib/ops/teachers';
+import { directory, teacherRows, sessionsFor, EDITABLE, lower, words, parse, diffWords, STALE_DAYS } from '@/lib/ops/teachers';
 import { refreshSite } from '@/lib/ops/refresh';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +30,7 @@ export async function GET(req) {
     if (!email) { const list = await directory(); return NextResponse.json({ ...meta, teachers: list, counts: { submissions: list.filter(t => t.flags.includes('submission')).length, photo: list.filter(t => t.flags.includes('photo')).length, update: list.filter(t => t.flags.includes('update') || t.flags.includes('bio')).length, test: list.filter(t => t.test).length } }); }
     const r = await find(email); if (!r) return NextResponse.json({ error: 'No profile for that teacher yet' }, { status: 404 });
     const v = r.values, today = todayET(), [cal, pages, plan] = await Promise.all([loadCalendar().catch(() => []), loadPages().catch(() => []), planRows({ light: false }).catch(() => [])]);
-    const mine = cal.filter(e => !/cancel/i.test(e.status) && (lower(e.teacher_host_emails).includes(lower(email)) || lower(e.teachers).includes(lower(v.name)))), age = /^\d{4}-\d{2}-\d{2}$/.test(v.bio_updated_on || v.updated_on || '') ? Math.floor((Date.parse(today + 'T12:00:00Z') - Date.parse((v.bio_updated_on || v.updated_on) + 'T12:00:00Z')) / 864e5) : null;
+    const mine = sessionsFor(cal, email, v.name), age = /^\d{4}-\d{2}-\d{2}$/.test(v.bio_updated_on || v.updated_on || '') ? Math.floor((Date.parse(today + 'T12:00:00Z') - Date.parse((v.bio_updated_on || v.updated_on) + 'T12:00:00Z')) / 864e5) : null;
     const emails = plan.map(x => x.values).filter(x => (parse(x.blocks_json, []) || []).some(b => b.type === 'teacher' && lower(b.teacher) === lower(email)) && x.status !== 'Not needed');
     const live = v.status === 'approved', ready = !!(v.bio && v.photo_url);
     return NextResponse.json({ ...meta, profile: { ...v, links: parse(v.links_json, []), versions: parse(v.photo_versions_json, []) }, words: { bio: words(v.bio), short: words(v.short_bio) }, short_range: SHORT,

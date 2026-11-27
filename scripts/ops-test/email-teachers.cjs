@@ -8,9 +8,9 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const ctx = await b.newContext({ viewport: vp }); await ctx.addCookies([{ name: 'ep_ops', value: cookie, url: U }]);
     const p = await ctx.newPage(); const errs = [], dl = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => { dl.push(d.message()); d.accept(); });
     const noScroll = async n => ck(`${name}: no sideways scroll (${n})`, !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
-    await p.goto(U + '/ops/content?tab=review'); ck(`${name}: the old Review tab lands on the Teachers review queue`, p.url().includes('/ops/people') && p.url().includes('tab=review'));
+    await p.goto(U + '/ops/content?tab=review'); ck(`${name}: the old Review tab lands on People › Bios to review`, p.url().includes('/ops/people') && p.url().includes('view=review'));
     await p.waitForSelector('[aria-label="Bios waiting"]');
-    ck(`${name}: Teacher profiles is a People tab, and Site copy review is gone`, (await p.locator('nav[aria-label="people views"]').innerText()).includes('Teacher profiles') && !(await p.locator('.ops-side').innerText()).includes('Site copy review'));
+    ck(`${name}: Bios to review is a People tab, and Site copy review is gone`, (await p.locator('nav[aria-label="people views"]').innerText()).includes('Bios to review') && !(await p.locator('.ops-side').innerText()).includes('Site copy review'));
     await p.waitForSelector('.em-diff .add'); ck(`${name}: a change shows added words against what is live`, await p.locator('.em-diff .add').count() > 0);
     ck(`${name}: course pages are in the queue now`, await p.locator('[aria-label="Course pages"]').count() === 1);
     await noScroll('review'); await p.screenshot({ path: `${__dirname}/out/email-teachers-review-${name}.png`, fullPage: true });
@@ -19,12 +19,14 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
       await li.getByRole('button', { name: 'Approve for the website' }).click(); await p.waitForSelector('text=Abha Rajbhandari is live on the website.');
       ck('desktop: approving asked first and put her live', dl.some(m => m.includes('on the website')));
     }
-    await p.goto(U + '/ops/email/teachers'); await p.waitForSelector('[aria-label="Directory"] li');
-    ck(`${name}: the directory shows who needs what`, await p.locator('.gchip', { hasText: 'Needs update' }).count() > 0 && (name === 'phone' || await p.locator('.gchip', { hasText: 'Looks like a test entry' }).count() === 1)); // the phone run comes after the desktop run hid the test entry
+    await p.goto(U + '/ops/email/teachers'); await p.waitForSelector('.pp-table tbody tr'); ck(`${name}: the old Teachers address lands on the directory, narrowed to profiles`, p.url().includes('/ops/people') && p.url().includes('needs=profile'));
+    ck(`${name}: the directory shows who needs what`, await p.locator('.pp-needs', { hasText: 'Bio is more than a year old' }).count() > 0 && (name === 'phone' || await p.locator('.pp-test', { hasText: 'Looks like a test entry' }).count() === 1)); // the phone run comes after the desktop run hid the test entry
     if (name === 'desktop') {
-      await p.getByRole('button', { name: /^Test entries/ }).click(); ck('desktop: the test filter lists one', await p.locator('[aria-label="Directory"] > ul > li').count() === 1); await p.getByRole('button', { name: 'Clear out the test entries' }).click(); await p.waitForSelector('text=Test entries hidden.'); ck('desktop: clearing out asked and said nothing is deleted', dl.some(m => m.includes('not deleted'))); }
+      await p.getByRole('button', { name: 'Clear out the test entries' }).click(); await p.waitForSelector('text=Test entries hidden.'); ck('desktop: clearing out asked and said nothing is deleted', dl.some(m => m.includes('not deleted')));
+      await p.waitForFunction(() => !document.querySelector('.pp-test')); ck('desktop: the test entry is gone from the list', true);
+      await p.goto(U + '/ops/people?show=hidden'); ck('desktop: it is under Hidden', await p.locator('.pp-table tbody tr', { hasText: 'Test Teacher' }).count() === 1); }
     await noScroll('directory');
-    await p.goto(U + '/ops/email/teachers?email=nataraj%40example.com'); await p.waitForSelector('[aria-label="Headshot"] img');
+    await p.goto(U + '/ops/email/teachers?email=nataraj%40example.com'); await p.waitForSelector('[aria-label="Headshot"] img'); ck(`${name}: the old profile address opens the person's record`, /\/ops\/people\/nataraj/.test(p.url()));
     await p.waitForFunction(() => [...document.querySelectorAll('[aria-label="Headshot"] .em-crops img')].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 15000 });
     ck(`${name}: all three crops load`, await p.locator('[aria-label="Headshot"] .em-crops img').count() === 3);
     ck(`${name}: publish targets are shown, Circle as copy-by-hand`, (await p.locator('[aria-label="Where this appears"]').innerText()).includes('Copy by hand'));

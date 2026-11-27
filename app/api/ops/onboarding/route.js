@@ -79,7 +79,7 @@ export async function POST(req) {
       const fields = Object.fromEntries(PREFILL.map(k => [k, String(b.fields?.[k] ?? '').replace(/\r/g, '').trim().slice(0, k === 'summary' || k === 'explore' || k === 'audience' ? 2000 : 200)]));
       const t = await readPlain(PAGES);
       const row = t.rows.find(r => r.values.offering === o.key);
-      if (row && ['submitted', 'published'].includes(lower(row.values.status))) return fail('The teacher has already sent this course page. Change it in Teacher profiles → Review instead.');
+      if (row && ['submitted', 'published'].includes(lower(row.values.status))) return fail('The teacher has already sent this course page. Change it in People → Bios to review instead.');
       // Conflict check: what the panel showed must still be what's saved
       const before = Object.fromEntries(PREFILL.filter(k => b.before && k in b.before).map(k => [k, String(b.before[k] ?? '')]));
       const emails = [...new Set([...String(row?.values.teacher_emails || '').split(/[\s,]+/).filter(Boolean), email])].join(', ');

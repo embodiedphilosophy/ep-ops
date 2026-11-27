@@ -1,0 +1,64 @@
+// EP Ops 2 step 5, People › Directory: staff and faculty in one list with what each person needs, the chips, search, the older
+// addresses, each role (director, Floss, Ichha, a teacher), the tabs by role, phone width. Mock only. Needs a fresh run.sh.
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) { bad++; console.log('FAIL', n); } else console.log('ok  ', n); };
+const cookie = who => execFileSync('node', [path.join(__dirname, 'cookie.mjs'), who]).toString().trim().replace(/^ep_ops=/, '');
+const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8').trim().replace(/^ep_ops=/, '');
+const tabs = async p => (await p.locator('nav[aria-label="people views"] a').allInnerTexts()).join('|');
+const chips = async p => (await p.locator('nav[aria-label="Who to show"] a').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim()).join('|');
+(async () => {
+  const b = await chromium.launch();
+  const as = async (ck_, vp = { width: 1360, height: 900 }) => { const c = await b.newContext({ viewport: vp }); await c.addCookies([{ name: 'ep_ops', value: ck_, url: U }]); const p = await c.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); p.on('dialog', d => d.accept()); return p; };
+  const p = await as(DIRECTOR);
+  await p.goto(U + '/ops/people'); await p.waitForSelector('.pp-table tbody tr');
+  ck('the page is "Everyone who makes EP run"', (await p.locator('h1').innerText()).includes('Everyone who makes EP run'));
+  ck('the director sees the five People tabs', (await tabs(p)) === 'Directory|Invitations|Onboarding|Bios to review|Hours');
+  ck('the table has Name, Kind, Roles in Ops, Next, What they need', (await p.locator('.pp-table thead th').allInnerTexts()).join('|') === 'Name|Kind|Roles in Ops|Next|What they need');
+  ck('the chips: All, Staff, Faculty, Invited, Needs something', /^All\|Staff 9\|Faculty \d+\|Invited\|Needs something \d+/.test(await chips(p)));
+  const row = name => p.locator('.pp-table tbody tr', { hasText: name });
+  ck('staff come first, then faculty', (await p.locator('.pp-table tbody tr td:nth-child(2)').allInnerTexts()).map(x => x.split('\n')[0]).join(',').replace(/(Staff,)+/, 'S,').replace(/(Faculty,?)+/, 'F') === 'S,F');
+  ck('Floss is staff who hosts sessions', /hosts sessions/.test(await row('Floss Harry').innerText()) && /Hosting 3 coming up/.test(await row('Floss Harry').innerText()));
+  ck('a submitted bio is a need', await row('Abha Rajbhandari').locator('.pp-needs', { hasText: 'Bio waiting for review' }).count() === 1);
+  ck('a teacher who has not opened onboarding is a need', await row('Ryan LeMere').locator('.pp-needs', { hasText: 'Hasn’t opened onboarding yet' }).count() === 1);
+  ck('a stale bio is a need', await row('Nataraj').locator('.pp-needs', { hasText: 'more than a year old' }).count() === 1);
+  ck('someone with nothing waiting shows a dash', (await row('Onika Ramsey').locator('td').last().innerText()).trim() === '—');
+  ck('Add someone and Invite a teacher are offered', await p.getByRole('link', { name: 'Add someone' }).count() === 1 && await p.getByRole('link', { name: 'Invite a teacher' }).count() === 1);
+  await p.locator('nav[aria-label="Who to show"] a', { hasText: 'Staff' }).click(); await p.waitForSelector('.pp-table tbody tr');
+  ck('Staff chip: nobody from faculty', await p.locator('.pp-table tbody tr td:nth-child(2)', { hasText: 'Faculty' }).count() === 0 && await p.locator('.pp-table tbody tr').count() === 9);
+  await p.goto(U + '/ops/people?show=faculty'); ck('Faculty chip: no staff', await p.locator('.pp-table tbody tr td:nth-child(2)', { hasText: /^Staff/ }).count() === 0);
+  await p.goto(U + '/ops/people?show=needs'); ck('Needs something: only people with something waiting', (await p.locator('.pp-table tbody tr').count()) > 0 && await row('Onika Ramsey').count() === 0);
+  await p.goto(U + '/ops/people?q=floss'); ck('search finds by name', await p.locator('.pp-table tbody tr').count() === 1);
+  await p.goto(U + '/ops/people?q=zzzz'); ck('search says when nobody matches', /Nobody matches/.test(await p.locator('main.ops').innerText()));
+  await p.goto(U + '/ops/people?needs=profile'); ck('?needs=profile narrows to profile needs, with a note', /whose profile or bio needs a look/.test(await p.locator('main.ops').innerText()) && await row('Ryan LeMere').count() === 1 && await row('Floss Harry').count() === 0);
+  await p.goto(U + '/ops/people'); await row('Nataraj').locator('a.pg-name').click(); await p.waitForSelector('.ops-name');
+  ck('a name opens that person’s record', /\/ops\/people\/nataraj/.test(p.url()));
+  await p.goto(U + '/ops/people'); await row('Abha').locator('.pp-needs a', { hasText: 'Bio waiting' }).click(); await p.waitForSelector('.ops-name');
+  ck('a need opens the right tab of the record', /abha/.test(p.url()) && /tab=profile/.test(p.url()));
+  await p.goto(U + '/ops/people?view=hours'); ck('Team hours is a view for directors', (await p.locator('h1').innerText()).includes('Team hours'));
+  await p.goto(U + '/ops/people?view=invitations'); ck('Invitations view loads', await p.locator('#iv-name').count() === 1);
+  await p.goto(U + '/ops/people?tab=invitations'); ck('the older ?tab=invitations still works', await p.locator('#iv-name').count() === 1);
+  await p.goto(U + '/ops/people?view=review'); await p.waitForSelector('[aria-label="Bios waiting"]'); ck('Bios to review loads the queue', true);
+  await p.goto(U + '/ops/team'); ck('/ops/team lands on People', new URL(p.url()).pathname === '/ops/people');
+  await p.goto(U + '/ops/hours'); ck('/ops/hours lands on Team hours', p.url().includes('view=hours'));
+  // roles
+  const fl = await as(cookie('floss@example.com')); await fl.goto(U + '/ops/people'); await fl.waitForSelector('.pp-table tbody tr');
+  ck('Floss (events staff) sees Invitations and Onboarding too', (await tabs(fl)) === 'Directory|Invitations|Onboarding|Bios to review|Hours' && await fl.getByRole('link', { name: 'My hours' }).count() === 1);
+  const ic = await as(cookie('ichha@example.com')); await ic.goto(U + '/ops/people'); await ic.waitForSelector('.pp-table tbody tr');
+  ck('Ichha sees Directory, Bios to review, Hours', (await tabs(ic)) === 'Directory|Bios to review|Hours');
+  ck('Ichha is not offered adding, inviting or the Invited chip', await ic.getByRole('link', { name: 'Invite a teacher' }).count() === 0 && await ic.locator('details.pp-add').count() === 0 && !/Invited/.test(await chips(ic)));
+  ck('Ichha sees no Clear out button', await ic.getByRole('button', { name: 'Clear out the test entries' }).count() === 0);
+  await ic.goto(U + '/ops/people?view=invitations'); ck('Ichha asking for Invitations gets the directory', await ic.locator('#iv-name').count() === 0 && await ic.locator('.pp-table').count() === 1);
+  await ic.goto(U + '/ops/people?view=hours'); ck('a non-director’s Hours opens their own record', /\/ops\/people\/ichha/.test(ic.url()) && /tab=hours/.test(ic.url()));
+  const te = await as(cookie('abha@example.com')); const r = await te.goto(U + '/ops/people'); ck('a teacher is not shown People', !new URL(te.url()).pathname.startsWith('/ops/people'));
+  await te.goto(U + '/ops/people/abha%40example.com'); ck('nor a record, not even their own', !new URL(te.url()).pathname.startsWith('/ops/people'));
+  // phone
+  const ph = await as(DIRECTOR, { width: 390, height: 800 }); await ph.goto(U + '/ops/people'); await ph.waitForSelector('.pp-table tbody tr');
+  ck('phone: no sideways page scroll', !(await ph.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
+  ck('phone: the table scrolls inside its panel', await ph.evaluate(() => { const s = document.querySelector('.pg-scroll'); return s.scrollWidth > s.clientWidth; }));
+  ck('phone: buttons are 44px tall', (await ph.getByRole('link', { name: 'Invite a teacher' }).boundingBox()).height >= 44);
+  await ph.screenshot({ path: __dirname + '/out/people-directory-phone.png', fullPage: true });
+  await p.screenshot({ path: __dirname + '/out/people-directory-desktop.png', fullPage: true });
+  ck('no page errors', !p.errs.length && !ph.errs.length && !fl.errs.length && !ic.errs.length);
+  await b.close(); process.exit(bad ? 1 : 0);
+})();

@@ -1252,3 +1252,31 @@
 .ops-shell .ops-title-form input { font-family: var(--serif); font-size: 28px; font-weight: 600 }
 .ops-shell .pg-sessions { border: 0; box-shadow: none }
 .ops-shell .ops-wsp .ops-program { padding: 14px 18px; border: 1px solid var(--line); box-shadow: var(--shadow) }
+
+/* People (EP Ops 2, step 5): the directory and the person record. Uses the programs table, chips and cards above. */
+.ops-shell .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.ops-shell .pp-find { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px }
+.ops-shell .pp-find input[name=q] { flex: 1 1 240px; max-width: 380px; min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--panel); font: inherit; font-size: 14px }
+.ops-shell .pp-find a { font-size: 13px; color: var(--ink-soft) }
+.ops-shell .pp-note { margin: 0 0 12px; font-size: 13.5px }
+.ops-shell .pp-table { min-width: 760px }
+.ops-shell .pp-table td { vertical-align: top }
+.ops-shell .pp-table .sub { text-decoration: none }
+.ops-shell .pp-table a.sub { color: var(--ink-soft) }
+.ops-shell .pp-needs { display: flex; flex-wrap: wrap; gap: 6px }
+.ops-shell .pp-needs a.ops-status { text-decoration: none }
+.ops-shell .pp-needs a.ops-status:hover { text-decoration: underline }
+.ops-shell .pp-test { margin-top: 4px }
+.ops-shell .pp-add, .ops-shell .pp-gone { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 0 18px }
+.ops-shell .pp-add > summary, .ops-shell .pp-gone > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600 }
+.ops-shell .pp-add-body { padding: 0 0 16px; display: flex; flex-direction: column; gap: 12px }
+.ops-shell .pp-gone .n { font-size: 12px; color: var(--ink-soft); font-weight: 500 }
+.ops-shell .pp-gone .ops-dir { padding-bottom: 12px }
+.ops-shell .pp-res { margin-top: 24px }
+.ops-shell .pp-tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) }
+.ops-shell .ops-filters a .n { margin-left: 6px; font-size: 11px; font-variant-numeric: lining-nums; opacity: .75 }
+@media (max-width: 700px) {
+  .ops-shell .pp-find input[name=q], .ops-shell .pp-find .chip { min-height: 44px }
+  .ops-shell .pp-find input[name=q] { max-width: none }
+  .ops-shell .pp-actions .chip { min-height: 44px }
+}

@@ -24,7 +24,7 @@ const invWrites = () => fs.readFileSync(OUT + '/mock.log', 'utf8').split('\n').f
   const jacob = await ctx('');
 
   // 1. Ops: the general agreement is offered for invitations, and Mary shows as having one to sign
-  await jacob.goto(`${BASE}/ops/team?tab=invitations`, { waitUntil: 'networkidle' });
+  await jacob.goto(`${BASE}/ops/people?view=invitations`, { waitUntil: 'networkidle' });
   ok(await jacob.locator('option', { hasText: 'General Teaching Agreement' }).count() > 0, 'invitation form offers the General Teaching Agreement');
   const list = await get(jacob, '/api/ops/onboarding');
   const mary = (list.people || []).find(x => x.email === 'mary@example.com');
@@ -75,7 +75,7 @@ const invWrites = () => fs.readFileSync(OUT + '/mock.log', 'utf8').split('\n').f
   // 4. Reload: the step is gone; Ops shows the archive
   await m.goto(`${BASE}/teach`, { waitUntil: 'networkidle' });
   ok(await m.locator('.t-rail li', { hasText: 'Agreement' }).count() === 0, 'once signed, no Agreement step');
-  await jacob.goto(`${BASE}/ops/team?tab=invitations`, { waitUntil: 'networkidle' });
+  await jacob.goto(`${BASE}/ops/people?view=invitations`, { waitUntil: 'networkidle' });
   const row = jacob.locator('.ops-invites li', { hasText: 'Mary Reilly Nichols' }).first();
   ok(/signed during onboarding/.test(await row.innerText()), 'Invitations lists it as signed during onboarding');
   const href = await row.locator('a', { hasText: /agreement|contract/i }).first().getAttribute('href').catch(() => '');
