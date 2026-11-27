@@ -14,7 +14,7 @@ export default async function OneToOnes({ searchParams }) {
   const sp = await searchParams, f = FILTERS.some(x => x[0] === sp?.f) ? sp.f : 'all';
   const y = await loadOpsYear({ today: todayET() }).catch(e => ({ error: e.message, bookings: [], notBooked: [], configured: true }));
   const rows = f === 'unbooked' ? [] : y.bookings.filter(b => f === 'all' ? !b.past : f === 'none' ? !b.past && !b.summary.length : b.past);
-  const hrefOf = k => (k === 'all' ? '/ops/one-to-ones' : `/ops/one-to-ones?f=${k}`);
+  const hrefOf = k => (k === 'all' ? '/ops/students?view=one-to-ones' : `/ops/students?view=one-to-ones&f=${k}`);
   return (
     <Shell user={user} current="home" eyebrow="Sahṛdaya Upāya" title="One-to-ones"
       head={<nav className="ops-filters" aria-label="Filter one-to-ones">{FILTERS.map(([k, l]) => <a key={k} href={hrefOf(k)} aria-current={f === k ? 'page' : undefined}>{l}</a>)}</nav>}>

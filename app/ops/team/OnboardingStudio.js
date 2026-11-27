@@ -103,19 +103,19 @@ function ThisTeacher({ d, stepKey, email, reload, setMsg, setErr }) {
   const o = offs.find(x => x.key === which);
   if (stepKey === 'welcome') return (
     <section className="ob-card"><h3>For this teacher</h3>
-      {!offs.length ? <p className="sub">Not on any upcoming session. Add them to one in <a href="/ops/events">Programming</a> or with an <a href="/ops/team?tab=invitations">invitation</a>.</p>
+      {!offs.length ? <p className="sub">Not on any upcoming session. Add them to one in <a href="/ops/programs">Programming</a> or with an <a href="/ops/people?tab=invitations">invitation</a>.</p>
         : offs.map(x => <div key={x.key}><b>{x.title}</b><ul className="ob-list">{x.deliverables.map(t => <li key={t.task}>{t.task}</li>)}{!x.deliverables.length && <li>No deliverables for this track</li>}</ul></div>)}
-      <p className="sub">Sessions and dates: <a href="/ops/events">Programming</a>. What teachers owe, by track: <a href="/ops/settings?t=templates">Settings → Task templates</a> (rows assigned to Teacher).</p>
+      <p className="sub">Sessions and dates: <a href="/ops/programs">Programming</a>. What teachers owe, by track: <a href="/ops/settings?t=templates">Settings → Task templates</a> (rows assigned to Teacher).</p>
     </section>);
   if (stepKey === 'profile') return (
     <section className="ob-card"><h3>For this teacher</h3>
       <p className="sub">{d.data.onFile ? 'We have a bio on file, so they’re asked to confirm it.' : 'No bio on file, so they’re asked to write one.'}</p>
-      <p><a href={`/ops/email/teachers?email=${encodeURIComponent(email)}`}>Open their profile</a> to write or fix their bio and headshot before they start.</p>
+      <p><a href={`/ops/people?needs=profile&email=${encodeURIComponent(email)}`}>Open their profile</a> to write or fix their bio and headshot before they start.</p>
     </section>);
   if ((stepKey === 'course' || stepKey === 'preview') && o) return <Prefill key={o.key} o={o} offs={offs} which={which} setWhich={setWhich} email={email} reload={reload} setMsg={setMsg} setErr={setErr} />;
   if (stepKey === 'agreement') return (
     <section className="ob-card"><h3>For this teacher</h3>
-      <p className="sub">They haven’t signed an agreement yet, so they read and sign the General Teaching Agreement here, before their bio. It lists their current offerings; the fee reads “as agreed with EP in writing for each offering”. Jacob countersigns automatically and the signed copy is archived in <a href="/ops/team?tab=invitations">Faculty → Invitations</a>.</p>
+      <p className="sub">They haven’t signed an agreement yet, so they read and sign the General Teaching Agreement here, before their bio. It lists their current offerings; the fee reads “as agreed with EP in writing for each offering”. Jacob countersigns automatically and the signed copy is archived in <a href="/ops/people?tab=invitations">Faculty → Invitations</a>.</p>
       <p className="sub">Teachers who signed an agreement with their invitation skip this step, and so do staff and contractors on the Team tab. To change the wording, add a row named “General Teaching Agreement” in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</p>
     </section>);
   if (stepKey === 'circle') return <section className="ob-card"><h3>For this teacher</h3><p className="sub">This step gives them access to their course in Circle. It shows only for Circle tracks (Sādhana School, SSWW, seasonal).</p></section>;
@@ -136,7 +136,7 @@ function Prefill({ o, offs, which, setWhich, email, reload, setMsg, setErr }) {
   return (
     <section className="ob-card"><h3>Their course page draft</h3>
       {offs.length > 1 && <select aria-label="Which offering" value={which} onChange={e => setWhich(e.target.value)}>{offs.map(x => <option key={x.key} value={x.key}>{x.title}</option>)}</select>}
-      {sent ? <p className="sub">They’ve already sent this course page. Change it in <a href="/ops/email/teachers?tab=review">Teacher profiles → Review</a>.</p> : <>
+      {sent ? <p className="sub">They’ve already sent this course page. Change it in <a href="/ops/people?needs=profile&tab=review">Teacher profiles → Review</a>.</p> : <>
         <p className="sub">Fill in what you know; they’ll find it in place and can change it. The preview shows it once saved.</p>
         {PREFILL.map(([k, l, rows]) => <label key={k} className="ob-f"><span className="cap">{l}</span>{rows > 1 ? <textarea rows={rows} value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })} /> : <input value={f[k]} placeholder={k === 'title' ? o.title : ''} onChange={e => setF({ ...f, [k]: e.target.value })} />}</label>)}
         <button className="chip primary" disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save their draft'}</button>

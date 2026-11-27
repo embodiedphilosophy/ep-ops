@@ -29,7 +29,7 @@ export default async function Page({ params, searchParams }) {
       <div className="soc">
         <header className="soc-head">
           <div><span className="eyebrow">Content · Social</span><h1>{cfg.title} {cfg.em && <em>{cfg.em}</em>}</h1><p>{cfg.desc}</p></div>
-          <div className="soc-act">{section === 'sources' ? <a className="soc-btn" href="/ops/social/library">← Library</a> : <a className="soc-btn" href="/ops/social">← Calendar</a>}</div>
+          <div className="soc-act">{section === 'sources' ? <a className="soc-btn" href="/ops/publish?view=library">← Library</a> : <a className="soc-btn" href="/ops/publish">← Calendar</a>}</div>
         </header>
         <SocialEngine director={!!user.director} keys={cfg.keys} initial={sp?.s} base={`/ops/social/${section}`} />
       </div>

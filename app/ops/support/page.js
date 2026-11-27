@@ -53,7 +53,7 @@ export default async function Support({ searchParams }) {
   const ticket = selectedId ? await getTicket(selectedId).catch(() => null) : null;
   const picks = ticket ? suggest(entries, ticket) : [];
   const drafts = entries.filter(e => String(e.status).toLowerCase() === 'draft').length;
-  const href = (k, t) => `/ops/support?tab=${k}${topic ? `&topic=${topic}` : ''}${t ? `&t=${t}` : ''}`;
+  const href = (k, t) => `/ops/students?view=support&tab=${k}${topic ? `&topic=${topic}` : ''}${t ? `&t=${t}` : ''}`;
 
   return (
     <Shell user={user} current="support" eyebrow="Zendesk and the EP Support KB" title="Support"
@@ -66,9 +66,9 @@ export default async function Support({ searchParams }) {
         <section className="ops-sup-list" aria-label={tab.label}>
           {tab.key === 'reply' && people.length > 0 && (
             <nav className="ops-sup-topics" aria-label="Topic">
-              <a href={`/ops/support?tab=reply`} aria-current={!topic ? 'page' : undefined}>All <span>{people.length}</span></a>
+              <a href={`/ops/students?view=support&tab=reply`} aria-current={!topic ? 'page' : undefined}>All <span>{people.length}</span></a>
               {[...TOPICS, { key: 'other', label: 'Other' }].filter(x => topicCounts[x.key]).map(x => (
-                <a key={x.key} href={`/ops/support?tab=reply&topic=${x.key}`} aria-current={topic === x.key ? 'page' : undefined}>{x.label} <span>{topicCounts[x.key]}</span></a>
+                <a key={x.key} href={`/ops/students?view=support&tab=reply&topic=${x.key}`} aria-current={topic === x.key ? 'page' : undefined}>{x.label} <span>{topicCounts[x.key]}</span></a>
               ))}
             </nav>
           )}
@@ -125,8 +125,8 @@ export default async function Support({ searchParams }) {
 function Tabs({ current, counts = {} }) {
   return (
     <nav className="ops-sup-tabs" aria-label="Support">
-      {TABS.map(t => <a key={t.key} href={`/ops/support?tab=${t.key}`} aria-current={t.key === current ? 'page' : undefined}>{t.label}{counts[t.key] != null && <span>{counts[t.key]}</span>}</a>)}
-      <a href="/ops/support?tab=answers" aria-current={current === 'answers' ? 'page' : undefined}>Answers{counts.answers != null && <span>{counts.answers}</span>}</a>
+      {TABS.map(t => <a key={t.key} href={`/ops/students?view=support&tab=${t.key}`} aria-current={t.key === current ? 'page' : undefined}>{t.label}{counts[t.key] != null && <span>{counts[t.key]}</span>}</a>)}
+      <a href="/ops/students?view=support&tab=answers" aria-current={current === 'answers' ? 'page' : undefined}>Answers{counts.answers != null && <span>{counts.answers}</span>}</a>
     </nav>
   );
 }
@@ -149,7 +149,7 @@ async function Answers({ user, sp }) {
     .sort((a, b) => (STATE_ORDER[a.Status.toLowerCase()] ?? 9) - (STATE_ORDER[b.Status.toLowerCase()] ?? 9) || String(a.Topic).localeCompare(b.Topic));
   const toReview = (answers || []).filter(FILTERS[0].test).length;
   const selected = (answers || []).find(a => String(a.row) === String(sp?.a));
-  const href = (extra = {}) => '/ops/support?' + new URLSearchParams({ tab: 'answers', f: filter.key, ...(q ? { q } : {}), ...extra }).toString();
+  const href = (extra = {}) => '/ops/students?view=support&' + new URLSearchParams({ tab: 'answers', f: filter.key, ...(q ? { q } : {}), ...extra }).toString();
   return (
     <Shell user={user} current="support" eyebrow="What Ether says and the Help Centre shows" title="Support"
       head={<a className="chip" href={kbSheetUrl()} target="_blank" rel="noopener">Open the KB sheet</a>}>
@@ -157,12 +157,12 @@ async function Answers({ user, sp }) {
       {answers === null && <p className="ops-note">The KB sheet didn’t answer just now. Reload in a minute.</p>}
       <div className={`ops-sup${selected ? ' has-ticket' : ''}`}>
         <section className="ops-sup-list" aria-label="Answers">
-          <form className="ops-sup-filter" action="/ops/support">
+          <form className="ops-sup-filter" action="/ops/students?view=support">
             <input type="hidden" name="tab" value="answers" /><input type="hidden" name="f" value={filter.key} />
             <label className="sr">Search answers</label>
             <input type="search" name="q" defaultValue={sp?.q || ''} placeholder="Search answers" aria-label="Search answers" />
           </form>
-          <div className="ops-sup-chips">{FILTERS.map(f => <a key={f.key} className={`chip${f.key === filter.key ? ' on' : ''}`} href={'/ops/support?' + new URLSearchParams({ tab: 'answers', f: f.key, ...(q ? { q } : {}) })}>{f.label}</a>)}</div>
+          <div className="ops-sup-chips">{FILTERS.map(f => <a key={f.key} className={`chip${f.key === filter.key ? ' on' : ''}`} href={'/ops/students?view=support&' + new URLSearchParams({ tab: 'answers', f: f.key, ...(q ? { q } : {}) })}>{f.label}</a>)}</div>
           {list.length === 0 ? <p className="ops-empty">{filter.key === 'review' ? 'Nothing waiting for review.' : 'No answers here.'}</p> : (
             <ul>{list.map(a => (
               <li key={a.row} className={selected?.row === a.row ? 'on' : ''}>

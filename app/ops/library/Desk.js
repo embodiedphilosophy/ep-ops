@@ -28,7 +28,7 @@ export function AddByLink() {
   const [open, setOpen] = useState(false), [url, setUrl] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   async function add(e) {
     e.preventDefault(); setBusy(true); setErr('');
-    try { const { offering } = await call({ action: 'add_url', url }); location.href = `/ops/library/${offering.offering_id}`; }
+    try { const { offering } = await call({ action: 'add_url', url }); location.href = `/ops/programs/library/${offering.offering_id}`; }
     catch (x) { setErr(x.message); setBusy(false); }
   }
   if (!open) return <button className="btn ghost" onClick={() => setOpen(true)}>Add from a Circle link</button>;
@@ -60,7 +60,7 @@ export default function Desk({ rows, tab }) {
           <li key={r.id} className="ops-lib-row">
             <span className="thumb" aria-hidden="true">{r.cover ? <img src={r.cover} alt="" width="96" height="64" loading="lazy" /> : <small>No cover yet</small>}</span>
             <span className="body">
-              <a className="ttl" href={`/ops/library/${r.id}`}>{r.title}</a>
+              <a className="ttl" href={`/ops/programs/library/${r.id}`}>{r.title}</a>
               <span className="meta">
                 <span className="tag">Circle course</span>
                 {r.prefilled && <span className="tag-pine">Pre-filled from onboarding</span>}
@@ -75,9 +75,9 @@ export default function Desk({ rows, tab }) {
             <span className="pricecol mono">{r.price || 'No paywall yet'}<br /><span className="st"><i className={`sq ${r.circleStatus === 'published' ? 'green' : 'amber'}`} />{r.circleStatus === 'published' ? 'Published in Circle' : r.circleStatus === 'removed' ? 'Removed from Circle' : 'Draft in Circle'}</span></span>
             {(tab === 'new' || tab === 'skipped') ? <span className="bar" title={`${r.done} of 9 fields`}><span className="mono">{r.done} of 9 fields</span><span className="track"><i style={{ width: `${(r.done / 9) * 100}%` }} /></span></span> : <span />}
             <span className="acts">
-              {tab === 'new' && <><a className="btn primary" href={`/ops/library/${r.id}`}>Prepare listing</a><button className="btn ghost" onClick={() => act('skip', r.id)}>Skip</button></>}
-              {tab === 'changed' && <><a className="btn primary" href={`/ops/library/${r.id}`}>Review</a>{r.circleChanged.length > 0 && !r.onboardingChanged.length && <button className="btn ghost" onClick={() => act('seen', r.id)}>Mark as seen</button>}</>}
-              {tab === 'published' && <a className="btn ghost" href={`/ops/library/${r.id}`}>Edit listing</a>}
+              {tab === 'new' && <><a className="btn primary" href={`/ops/programs/library/${r.id}`}>Prepare listing</a><button className="btn ghost" onClick={() => act('skip', r.id)}>Skip</button></>}
+              {tab === 'changed' && <><a className="btn primary" href={`/ops/programs/library/${r.id}`}>Review</a>{r.circleChanged.length > 0 && !r.onboardingChanged.length && <button className="btn ghost" onClick={() => act('seen', r.id)}>Mark as seen</button>}</>}
+              {tab === 'published' && <a className="btn ghost" href={`/ops/programs/library/${r.id}`}>Edit listing</a>}
               {tab === 'skipped' && <button className="btn ghost" onClick={() => act('unskip', r.id)}>Bring back</button>}
             </span>
           </li>

@@ -24,13 +24,13 @@ function List({ wizard, setWizard }) {
   return (
     <Layout title={<><em>Launches</em></>} intro="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote." panel={panel} setPanel={setPanel} d={side}>
       {err && <p className="hint err" role="alert">{err}</p>}
-      {!d ? <p className="ops-empty">Reading the launches…</p> : wizard ? <Wizard d={d} start={wizard} close={() => setWizard(null)} done={id => { window.location.href = `/ops/email/launches?id=${id}`; }} /> : <>
+      {!d ? <p className="ops-empty">Reading the launches…</p> : wizard ? <Wizard d={d} start={wizard} close={() => setWizard(null)} done={id => { window.location.href = `/ops/programs?view=launches&id=${id}`; }} /> : <>
         <section className="soc-panel" aria-label="Launches">
           <div className="ph"><h2>Launches</h2>{d.canEdit && <button className="soc-btn small primary" onClick={() => setWizard({})}>New launch</button>}</div>
           {!d.launches.length ? <p className="ops-empty">No launches yet. Start one from the suggestions below.</p> : <ul className="em-list">{d.launches.map(l => (
             <li key={l.id} className="em-row"><div className="b"><span className="mono meta">{l.first ? `${day(l.first)} – ${day(l.last)}` : 'No dates yet'} · {l.kind || 'Launch'}</span><br /><b>{l.name}</b>
               <span className="chips"><span className="gchip">{l.status}</span><span className="gchip">{l.emails ? `${l.scheduled} of ${l.emails} emails scheduled` : 'No emails'}</span></span></div>
-              <a className="soc-btn small" href={`/ops/email/launches?id=${l.id}`}>Open</a></li>))}</ul>}
+              <a className="soc-btn small" href={`/ops/programs?view=launches&id=${l.id}`}>Open</a></li>))}</ul>}
         </section>
         {d.canEdit && d.suggestions.length > 0 && <section className="soc-panel" aria-label="Suggested launches">
           <div className="ph"><h2>Suggested</h2><span className="sub">Launches on the list that don’t exist here yet.</span></div>
@@ -93,7 +93,7 @@ function Board({ id }) {
   const keep = async () => { const name = prompt('Name this playbook'); if (!name) return; try { await post({ action: 'savePlaybook', id, name }); setMsg('Saved as a playbook.'); } catch (e) { setErr(e.message); } };
   return (
     <Layout title={<>{L.name}</>} intro={`${L.kind || 'Launch'} · ${L.status}${d.event ? ` · ${d.event.title}` : ''}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/email/launches">← All launches</a>{d.event && <> · <a href={`/ops/email/launches#${d.event.key ? `countdown-${d.event.key}` : 'coming-up'}`}>Social countdown and promotion for this event</a></>}</p>
+      <p><a href="/ops/programs?view=launches">← All launches</a>{d.event && <> · <a href={`/ops/programs?view=launches#${d.event.key ? `countdown-${d.event.key}` : 'coming-up'}`}>Social countdown and promotion for this event</a></>}</p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       <section className="soc-panel" aria-label="Timeline">
         <div className="ph"><h2>Timeline</h2><span className="soc-act">{d.canEdit && ['Planning', 'Live', 'Done'].filter(s => s !== L.status).map(s => <button key={s} className="soc-btn small" onClick={() => set({ status: s }, `Marked ${s.toLowerCase()}.`)}>Mark {s.toLowerCase()}</button>)}

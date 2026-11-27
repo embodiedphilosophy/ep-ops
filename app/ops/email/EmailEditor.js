@@ -88,7 +88,7 @@ export function EmailEditor() {
   const run = async (key, fn, ok) => { setBusy(key); setErr(''); setMsg(''); try { await fn(); if (ok) setMsg(ok); } catch (e) { setErr(e.message); if (e.checks) setDlg(x => x && { ...x, checks: e.checks, needNote: true }); } setBusy(''); };
   const changes = () => ({ subject: f.subject, preview_text: f.preview_text, planned_date: f.planned_date, planned_time_et: f.planned_time_et, event_id: f.event_id, type: f.type, step: f.step, blocks, audience: aud });
   const save = (toKit) => run(toKit ? 'kit' : 'save', async () => {
-    if (f._new) { const j = await post({ action: 'create', ...changes() }); window.location.href = `/ops/email/edit?id=${j.id}`; return; }
+    if (f._new) { const j = await post({ action: 'create', ...changes() }); window.location.href = `/ops/publish?view=compose-email&id=${j.id}`; return; }
     await post({ action: 'save', id, changes: changes(), pushToKit: !!toKit }); await load(id, true);
   }, toKit ? 'Saved, and sent to Kit as a draft. Nothing was scheduled.' : 'Saved in Ops.');
   const openSchedule = () => setDlg({ checks: d.checks, needNote: d.checks.length > 0 || f.status !== 'Ready for Jake' });
@@ -96,7 +96,7 @@ export function EmailEditor() {
   const rev = d?.revisions || [];
   return (
     <Layout title={<>{f._new ? 'New' : 'Edit'} <em>email</em></>} intro={f._new ? 'Write it here. It reaches Kit as a draft when you save it to Kit.' : `${f.id} · ${f.status}${f.kit_id ? ' · in Kit' : ' · not in Kit yet'}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/email/emails">← All emails</a> · <a href="/ops/email/calendar">Email calendar</a></p>
+      <p><a href="/ops/publish?view=email">← All emails</a> · <a href="/ops/publish?view=email-calendar">Email calendar</a></p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       {locked && <p className="em-banner" role="status">This email has been sent, so it can’t be changed.</p>}
       {d && (f.conflict === 'kit' || f.conflict === 'both') && <section className="em-banner bad" role="alert">
@@ -135,7 +135,7 @@ export function EmailEditor() {
           <button className="soc-btn" disabled={dis || !f.subject} onClick={() => save(false)}>{busy === 'save' ? 'Saving…' : 'Save'}</button>
           <button className="soc-btn" disabled={dis || !f.subject} onClick={() => save(true)}>{busy === 'kit' ? 'Sending to Kit…' : 'Save draft to Kit'}</button>
           {!f._new && <button className="soc-btn" disabled={dis || dirty || f.status === 'Ready for Jake' || f.status === 'Scheduled'} onClick={() => run('ready', async () => { await post({ action: 'ready', id }); await load(id, true); }, 'Marked ready for Jake.')}>Mark ready for Jake</button>}
-          {!f._new && canEdit && !['Scheduled', 'Sent'].includes(f.status) && <button className="soc-btn" disabled={!!busy} onClick={() => confirm('Mark this email as not needed?\n\nIt leaves the plan and the calendar. Nothing is deleted, and Kit is not changed.') && run('nn', async () => { await post({ action: 'notNeeded', id, confirm: true }); window.location.href = '/ops/email/emails'; })}>Not needed</button>}
+          {!f._new && canEdit && !['Scheduled', 'Sent'].includes(f.status) && <button className="soc-btn" disabled={!!busy} onClick={() => confirm('Mark this email as not needed?\n\nIt leaves the plan and the calendar. Nothing is deleted, and Kit is not changed.') && run('nn', async () => { await post({ action: 'notNeeded', id, confirm: true }); window.location.href = '/ops/publish?view=email'; })}>Not needed</button>}
           {!f._new && <button className="soc-btn primary" disabled={dis || dirty || f.status === 'Scheduled'} onClick={openSchedule}>Schedule in Kit…</button>}
         </span>
       </div>

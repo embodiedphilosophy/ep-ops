@@ -99,7 +99,7 @@ export default function ThisWeek({ canEdit, canPublish, canSchedule }) {
       <header className="soc-head">
         <div><span className="eyebrow">Content · Social</span><h1>This Week at <em>EP</em></h1>
           <p>A standing post every Sunday at 9:00 ET, built from the Master Schedule for {short(monday)} – {short(addD(monday, 6))}. {canSchedule ? 'Fix anything here and it’s saved to the Master Schedule, so the website, the newsletter and next week’s post get the fix too.' : 'Titles, dates and times come from the Master Schedule; Jacob, Irene or Floss can fix them here.'} Nothing posts until you press a button.</p></div>
-        <div className="soc-act"><a className="soc-btn" href="/ops/social">← Calendar</a></div>
+        <div className="soc-act"><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
       </header>
       <div className="soc-act">
         <button className="soc-btn small" onClick={() => setMonday(addD(monday, -7))} aria-label="Earlier week">←</button>
@@ -212,7 +212,7 @@ function EventRow({ e, canEdit, canSchedule, onTick, onLine, onSaved }) {
           {!e.listed && <span className="gchip flag">Added by hand for this post{canSchedule ? ' · open Edit to list it every week' : ''}</span>}
           {e.missing.length > 0 && <span className="gchip bad">Missing in the Master Schedule: {e.missing.join(', ')}</span>}
           {(canSchedule && e.sched_id) && <button type="button" className="tw-link" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? 'Close' : dirty.length ? 'Edit · unsaved change' : 'Edit'}</button>}
-          {!canSchedule && e.missing.length > 0 && <a href="/ops/events">Fix in Programming</a>}
+          {!canSchedule && e.missing.length > 0 && <a href="/ops/programs">Fix in Programming</a>}
         </span>
         <input aria-label={`Line for ${e.title}`} placeholder="One line about it" value={line} disabled={!canEdit || !e.on} maxLength={160} onChange={x => onLine(x.target.value)} />
         {open && (

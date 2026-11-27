@@ -19,7 +19,7 @@ function List() {
   const [d, setD] = useState(null); const [err, setErr] = useState(''); const [panel, setPanel] = useState(false); const side = useSide(panel);
   const load = useCallback(async () => { const res = await fetch(`${API}?fresh=1`).catch(() => null), j = await res?.json().catch(() => ({})) || {}; if (!res?.ok) { setErr(j.error || 'Couldn’t read the newsletter'); return; } setD(j); }, []);
   useEffect(() => { load(); }, [load]);
-  const make = async day => { try { await post({ action: 'create', date: day }); window.location.href = `/ops/email/newsletter?date=${day}`; } catch (e) { setErr(e.message); } };
+  const make = async day => { try { await post({ action: 'create', date: day }); window.location.href = `/ops/publish?view=newsletter&date=${day}`; } catch (e) { setErr(e.message); } };
   const [tab, setTab] = useState('upcoming');
   const upcoming = d && nextSunday(d.today), has = d && d.issues.some(i => i.send_date === upcoming);
   // Upcoming: everything still to go out, soonest first. Skipped and Sent collect on their own tabs, most recent first.
@@ -40,7 +40,7 @@ function List() {
             <li key={i.send_date} className="em-row"><div className="b"><span className="mono meta">{long(i.send_date)}</span><br />
               <b>{i.number ? `No. ${i.number}` : 'No number'}</b>{i.subject ? ` · ${i.subject}` : ''}
               <span className="chips"><span className={`gchip ${STATE_CLASS[i.state] || ''}`}>{i.state}</span></span></div>
-              <a className="soc-btn small" href={`/ops/email/newsletter?date=${i.send_date}`}>{['Sent', 'Skipped'].includes(i.state) ? 'View' : 'Write'}</a></li>))}</ul>}
+              <a className="soc-btn small" href={`/ops/publish?view=newsletter&date=${i.send_date}`}>{['Sent', 'Skipped'].includes(i.state) ? 'View' : 'Write'}</a></li>))}</ul>}
         </section>)}
     </Layout>);
 }
@@ -66,7 +66,7 @@ function Editor({ date }) {
   const hasVerse = !!(f.sanskrit_devanagari || f.sanskrit_iast);
   return (
     <Layout title={<>{i.number ? `No. ${i.number}` : 'Issue'} <em>{long(date)}</em></>} intro={`${i.state}${d.audience ? ` · goes to: ${d.audience}` : ''}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/email/newsletter">← All issues</a></p>
+      <p><a href="/ops/publish?view=newsletter">← All issues</a></p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       {!d.editable && <p className="em-banner" role="status">This issue is {i.state.toLowerCase()}, so it can’t be changed here.</p>}
       {d.gaps.length > 0 && d.editable && <p className="em-banner bad" role="status">Still blank: {d.gaps.join(', ')}.</p>}
@@ -122,7 +122,7 @@ function Editor({ date }) {
         <button className="soc-btn" disabled={dis || !Object.keys(changed).length} onClick={save}>{busy === 'save' ? 'Saving…' : 'Save'}</button>
         <button className="soc-btn" disabled={dis || !!Object.keys(changed).length} onClick={() => confirm('Make or update the Kit draft for this issue?\n\nIt replaces any edits made to the draft inside Kit. Nothing is scheduled or sent.') && run('build', async () => { const j = await post({ action: 'build', date, confirm: true }); setMsg(j.action === 'updated' ? 'Kit draft updated.' : 'Kit draft made.'); await load(); })}>{busy === 'build' ? 'Sending to Kit…' : 'Save draft to Kit'}</button>
         <button className="soc-btn primary" disabled={dis || !i.kit_id || !!Object.keys(changed).length} onClick={() => setDlg({ checks: d.gaps.map(g => `Still blank: ${g}`), needNote: d.gaps.length > 0 })}>Schedule for Sunday 9:00 ET…</button>
-        {d.canEdit && d.editable && <button className="soc-btn" disabled={!!busy} onClick={() => confirm('Skip this issue?\n\nIt stays on the list as Skipped and takes no number. Nothing is deleted, and Kit is not changed.') && run('skip', async () => { await post({ action: 'skip', date, confirm: true }); window.location.href = '/ops/email/newsletter'; })}>Skip this week</button>}</span></div>
+        {d.canEdit && d.editable && <button className="soc-btn" disabled={!!busy} onClick={() => confirm('Skip this issue?\n\nIt stays on the list as Skipped and takes no number. Nothing is deleted, and Kit is not changed.') && run('skip', async () => { await post({ action: 'skip', date, confirm: true }); window.location.href = '/ops/publish?view=newsletter'; })}>Skip this week</button>}</span></div>
       {dlg && <div className="em-dlg" role="dialog" aria-modal="true" aria-label="Schedule in Kit"><div className="em-dbox">
         <h2>Schedule in Kit</h2><p><b>{f.subject || '(no subject)'}</b><br />Goes out on <b>{long(date)}</b> at <b>9:00 ET</b> to <b>{d.audience}</b>.</p>
         {dlg.checks.length ? <><p><b>These checks didn’t pass:</b></p><ul>{dlg.checks.map(c => <li key={c}>{c}</li>)}</ul></> : <p>All the checks passed.</p>}

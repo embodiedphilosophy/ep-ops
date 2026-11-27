@@ -21,13 +21,13 @@ export const api = async (body) => {
 };
 
 // Content → Social: the whole EP Social Engine. Make still publishes Approved posts at their date and time.
-export default function SocialEngine({ director, keys, initial, base = '/ops/social/library' }) {
+export default function SocialEngine({ director, keys, initial, base = '/ops/publish?view=library' }) {
   const views = (keys ? keys.map(k => VIEWS.find(v => v.key === k)) : VIEWS).filter(v => v && !v.virtual && v.key !== 'plan' && (!v.director || director));
   const [view, setView] = useState(views.some(v => v.key === initial) ? initial : views[0]?.key);
   const [seed, setSeed] = useState(null); // "Use in a post": carried to the Composer page
   const go = k => { setView(k); try { history.replaceState(null, '', `${base}?s=${k}`); } catch {} };
   // Starting a post from a picture or words: the Composer is its own page
-  const useIn = s => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify(s)); } catch {} window.location.href = '/ops/social/compose?seed=1'; };
+  const useIn = s => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify(s)); } catch {} window.location.href = '/ops/publish?view=compose&seed=1'; };
   return (
     <section className="ops-se">
       {views.length > 1 && (
@@ -117,7 +117,7 @@ export function NextPosts({ n = 9 }) {
   return (
     <ul className="ops-strip">{posts.map(p => (
       <li key={p._row}>
-        <a href={`/ops/social/compose?row=${p._row}`} aria-label={`Open the ${day(p.publish_date)} post`}>
+        <a href={`/ops/publish?view=compose&row=${p._row}`} aria-label={`Open the ${day(p.publish_date)} post`}>
           {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none" aria-hidden="true" />}
           <span className="d">{day(p.publish_date)}{p.publish_time_ET ? ` · ${time(p.publish_time_ET)}` : ''}</span>
           <span className="p">{p.platforms}</span>

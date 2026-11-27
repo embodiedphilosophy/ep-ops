@@ -56,7 +56,7 @@ export default function ClockWidget({ tags = [] }) {
       ) : <button className="btn-clock" disabled={busy} onClick={() => run({ action: 'in' })}>Clock in</button>}
 
       {st.limit && <div className="bar" role="meter" aria-label="Hours this month" aria-valuemin={0} aria-valuemax={st.limit} aria-valuenow={st.used}><span style={{ width: `${pct}%` }} /></div>}
-      <a className="sum" href="/ops/hours">
+      <a className="sum" href="/ops/people?view=hours">
         {st.open ? `Since ${at(st.open.start)} · ` : ''}{st.level === 'near' ? `${st.left} h left this month` : st.level === 'at' ? `At your ${st.limit} h for this month` : total}
       </a>
       {err && <p className="msg err">{err}</p>}

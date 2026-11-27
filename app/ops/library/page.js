@@ -35,7 +35,7 @@ export default async function Library({ searchParams }) {
       {sync?.notes?.length > 0 && <p className="ops-meta">{sync.notes[0]}</p>}
       {!sync && <p className="ops-meta">Circle hasn’t been checked yet. Press “Check Circle now”.</p>}
       <nav className="ops-tabs" aria-label="Course Library">
-        {TABS.map(([k, name]) => <a key={k} href={`/ops/library?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
+        {TABS.map(([k, name]) => <a key={k} href={`/ops/programs?view=library&tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
       </nav>
       <Desk rows={rows.filter(r => r.bucket === tab).sort((a, b) => String(a.found).localeCompare(String(b.found)))} tab={tab} />
       <AccessMap paywalls={paywalls} />

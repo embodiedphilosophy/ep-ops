@@ -22,7 +22,7 @@ export function AddEvent({ tracks }) {
     const j = await post({ action: 'add', ...f });
     setBusy(false);
     if (j.error) return setErr(j.error);
-    router.push(`/ops/events?all=1&event=${j.key}`); router.refresh(); setOpen(false);
+    router.push(`/ops/programs?all=1&event=${j.key}`); router.refresh(); setOpen(false);
   };
   return (
     <form className="ops-edit ops-add" onSubmit={save}>
@@ -57,7 +57,7 @@ export function AddPastEvent({ tracks }) {
     const j = await post({ action: 'add', past: true, date: f.date, track: f.track, name: f.name, teachers: f.teachers, video: f.video, summary: f.summary });
     setBusy(false);
     if (j.error) return setErr(j.error);
-    setOpen(false); router.push(`/ops/events?show=past&event=${j.id}`); router.refresh();
+    setOpen(false); router.push(`/ops/programs?show=past&event=${j.id}`); router.refresh();
   };
   return (
     <form className="ops-edit ops-add" onSubmit={save}>
@@ -93,8 +93,8 @@ export function SessionActions({ id, date }) {
     const j = await post(body);
     setBusy(false); setMsg(j.error || j.message);
     if (!j.error) {
-      if (body.action === 'cancel') router.push('/ops/events?show=cancelled');
-      else if (j.key) router.push(`/ops/events?all=1&event=${j.key}`);
+      if (body.action === 'cancel') router.push('/ops/programs?show=cancelled');
+      else if (j.key) router.push(`/ops/programs?all=1&event=${j.key}`);
       router.refresh();
     }
   };

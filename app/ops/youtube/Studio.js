@@ -63,7 +63,7 @@ function Proposal({ p: initial, series }) {
         <span className="acts">
           {p.status === 'proposed' && !open && <><button className="btn primary" onClick={() => setOpen(true)}>Approve</button><button className="btn ghost" disabled={busy} onClick={() => act('skip')}>Skip</button></>}
           {p.status === 'producing' && ago(p.fired_at) > 45 && <button className="btn ghost" disabled={busy} onClick={() => act('retry')}>Still waiting? Start again</button>}
-          {p.status === 'ready' && <a className="btn ghost" href={`/ops/youtube?tab=review#${p.cut_id}`}>Review the cut</a>}
+          {p.status === 'ready' && <a className="btn ghost" href={`/ops/publish?view=video&tab=review#${p.cut_id}`}>Review the cut</a>}
           {p.status === 'skipped' && <button className="btn ghost" disabled={busy} onClick={() => act('unskip')}>Bring back</button>}
         </span>
       </span>

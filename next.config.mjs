@@ -1,7 +1,11 @@
+import { nextRedirects } from './lib/ops/redirects.mjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // The card renderer reads its bundled fonts from disk at run time
   outputFileTracingIncludes: { '/api/ops/social/render': ['./lib/ops/fonts/**', './public/brand/ep-mark-*.png'] },
+  // Every old /ops address redirects to its new home (lib/ops/redirects.js)
+  async redirects() { return nextRedirects(); },
   async rewrites() {
     return {
       afterFiles: [

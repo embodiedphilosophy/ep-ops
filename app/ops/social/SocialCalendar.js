@@ -73,7 +73,7 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
   };
 
   const card = p => (
-    <a key={p._row} href={`/ops/social/compose?row=${p._row}`} className={`soc-post${p.status === 'Proposed' ? ' proposed' : ''}${p.status === 'Expired' ? ' expired' : ''}`}
+    <a key={p._row} href={`/ops/publish?view=compose&row=${p._row}`} className={`soc-post${p.status === 'Proposed' ? ' proposed' : ''}${p.status === 'Expired' ? ' expired' : ''}`}
       draggable={!out(p) && !!data?.canEdit} onDragStart={() => setDrag(p._row)} aria-label={`${time(p.publish_time_ET)} ${p.status}: ${title(p).slice(0, 60)}`}>
       <div className="th">{p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{title(p).slice(0, 40)}</span>}</div>
       <div className="m"><span className="mono">{time(p.publish_time_ET)} · {kindLabel(p) || (isFeed(p) ? 'Feed' : 'Story')}</span><span className="dot" style={{ background: dotOf(p) }} role="img" aria-label={p.pillar || 'no pillar'} /></div>
@@ -125,7 +125,7 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             <strong>Next week ({short(nextMon)} – {short(addD(nextMon, 6))}): {ahead.covered} of {ahead.total} days scheduled</strong>
             <span>Planner drafts it on Friday · the team picks images at the Tuesday check-in · whoever schedules the week approves it.</span>
           </div>
-          <a className="soc-card dark" href="/ops/events">
+          <a className="soc-card dark" href="/ops/programs">
             <span className="cap">Coming up</span>
             <strong>{(data.events || []).filter(e => e.slice(-10) >= t).slice(0, 2).map(e => e.replace(/ — \d{4}-\d{2}-\d{2}$/, '')).join(' · ') || 'Nothing on the schedule yet'}</strong>
             <span>See every offering and what is ready →</span>
@@ -152,8 +152,8 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             <button className="soc-btn small" onClick={() => step(1)} aria-label="Later week">→</button>
           </span>}
           <span className="soc-act" style={{ marginLeft: 'auto' }}>
-            <a className="soc-btn" href="/ops/social/review">Review &amp; approve {reviewCount > 0 && <span className="n mono">{reviewCount}</span>}</a>
-            {data.canEdit && <a className="soc-btn primary" href="/ops/social/compose">New post</a>}
+            <a className="soc-btn" href="/ops/publish?view=review">Review &amp; approve {reviewCount > 0 && <span className="n mono">{reviewCount}</span>}</a>
+            {data.canEdit && <a className="soc-btn primary" href="/ops/publish?view=compose">New post</a>}
           </span>
         </div>
 
@@ -184,14 +184,14 @@ export default function SocialCalendar({ cards, reviewCount, dateLine }) {
             <div className="hd"><h2>Drafts tray</h2><span className="mono sub">{drafts.length}</span></div>
             <p className="sub" style={{ margin: 0 }}>Made but not scheduled. Drag onto a day.</p>
             {drafts.map(p => (
-              <a key={p._row} className="d" href={`/ops/social/compose?row=${p._row}`} draggable={!!data.canEdit} onDragStart={() => setDrag(p._row)}>
+              <a key={p._row} className="d" href={`/ops/publish?view=compose&row=${p._row}`} draggable={!!data.canEdit} onDragStart={() => setDrag(p._row)}>
                 <span className="t">{p._thumb && <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />}</span>
                 <span><b>{title(p).slice(0, 50)}</b><br /><small>{[p.pillar, kindLabel(p) || 'Feed'].filter(Boolean).join(' · ')}</small></span>
               </a>))}
             {!drafts.length && <p className="sub" style={{ margin: 0 }}>No drafts right now.</p>}
             <div className="never">
               <span className="cap">Never used yet</span>
-              <div className="pills">{unused.map(u => <a key={u} href={`/ops/social/compose?type=${encodeURIComponent(u)}`}>{u}</a>)}</div>
+              <div className="pills">{unused.map(u => <a key={u} href={`/ops/publish?view=compose&type=${encodeURIComponent(u)}`}>{u}</a>)}</div>
             </div>
           </aside>
         </div>
@@ -251,7 +251,7 @@ function ListView({ posts, cats }) {
         <tr key={p._row}>
           <td className="mono" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{day(p.publish_date)} {time(p.publish_time_ET)}</td>
           <td>{kindLabel(p) || (isFeed(p) ? 'Feed' : 'Story')}</td><td>{p.pillar || '—'}</td>
-          <td><a href={`/ops/social/compose?row=${p._row}`}>{title(p).slice(0, 80)}</a></td>
+          <td><a href={`/ops/publish?view=compose&row=${p._row}`}>{title(p).slice(0, 80)}</a></td>
           <td>{categoryFor(p.publish_date, cats) || '—'}</td><td style={{ color: 'var(--ink-soft)' }}>{p.template_id || '—'}</td>
           <td><span className={`soc-badge ${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></td>
         </tr>))}
@@ -275,7 +275,7 @@ function GridView({ live, canEdit, t, reload, setMsg }) {
         <ul className="soc-g3">{feed.map(p => (
           <li key={p._row} className={`${p.status === 'Proposed' ? 'prop' : ''}${out(p) ? ' out' : ''}${drag === p._row ? ' drag' : ''}`} draggable={canEdit && !out(p)}
             onDragStart={() => setDrag(p._row)} onDragEnd={() => setDrag(null)} onDragOver={e => { if (drag != null) e.preventDefault(); }} onDrop={() => { swap(feed.find(x => x._row === drag), p); setDrag(null); }}>
-            <a href={`/ops/social/compose?row=${p._row}`} aria-label={`${long(p.publish_date)}: ${title(p).slice(0, 40)}`}>{p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : null}<span>{short(p.publish_date)}</span></a>
+            <a href={`/ops/publish?view=compose&row=${p._row}`} aria-label={`${long(p.publish_date)}: ${title(p).slice(0, 40)}`}>{p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : null}<span>{short(p.publish_date)}</span></a>
           </li>))}</ul>
       </div>
       <div className="soc-explain">
@@ -298,7 +298,7 @@ function FeedView({ live, t, warn }) {
         <div className="soc-feed">{feed.map(p => (
           <article key={p._row} className={p.status === 'Expired' ? 'out' : ''}>
             <div className="hd"><i /><div><b>embodiedphilosophy</b><small className="mono">{day(p.publish_date)} · {time(p.publish_time_ET)}</small></div><span className={`soc-badge ${String(p.status).replace(/\s/g, '')}`}>{p.status}</span></div>
-            <a className="media" href={`/ops/social/compose?row=${p._row}`}>{p._thumb && <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />}</a>
+            <a className="media" href={`/ops/publish?view=compose&row=${p._row}`}>{p._thumb && <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />}</a>
             <div className="body">
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{p.pillar && <span className="pl">{p.pillar}</span>}{isTextHeavy(p) && <span className="tag">Text-heavy</span>}</div>
               <p><b>embodiedphilosophy</b> {title(p).slice(0, 140)}</p>

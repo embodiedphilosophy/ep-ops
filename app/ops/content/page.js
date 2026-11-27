@@ -31,18 +31,19 @@ export default async function Content({ searchParams }) {
   const user = await opsUser(isStaff);
   const sp = await searchParams;
   // The website tables moved to Settings
-  // Social moved to its own workspace (/ops/social): old links and bookmarks land on the right page
+  // Social moved to its own workspace (/ops/publish): old links and bookmarks land on the right page
   if (sp?.tab === 'social') {
     const s = String(sp.s || '');
-    const to = { review: 'review', health: 'review', history: 'published', quotes: 'sources', captions: 'sources', rules: 'rules', art: 'library', images: 'library', promo: 'library', videos: 'library', categories: 'library', sources: 'library' }[s];
-    redirect(`/ops/social${to ? `/${to}${['art', 'promo', 'videos', 'categories', 'sources', 'quotes', 'captions'].includes(s) ? `?s=${s}` : ''}` : ''}`);
+    const to = { review: 'review', health: 'review', history: 'published', quotes: 'library', captions: 'library', rules: 'rules', art: 'library', images: 'library', promo: 'library', videos: 'library', categories: 'library', sources: 'library' }[s];
+    const keep = ['art', 'promo', 'videos', 'categories', 'sources', 'quotes', 'captions'].includes(s) ? `&s=${s}` : '';
+    redirect(to === 'rules' ? '/ops/settings?view=social-rules' : to ? `/ops/publish?view=${to}${keep}` : '/ops/publish');
   }
   if (sp?.tab === 'website') redirect(`/ops/settings${sp?.t ? `?t=${encodeURIComponent(sp.t)}` : ''}`);
   const tabs = TABS.filter(([k]) => k !== 'review' || canEditSite(user));
   // The old Overview (status board, Next posts) is gone: This week is the new front page, and Next posts lives in Social
-  if (sp?.tab === 'media') redirect('/ops/email/media'); // Media moved into Teachers & Email
-  if (sp?.tab === 'review') redirect('/ops/email/teachers?tab=review'); // teacher bios and course pages are reviewed under Teachers now
-  if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/email');
+  if (sp?.tab === 'media') redirect('/ops/programs?view=recordings');
+  if (sp?.tab === 'review') redirect('/ops/people?needs=profile');
+  if (!tabs.some(([k]) => k === sp?.tab)) redirect('/ops/publish');
   const tab = sp.tab;
   return (
     <Shell user={user} current={tab === 'email' ? 'email-emails' : `content-${tab}`} desc="The promo emails planned for each event: written and adjusted here, checked against Kit." eyebrow="Teachers · Email · Launches" title="Promo emails"
@@ -145,7 +146,7 @@ async function Overview({ canReview }) {
   // [lane, level (green|amber|red|none), status word, next action, link]
   const lanes = [
     ['Social', !posts ? 'none' : needImages ? 'amber' : 'green', !posts ? 'Not connected' : needImages ? (noImage ? 'Needs images' : 'To check') : 'On track',
-      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? [noImage && `${noImage} of the next ${posts.length} posts ${noImage === 1 ? 'has' : 'have'} no image`, notReviewed && `${notReviewed} ${notReviewed === 1 ? 'image hasn’t' : 'images haven’t'} been checked yet`].filter(Boolean).join(', ') : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/social'],
+      !posts ? (social?.error || 'Couldn’t read the Social Engine.') : needImages ? [noImage && `${noImage} of the next ${posts.length} posts ${noImage === 1 ? 'has' : 'have'} no image`, notReviewed && `${notReviewed} ${notReviewed === 1 ? 'image hasn’t' : 'images haven’t'} been checked yet`].filter(Boolean).join(', ') : posts.length ? `The next ${posts.length} posts are ready` : 'No posts scheduled', '/ops/publish'],
     ['Email', !promo?.kit ? 'none' : late ? 'red' : behind.length ? 'amber' : 'green', !promo?.kit ? 'Not connected' : late ? 'Late' : behind.length ? 'Behind' : 'On track',
       !promo?.kit ? 'Kit isn’t connected, so promo emails can’t be checked.' : behind.length ? `${behind.length} event${behind.length === 1 ? '' : 's'} short of promo emails` : 'Every upcoming event has its promo emails', '/ops/content?tab=email'],
     ['Media', replays === null ? 'none' : replays.length ? 'amber' : 'green', replays === null ? 'Not connected' : replays.length ? 'Waiting' : 'On track',

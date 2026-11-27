@@ -16,7 +16,7 @@ export default async function Prepare({ params }) {
   const choices = await linkChoices().catch(() => []);
   return (
     <Shell user={user} current="library" eyebrow="Prepare listing" title={o.title || 'Untitled'}
-      head={<nav className="ops-crumb" aria-label="Breadcrumb"><a href="/ops/library">Course Library desk</a><span aria-hidden="true">/</span><span>{o.status === 'published' ? 'Published' : 'New from Circle'}</span></nav>}>
+      head={<nav className="ops-crumb" aria-label="Breadcrumb"><a href="/ops/programs?view=library">Course Library desk</a><span aria-hidden="true">/</span><span>{o.status === 'published' ? 'Published' : 'New from Circle'}</span></nav>}>
       <Form initial={o} choices={choices}
         changed={{ circle: circleChanges(o).map(f => FIELD_NAMES[f] || f), onboarding: onboardingChanges(o).map(f => FIELD_NAMES[f] || f) }}
         kalighat={process.env.KALIGHAT_COVER_URL || ''} />

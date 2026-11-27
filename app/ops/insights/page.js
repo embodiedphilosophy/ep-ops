@@ -66,7 +66,7 @@ export default async function Insights({ searchParams }) {
 
   return (
     <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"
-      head={<nav className="ops-filters" aria-label="Month">{choices.map(c => <a key={c} href={`/ops/insights?m=${c}`} aria-current={c === month ? 'page' : undefined}>{short(c)}{c === now ? ' (now)' : ''}</a>)}</nav>}>
+      head={<nav className="ops-filters" aria-label="Month">{choices.map(c => <a key={c} href={`/ops/business?view=finance&m=${c}`} aria-current={c === month ? 'page' : undefined}>{short(c)}{c === now ? ' (now)' : ''}</a>)}</nav>}>
       <p className="ops-empty">{monthName(month)}{live ? ', so far this month' : ''}. From the Revenue & Metrics sheet: Stripe and PayPal sales, Meta ad spend and your Budget.</p>
       {missing && <p className="ops-note">No sales or ad spend have been imported for {monthName(month)} yet, so its figures read $0. The plan for the month was {usd(cur.plan || 0)}.</p>}
 
@@ -147,7 +147,7 @@ export default async function Insights({ searchParams }) {
 
       <section>
         <h2 className="ops-sub">Funnel <span>{funnel.steps.length || ''}</span></h2>
-        <nav className="ops-filters" aria-label="Funnel period">{PERIODS.map(([k, l]) => <a key={k} href={`/ops/insights?m=${month}&f=${k}`} aria-current={k === period ? 'page' : undefined}>{l}</a>)}</nav>
+        <nav className="ops-filters" aria-label="Funnel period">{PERIODS.map(([k, l]) => <a key={k} href={`/ops/business?view=finance&m=${month}&f=${k}`} aria-current={k === period ? 'page' : undefined}>{l}</a>)}</nav>
         {funnel.error ? <p className="ops-empty">{funnel.error}</p>
           : funnel.steps.length === 0 ? <p className="ops-empty">No funnel steps yet. Add them in <a href="/ops/settings?t=funnel">Settings → Funnel</a>: a step name and the Kit tag people get when they reach it.</p> : (
           <ol className="ops-funnel">{funnel.steps.map(s => (

@@ -109,7 +109,7 @@ export default async function Home({ searchParams }) {
 
       {glance && (
         <div className="ops-glance">
-          <a href="/ops/events" className={glance.atRisk ? 'is-bad' : ''}><b>{glance.atRisk}</b> event{glance.atRisk === 1 ? '' : 's'} at risk</a>
+          <a href="/ops/programs" className={glance.atRisk ? 'is-bad' : ''}><b>{glance.atRisk}</b> event{glance.atRisk === 1 ? '' : 's'} at risk</a>
           <a href="/ops/tasks?show=unowned" className={glance.unowned ? 'is-bad' : ''}><b>{glance.unowned}</b> task{glance.unowned === 1 ? '' : 's'} need{glance.unowned === 1 ? 's' : ''} an owner</a>
           <a href="/ops/tasks?show=late" className={veryLate.length ? 'is-bad' : ''}><b>{veryLate.length}</b> task{veryLate.length === 1 ? '' : 's'} a week+ late</a>
         </div>
@@ -134,7 +134,7 @@ export default async function Home({ searchParams }) {
           </div>
         ))}
         {later > 0 && <p className="ops-more"><a href={viewing === user ? '/ops/tasks' : `/ops/tasks?who=${encodeURIComponent(viewing.name)}`}>{later} more in the next 4 weeks →</a></p>}
-        {socialLine && <p className="ops-more"><a href="/ops/social">{socialLine} →</a></p>}
+        {socialLine && <p className="ops-more"><a href="/ops/publish">{socialLine} →</a></p>}
 
       </section>
 
@@ -148,7 +148,7 @@ export default async function Home({ searchParams }) {
               <span className="s">{r.limit && r.pace && r.pace > r.limit ? `Pace ${r.pace}/${r.limit} h` : r.limit ? `${r.used}/${r.limit} h` : `${r.used} h`}</span>
             </li>
           ))}</ul>
-          <p className="ops-more"><a href="/ops/hours">All hours →</a></p>
+          <p className="ops-more"><a href="/ops/people?view=hours">All hours →</a></p>
         </section></div>)}
         {pods && (<div className="ops-week stacked" style={{ marginBottom: 28 }}><section className="ops-today-card">
           <h2>Study pods {pods.requests.length + pods.needChat.length > 0 && <span>{pods.requests.length + pods.needChat.length} waiting</span>}</h2>
@@ -157,7 +157,7 @@ export default async function Home({ searchParams }) {
             <li key={r.uid}><i className="soon" /><span><b>{r.name}</b>{r.note ? ` · ${r.note.length > 90 ? `${r.note.slice(0, 90)}…` : r.note}` : ''}</span></li>))}</ul></>)}
           {pods.needChat.length > 0 && (<><h3 className="ops-my-h">Running, needs a chat link</h3><ul className="ops-my-wait">{pods.needChat.slice(0, 5).map(p => (
             <li key={p.id}><i className="soon" /><span><b>{p.topic}</b> · {p.leader} · {p.count} {p.count === 1 ? 'member' : 'members'}</span></li>))}</ul></>)}
-          <p className="ops-more"><a href="/ops/settings/pods">{pods.requests.length ? 'Approve or decline →' : 'Study pods →'}</a></p>
+          <p className="ops-more"><a href="/ops/students?view=pods">{pods.requests.length ? 'Approve or decline →' : 'Study pods →'}</a></p>
         </section></div>)}
         {triageOn && o2o.configured && (<div className="ops-week stacked" style={{ marginBottom: 28 }}><section>
           <h2>One-to-ones <span>{o2o.items.length}</span></h2>
@@ -166,7 +166,7 @@ export default async function Home({ searchParams }) {
               <div className="h"><b>{x.name || x.email}</b><span>{new Date(x.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></div>
               <p>{x.summary.length ? (x.summary[0].a.length > 140 ? `${x.summary[0].a.slice(0, 140)}…` : x.summary[0].a) : 'No summary yet'}</p>
             </li>))}</ul>)}
-          <p className="ops-more"><a href="/ops/one-to-ones">All one-to-ones →</a></p>
+          <p className="ops-more"><a href="/ops/students?view=one-to-ones">All one-to-ones →</a></p>
         </section></div>)}
         <Meetings programming={programming} team={meetings} director={user.director} stacked />
         {isStaff(user) && viewing === user && year && (() => {
@@ -175,7 +175,7 @@ export default async function Home({ searchParams }) {
           const names = list => list.slice(0, 2).map(x => x.name).join(', ') + (list.length > 2 ? `, +${list.length - 2}` : '');
           const od = year.overdue, ns = year.noSummary;
           return (<div className="ops-week stacked" style={{ marginTop: 28 }}><section className="ops-today-card">
-            <h2>Mentee year <a className="ops-my-open" href="/ops/mentee-year">Open</a></h2>
+            <h2>Mentee year <a className="ops-my-open" href="/ops/students?view=mentee">Open</a></h2>
             {year.month && <p className="ops-empty">{year.month.title.split(' ')[0]} · {year.month.theme}</p>}
             {year.upcoming.length > 0 && <><h3 className="ops-my-h">Next three project steps</h3><ul className="ops-my-steps compact">{year.upcoming.map(c => (
               <li key={c.step.id} className="ops-my-step"><span className="when"><b>{d3(c.step.date)}</b></span><span className="what"><span className={`ops-my-proj ${c.step.project}`}><i />{PROJECTS[c.step.project]}</span><b>{c.step.title}</b></span><span className={`ops-my-count ${dot(c)}`}><i />{c.count} of {c.of}</span></li>
@@ -187,7 +187,7 @@ export default async function Home({ searchParams }) {
             </ul>
           </section></div>);
         })()}
-        {isTeacher(user) && <p className="ops-more"><a href="/ops/team">Contacts and your teacher guide →</a></p>}
+        {isTeacher(user) && <p className="ops-more"><a href="/ops/people">Contacts and your teacher guide →</a></p>}
       </aside>
       </div>
     </Shell>

@@ -29,7 +29,7 @@ export function AddProgram({ tracks, past = [] }) {
     const j = await post({ action: 'create', ...f, count: n, series: slug });
     setBusy(false);
     if (j.error) return setErr(j.error);
-    setOpen(false); router.push(`/ops/events?all=1&event=${encodeURIComponent(j.key)}`); router.refresh();
+    setOpen(false); router.push(`/ops/programs?all=1&event=${encodeURIComponent(j.key)}`); router.refresh();
   };
   return (
     <form className="ops-edit ops-add ops-program-add" onSubmit={save}>

@@ -14,7 +14,7 @@ export default async function Page({ searchParams }) {
       <div className="soc">
         <header className="soc-head">
           <div><span className="eyebrow">Content · Social</span><h1>{sp?.row ? 'Edit' : 'New'} <em>post</em></h1></div>
-          <div className="soc-act"><a className="soc-btn" href="/ops/social">← Calendar</a></div>
+          <div className="soc-act"><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
         </header>
         <ComposePage row={sp?.row || ''} type={sp?.type || ''} date={sp?.date || ''} seeded={!!sp?.seed} />
       </div>

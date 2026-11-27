@@ -44,14 +44,14 @@ export default async function LandingPages({ searchParams }) {
   return (
     <Shell user={user} current="landing" eyebrow="Website" title="Landing Pages"
       desc="Every /lp/ page on the website, read straight from the site. New pages appear here on their own within five minutes."
-      head={<div className="ops-actions"><span className="mono ops-last">Links checked {new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })} ET</span><a className="btn ghost" href={`/ops/landing?tab=${tab}&check=1`}>Check links now</a></div>}>
+      head={<div className="ops-actions"><span className="mono ops-last">Links checked {new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })} ET</span><a className="btn ghost" href={`/ops/programs?view=landing&tab=${tab}&check=1`}>Check links now</a></div>}>
       {error && <p className="ops-note" role="alert">{error}</p>}
       <div className="ops-tiles" role="list">
         {[[count('running'), 'Running now'], [count('upcoming'), 'Upcoming'], [count('evergreen'), 'Evergreen'], [broken, broken ? 'Broken links' : 'All links working']].map(([n, l]) =>
           <div className={`ops-tile${l === 'Broken links' ? ' lp-risk' : ''}`} role="listitem" key={l}><span className="n">{n}</span><span className="l">{l}</span></div>)}
       </div>
       <nav className="ops-tabs" aria-label="Landing pages">
-        {TABS.map(([k, name]) => <a key={k} href={`/ops/landing?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
+        {TABS.map(([k, name]) => <a key={k} href={`/ops/programs?view=landing&tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
       </nav>
       {!shown.length
         ? <p className="ops-empty-box">{error ? 'Nothing to show until the website’s list can be read.' : tab === 'attention' ? 'Every page and checkout link is answering normally.' : tab === 'all' ? 'No landing pages on the website yet.' : 'Nothing here right now.'}</p>
@@ -67,7 +67,7 @@ export default async function LandingPages({ searchParams }) {
                     {r.teacher && <span>{r.teacher}</span>}
                     {range(r) && <span className="mono">{range(r)}</span>}
                     {r.publishedAt && <span className="mono">Published {day(r.publishedAt)}</span>}
-                    {r.lib && (editLibrary ? <a className="tag-pine" href={`/ops/library/${r.lib.id}`}>Course Library entry</a> : <span className="tag-pine">In the Course Library</span>)}
+                    {r.lib && (editLibrary ? <a className="tag-pine" href={`/ops/programs/library/${r.lib.id}`}>Course Library entry</a> : <span className="tag-pine">In the Course Library</span>)}
                   </span>
                   <span className="lp-links">
                     <span className="lp-link"><span className="k">Live page</span><a className="mono" href={r.url} target="_blank" rel="noopener noreferrer">{short(r.url)}</a>
