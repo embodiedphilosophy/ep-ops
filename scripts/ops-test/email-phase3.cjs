@@ -10,8 +10,8 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const noScroll = async n => ck(`${name}: no sideways scroll (${n})`, !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
     await p.goto(U + '/ops/email/reminders'); await p.waitForSelector('[aria-label="Rules"] li');
     ck(`${name}: five rules, listed off`, await p.locator('[aria-label="Rules"] > ul > li').count() === 5);
-    ck(`${name}: sidebar has Reminders and Newsletter`, (await p.locator('.ops-side').innerText()).includes('Reminders') && (await p.locator('.ops-side').innerText()).includes('Newsletter'));
-    ck(`${name}: Handled elsewhere explains Meditation Mondays`, await p.locator('text=Kit’s own automation sends this').count() === 1);
+    ck(`${name}: Student reminders is a Settings tab`, (await p.locator('nav[aria-label="settings views"]').innerText()).includes('Student reminders'));
+    ck(`${name}: Handled elsewhere explains Meditation Mondays`, /Meditation Mondays/.test(await p.locator('[aria-label="Handled elsewhere"]').innerText()));
     await noScroll('reminders');
     if (name === 'desktop') {
       const li = p.locator('[aria-label="Rules"] > ul > li').first();
@@ -26,12 +26,16 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
       ck('desktop: Make them now asked first and made drafts', dl.some(m => m.includes('Nothing is sent right now')));
       await p.screenshot({ path: `${__dirname}/out/email-reminders-${name}.png`, fullPage: true });
     } else await p.screenshot({ path: `${__dirname}/out/email-reminders-${name}.png`, fullPage: true });
-    await p.goto(U + '/ops/email/newsletter'); await p.waitForSelector('[aria-label="Issues"] li');
+    await p.goto(U + '/ops/email/newsletter'); await p.waitForSelector('[aria-label="Which issues"]');
+    // the list has three tabs now (Coming up, Skipped, Sent), most recent first
+    await p.locator('[aria-label="Which issues"] button', { hasText: 'Sent' }).click(); await p.waitForSelector('[aria-label="Issues"] li');
     ck(`${name}: issues are numbered by what went out`, await p.locator('text=No. 1').count() > 0 && await p.locator('text=No. 2').count() > 0);
+    await p.locator('[aria-label="Which issues"] button', { hasText: 'Skipped' }).click(); await p.waitForSelector('[aria-label="Issues"] li');
     ck(`${name}: an unsent past issue is Skipped`, await p.locator('.gchip.bad', { hasText: 'Skipped' }).count() > 0);
+    await p.locator('[aria-label="Which issues"] button', { hasText: 'Coming up' }).click();
     await noScroll('newsletter');
     if (name === 'desktop') {
-      await p.getByRole('button', { name: /^Start / }).click(); await p.waitForURL(/newsletter\?date=/); await p.waitForSelector('text=Sanskrit verse');
+      await p.getByRole('button', { name: /^Start / }).click(); await p.waitForURL(/newsletter&date=/); await p.waitForSelector('text=Sanskrit verse');
       ck('desktop: a new issue is made in Ops with a number', await p.locator('h1', { hasText: /No\. \d/ }).count() === 1);
       await p.locator('select[aria-label="Choose a verse"]').selectOption({ index: 1 }); await p.waitForSelector('text=Verse added.'); await p.waitForSelector('[lang=sa]');
       ck('desktop: the verse is copied with its Devanagari', (await p.locator('[lang=sa]').innerText()).includes('ॐ'));
@@ -47,7 +51,7 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
       await p.getByRole('button', { name: 'Schedule it' }).click(); await p.waitForSelector('text=Scheduled in Kit.');
       ck('desktop: scheduled', true);
     } else {
-      await p.locator('[aria-label="Issues"] a', { hasText: 'View' }).first().click(); await p.waitForSelector('text=Sanskrit verse'); await noScroll('issue');
+      await p.locator('[aria-label="Which issues"] button', { hasText: 'Sent' }).click(); await p.locator('[aria-label="Issues"] a', { hasText: 'View' }).first().click(); await p.waitForSelector('text=Sanskrit verse'); await noScroll('issue');
       await p.screenshot({ path: `${__dirname}/out/email-newsletter-${name}.png`, fullPage: true });
     }
     ck(`${name}: no page errors`, !errs.length); if (errs.length) console.log(errs); await ctx.close();

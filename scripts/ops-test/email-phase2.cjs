@@ -24,7 +24,7 @@ const lab = s => new Date(s + 'T12:00:00Z').toLocaleDateString('en-GB', { weekda
       ck('desktop: preview shows the bold text', true);
       await p.locator('select[aria-label="Send to a group…"], select[aria-label="Add a group to send to"]').selectOption({ index: 2 });
       await p.waitForSelector('text=/people\\./'); ck('desktop: audience shows a live count', await p.locator('text=/\\d+ people\\./').count() > 0);
-      await p.getByRole('button', { name: 'Save draft to Kit' }).click(); await p.waitForURL(/edit\?id=EM\d+/); await p.waitForSelector('text=in Kit');
+      await p.getByRole('button', { name: 'Save draft to Kit' }).click(); await p.waitForURL(/id=EM\d+/); await p.waitForSelector('text=in Kit');
       ck('desktop: saved and sent to Kit as a draft', true);
       await p.screenshot({ path: `${__dirname}/out/email-editor-${name}.png`, fullPage: true });
       await p.getByRole('button', { name: 'Mark ready for Jake' }).click(); await p.waitForSelector('text=Marked ready for Jake.');
@@ -36,7 +36,7 @@ const lab = s => new Date(s + 'T12:00:00Z').toLocaleDateString('en-GB', { weekda
       ck('desktop: scheduled', true);
     }
     await p.goto(U + '/ops/email/calendar'); await p.waitForSelector('[role=grid]');
-    ck(`${name}: calendar sidebar item exists`, (await p.locator('.ops-side').innerText()).includes('Email calendar'));
+    ck(`${name}: the Email calendar is a tab under Publish`, (await p.locator('nav[aria-label="publish views"]').innerText()).includes('Email calendar'));
     await p.getByRole('button', { name: 'Week', exact: true }).click(); await p.waitForSelector('.em-grid.week');
     ck(`${name}: the automatic lane or Programming overlay is drawn`, await p.locator('.em-auto, .em-ev').count() > 0 || true);
     await noScroll('week');

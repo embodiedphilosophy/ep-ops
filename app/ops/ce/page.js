@@ -43,7 +43,7 @@ export default async function CeLedger({ searchParams }) {
             <div className={`ops-tile${l === 'Held for a look' ? ' lp-risk' : ''}`} role="listitem" key={l}><span className="n">{n}</span><span className="l">{l}</span></div>)}
         </div>
         <nav className="ops-tabs" aria-label="CE ledger">
-          {TABS.map(([k, name]) => <a key={k} href={`/ops/ce?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
+          {TABS.map(([k, name]) => <a key={k} href={`/ops/students?view=ce&tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count(k)}</span></a>)}
         </nav>
 
         {tab === 'setup' ? (<section className="ops-col">

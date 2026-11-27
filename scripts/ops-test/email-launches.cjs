@@ -9,7 +9,7 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const p = await ctx.newPage(); const errs = [], dl = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => { dl.push(d.message()); d.accept(); });
     const noScroll = async n => ck(`${name}: no sideways scroll (${n})`, !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
     await p.goto(U + '/ops/email/launches'); await p.waitForSelector('[aria-label="Suggested launches"] li');
-    ck(`${name}: sidebar has Launches`, (await p.locator('.ops-side').innerText()).includes('Launches'));
+    ck(`${name}: Launches is a tab under Programs`, (await p.locator('nav[aria-label="programs views"]').innerText()).includes('Launches'));
     ck(`${name}: the suggested launches are listed`, await p.locator('[aria-label="Suggested launches"] li').count() >= 5);
     await noScroll('launches');
     await p.locator('[aria-label="Suggested launches"] li', { hasText: who }).getByRole('button', { name: 'Set up' }).click(); await p.waitForSelector('text=step 1 of 4');
@@ -20,7 +20,7 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     await p.getByRole('button', { name: 'Next: review' }).click(); await p.waitForSelector('text=step 4 of 4'); await p.waitForSelector('[aria-label^="Date for"]');
     ck(`${name}: the review lists dated steps before anything exists`, await p.locator('[aria-label^="Date for"]').count() > 3);
     await noScroll('wizard review'); await p.screenshot({ path: `${__dirname}/out/email-launch-wizard-${name}.png`, fullPage: true });
-    await p.getByRole('button', { name: 'Create the launch' }).click(); await p.waitForURL(/launches\?id=L\d+/); await p.waitForSelector('[aria-label="Launch timeline"]');
+    await p.getByRole('button', { name: 'Create the launch' }).click(); await p.waitForURL(/launches&id=L\d+/); await p.waitForSelector('[aria-label="Launch timeline"]');
     ck(`${name}: creating asked first and said nothing is sent`, dl.some(m => m.includes('Nothing is scheduled or sent')));
     ck(`${name}: the board has its four lanes`, await p.locator('.em-tl-lane').count() === 4);
     ck(`${name}: emails are on the timeline`, await p.locator('.em-tl-lane').first().locator('.em-tl-i').count() > 2);

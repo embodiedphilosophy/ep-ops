@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/ops/auth';
 import { listTasks } from '@/lib/ops/taskstore';
 import { dedupe, needsYouFor } from '@/lib/ops/tasks';
-import { navFor, isTeacher, isStaff, SIDEBAR } from '@/lib/ops/nav';
+import { navFor, isTeacher, isStaff, SIDEBAR, placeOf } from '@/lib/ops/nav';
 import { clockAvailable } from '@/lib/ops/hours';
 import ClockWidget from './ClockWidget';
 
@@ -28,7 +28,7 @@ export default async function Shell({ user, current, title, eyebrow, desc, head,
   const items = navFor(user);
   const badges = isStaff(user) ? { home: await needsYouCount(user) } : {};
   const link = i => (
-    <a key={i.key} href={i.href} aria-current={i.key === current ? 'page' : undefined}>
+    <a key={i.key} href={i.href} aria-current={i.key === placeOf(current) ? 'page' : undefined}>
       {i.label}
       {badges[i.key] ? <span className="ops-badge" aria-label={`${badges[i.key]} need action`}>{badges[i.key]}</span> : null}
     </a>

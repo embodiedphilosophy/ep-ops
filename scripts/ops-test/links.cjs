@@ -1,0 +1,56 @@
+// The link check (EP Ops 2): every old /ops address in lib/ops/redirects.mjs, with its query strings, must make exactly one redirect
+// to the right place and then load; the sidebar must show the right places for each role; and every /ops/... address that
+// the code writes into emails, digests and pages must still land somewhere (at most one redirect). Mock data only. Needs run.sh.
+const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+const B = 'http://localhost:3100'; let bad = 0, ok = 0; const t = (n, c, extra = '') => { if (c) ok++; else { bad++; console.log('FAIL', n, extra); } };
+const cookie = who => execFileSync('node', [path.join(__dirname, 'cookie.mjs'), who]).toString().trim();
+const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8').trim().replace(/^ep_ops=/, '');
+const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { Cookie: `ep_ops=${ck}` } });
+(async () => {
+  const { REDIRECTS } = await import(path.join(__dirname, '../../lib/ops/redirects.mjs'));
+  const samples = { '/ops/email/emails': '?show=unlinked', '/ops/email/edit': '?id=EM001', '/ops/events': '?event=E002', '/ops/social/compose': '?row=12', '/ops/social/library': '?s=sources', '/ops/library/:id': '', '/ops/email/launches': '' };
+  console.log('-- every old address, with its query string');
+  for (const r of REDIRECTS) {
+    if (r.has || r.missing) continue;
+    const src = r.source.replace(':id', 'abc'), q = samples[r.source] ?? '', res = await get(src + q);
+    const loc = res.headers.get('location') || '', want = new URL(r.destination.split('#')[0].replace(':id', 'abc'), B), got = loc ? new URL(loc, B) : null;
+    t(`${src}${q} redirects once`, res.status === 307 && got && got.pathname === want.pathname, `${res.status} ${loc}`);
+    if (got) {
+      for (const [k, v] of want.searchParams) t(`${src}${q} keeps ${k}=${v}`, got.searchParams.get(k) === v, loc);
+      for (const [k, v] of new URLSearchParams(q)) t(`${src}${q} keeps ?${k}=`, got.searchParams.get(k) === v, loc);
+      if (!r.source.includes(':id')) { const final = await get(got.pathname + got.search); t(`${src}${q} lands on a page that loads (no second redirect)`, final.status === 200, `${final.status} ${final.headers.get('location')}`); }
+    }
+  }
+  console.log('-- the older stubs');
+  for (const [u, to] of [['/ops/content?tab=email', '/ops/publish'], ['/ops/content?tab=media', '/ops/programs'], ['/ops/content?tab=review', '/ops/people'], ['/ops/content', '/ops/publish'], ['/ops/content?tab=social&s=review', '/ops/publish'], ['/ops/content?tab=website', '/ops/settings'], ['/ops/admin', '/ops/tasks'], ['/ops/admin?t=links', '/ops/settings']]) {
+    let res = await get(u); const loc = res.headers.get('location'); t(`${u} → ${to}`, res.status === 307 && loc && new URL(loc, B).pathname === to, `${res.status} ${loc}`);
+  }
+  console.log('-- the sidebar for each role');
+  const places = h => [...h.matchAll(/class="ops-nav[^"]*"[^>]*>([\s\S]*?)<\/nav>/g)].flatMap(m => [...m[1].matchAll(/href="(\/ops[^"]*)"/g)].map(x => x[1]));
+  const roles = [['director', DIRECTOR, ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/business', '/ops/settings']],
+    ['events staff (Irene)', cookie('irene@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/settings']],
+    ['events staff (Floss)', cookie('floss@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students', '/ops/settings']],
+    ['support (Ichha)', cookie('ichha@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students']],
+    ['social role (Carolyn)', cookie('carolyn@example.com'), ['/ops', '/ops/programs', '/ops/tasks', '/ops/people', '/ops/publish', '/ops/students']],
+    ['teacher (a teacher still to onboard is sent to /teach from Today, so look from Programs)', cookie('abha@example.com'), ['/ops', '/ops/programs'], '/ops/programs']];
+  for (const [name, ck, want, from] of roles) {
+    const res = await get(from || '/ops', ck), html = await res.text(), got = places(html);
+    t(`${name} sees ${want.length} places`, JSON.stringify(got) === JSON.stringify(want), `got ${got.join(' ')}`);
+  }
+  // views are role-checked too: Ichha sees Support but not CE credits or Payroll; a teacher can't open Publish
+  const ichha = cookie('ichha@example.com'), pub = await get('/ops/students?view=ce', ichha), html = await pub.text();
+  t('a view the role may not see falls back to the first allowed one', pub.status === 200 && !/CE credits/.test((html.match(/aria-label="students views"[\s\S]*?<\/nav>/) || [''])[0]));
+  t('a teacher is sent away from Publish', (await get('/ops/publish', cookie('abha@example.com'))).status === 307);
+  t('Business is not reachable for Floss', (await get('/ops/business', cookie('floss@example.com'))).status === 307);
+  console.log('-- addresses the code writes into emails, digests and pages');
+  const found = new Set();
+  for (const dir of ['lib', 'app']) (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (!/node_modules|\.next/.test(p)) walk(p); } else if (/\.(js|mjs)$/.test(e.name) && !/redirects\.mjs$/.test(e.name)) for (const m of fs.readFileSync(p, 'utf8').matchAll(/(?<![\w/.])(?<!api)\/ops(\/[a-z0-9-]+)*(?=[\s?'"`#)\\<$]|$)/g)) found.add(m[0]); } })(path.join(__dirname, '../..', dir));
+  for (const u of [...found].sort()) {
+    if (/^\/ops\/(login|search)$/.test(u) || u === '/ops' || u === '/ops/library' && false) { if (u !== '/ops') { const r = await get(u); t(`${u} loads`, r.status === 200 || r.status === 307); } continue; }
+    let res = await get(u), hops = 0; while (res.status === 307 && hops < 3) { res = await get(new URL(res.headers.get('location'), B).pathname + new URL(res.headers.get('location'), B).search); hops++; }
+    const first = await get(u);
+    t(`${u} (written by the code) lands on a page`, res.status === 200 || res.status === 404 && u.includes('library'), `${res.status} after ${hops}`);
+    t(`${u} takes at most one redirect`, hops <= 1, `${hops} hops`);
+  }
+  console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
+})();

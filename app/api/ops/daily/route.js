@@ -225,7 +225,7 @@ export async function GET(req) {
   try { out.pairChats = await runPairChats({ today }); } catch (e) { out.errors.push('Pair chats: ' + e.message); }
 
   // 7) Jacob's overview in Motion (only once tasks live in the dashboard's database); the mentee-year lines ride along, or go in one email if Motion isn't set up
-  try { out.motionDigest = await sendMotionDigest({ tasks, team: await loadTeam(), base, extra: yearLines.length ? ['', 'Mentee year', ...yearLines.map(l => `- ${l}`), `Open Mentee year: ${base}/ops/mentee-year`] : [] }); }
+  try { out.motionDigest = await sendMotionDigest({ tasks, team: await loadTeam(), base, extra: yearLines.length ? ['', 'Mentee year', ...yearLines.map(l => `- ${l}`), `Open Mentee year: ${base}/ops/students?view=mentee`] : [] }); }
   catch (e) { out.errors.push('Motion digest: ' + e.message); }
 
   // 7) Contractor pay: faculty fees for sessions taught so far go on the Contractor Payables tab
@@ -241,7 +241,7 @@ export async function GET(req) {
     } catch (e) { out.errors.push('Weekly digest: ' + e.message); }
   }
   if (yearLines.length && out.motionDigest?.skipped && !(out.motionDigest.why || '').includes('already')) {
-    try { const d = (await loadTeam()).find(m => m.director && m.email); if (d) { await sendEmail({ to: d.email.trim(), subject: 'Mentee year this week', html: layout('Mentee year this week', `<ul>${yearLines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>${button(`${base}/ops/mentee-year`, 'Open Mentee year')}`) }); out.menteeDigest = { emailed: d.email.trim(), lines: yearLines.length }; } }
+    try { const d = (await loadTeam()).find(m => m.director && m.email); if (d) { await sendEmail({ to: d.email.trim(), subject: 'Mentee year this week', html: layout('Mentee year this week', `<ul>${yearLines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>${button(`${base}/ops/students?view=mentee`, 'Open Mentee year')}`) }); out.menteeDigest = { emailed: d.email.trim(), lines: yearLines.length }; } }
     catch (e) { out.errors.push('Mentee year email: ' + e.message); }
   } else if (yearLines.length) out.menteeDigest = { inMotionDigest: true, lines: yearLines.length };
   return NextResponse.json(out);

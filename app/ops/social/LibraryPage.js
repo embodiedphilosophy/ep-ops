@@ -39,8 +39,8 @@ export default function LibraryPage({ canEdit }) {
   const usedIn = id => (plan?.rows || []).filter(r => r.values.image_id === id).map(r => r.values);
   const selected = rows.find(r => r.row === sel);
   const tileFlag = r => { const v = r.values; return tab === 'videos' ? ((+v.height && +v.width && Math.abs(+v.width / +v.height - 9 / 16) > .03) ? 'Wrong shape for Reels' : '') : !r.thumb ? 'Missing preview · fix' : !licenceOf(v) ? 'Licence missing' : !T(v.reuse_ok) ? 'Not for reuse' : T(v.hidden) ? 'Hidden from the planner' : ''; };
-  const useInPost = () => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify({ image_id: selected.values.image_id, thumb: selected.thumb, drive: selected.values.drive_file_id })); } catch {} window.location.href = '/ops/social/compose?seed=1'; };
-  const openTemplate = () => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify({ image_id: selected.values.image_id, thumb: selected.thumb, drive: selected.values.drive_file_id, openCard: true })); } catch {} window.location.href = '/ops/social/compose?seed=1'; };
+  const useInPost = () => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify({ image_id: selected.values.image_id, thumb: selected.thumb, drive: selected.values.drive_file_id })); } catch {} window.location.href = '/ops/publish?view=compose&seed=1'; };
+  const openTemplate = () => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify({ image_id: selected.values.image_id, thumb: selected.thumb, drive: selected.values.drive_file_id, openCard: true })); } catch {} window.location.href = '/ops/publish?view=compose&seed=1'; };
   const hide = async () => { const j = await api({ view, row: selected.row, changes: { hidden: T(selected.values.hidden) ? 'FALSE' : 'TRUE' }, before: selected.values }); setMsg(j.ok ? (T(selected.values.hidden) ? 'Back in the planner.' : 'Hidden from the planner.') : j.error); reload(); };
   const applyBulk = async () => {
     const changes = Object.fromEntries(Object.entries(bulk).filter(([, v]) => v !== ''));
@@ -63,8 +63,8 @@ export default function LibraryPage({ canEdit }) {
         <div><span className="eyebrow">Content · Social</span><h1>Library</h1><p>One place for art, promo graphics, video and finished designs.</p></div>
         <div className="soc-act">
           {canEdit && <label className="soc-btn primary upl">{pct != null ? `Uploading… ${pct}%` : 'Upload images or video'}<input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" disabled={pct != null} onChange={e => { drop([...e.target.files]); e.target.value = ''; }} /></label>}
-          <a className="soc-btn" href="/ops/social/sources">Quotes &amp; captions</a>
-          <a className="soc-btn" href="/ops/social/library?s=categories">Categories &amp; folders</a>
+          <a className="soc-btn" href="/ops/publish?view=library&s=sources">Quotes &amp; captions</a>
+          <a className="soc-btn" href="/ops/publish?view=library&s=categories">Categories &amp; folders</a>
         </div>
       </header>
       <nav className="ops-soc-tabs" aria-label="Library">{TABS.map(([k, l]) => (

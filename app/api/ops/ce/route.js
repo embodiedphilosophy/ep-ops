@@ -5,7 +5,7 @@ import { ceAction } from '@/lib/ops/ce';
 
 export const dynamic = 'force-dynamic';
 
-// CE ledger actions from /ops/ce. POST { action: approve | revoke | rename | done, id, name, why, email, slug }
+// CE ledger actions from /ops/students?view=ce. POST { action: approve | revoke | rename | done, id, name, why, email, slug }
 export async function POST(req) {
   const user = await currentUser();
   if (!user || !canEditSite(user)) return NextResponse.json({ error: 'Please sign in again' }, { status: 401 });

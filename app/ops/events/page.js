@@ -28,7 +28,7 @@ const qs = (sp, extra) => {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries({ range: sp?.range, all: sp?.all, show: sp?.show, track: sp?.track, ...extra })) if (v) p.set(k, v);
   const s = p.toString();
-  return s ? `/ops/events?${s}` : '/ops/events';
+  return s ? `/ops/programs?${s}` : '/ops/programs';
 };
 
 // Is each offering ready? One row per event, worst first; its checklist opens in a side drawer.

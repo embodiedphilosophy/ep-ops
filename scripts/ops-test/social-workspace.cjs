@@ -16,8 +16,10 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
 
   let p = await mk('jacob@embodiedphilosophy.com', 1440, 1700);
   await go(p, 'social');
-  const navText = await p.locator('nav[aria-label=Dashboard]').innerText();
-  t('sidebar has the Social section', ['Calendar', 'Composer', 'Library', 'Review & approve', 'Published & insights', 'Rules', 'Also in Content', 'Site copy review'].every(x => navText.toLowerCase().includes(x.toLowerCase())), ['Calendar', 'Composer', 'Library', 'Review & approve', 'Published & insights', 'Rules', 'Also in Content', 'Site copy review'].filter(x => !navText.toLowerCase().includes(x.toLowerCase())).join(','));
+  const navText = await p.locator('.ops-side').innerText();
+  t('sidebar is the eight places', ['Today', 'Programs', 'Tasks', 'People', 'Publish', 'Students', 'Business', 'Settings'].every(x => navText.includes(x)) && !/Composer|Site copy review/.test(navText), navText.replace(/\n/g, ' '));
+  const tabsText = await p.locator('nav[aria-label="publish views"]').innerText();
+  t('Publish has Calendar, Compose, Review and approve, Library and Published as tabs', ['Calendar', 'Compose', 'Review and approve', 'Library', 'Published'].every(x => tabsText.includes(x)), tabsText.replace(/\n/g, ' '));
   t('headline reads "Week of … at a glance"', /^Week of \d+ \w+ at a glance/.test((await p.locator('.soc-head h1').innerText()).trim()));
   t('four status cards', await p.locator('.soc-cards .soc-card').count() === 4);
   t('balance, rhythm, week ahead, coming up', await p.locator('.soc-balance').count() === 1 && await p.locator('.soc-two .soc-card').count() === 3);
@@ -58,9 +60,13 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await p.locator('.soc-banner button:text-is("Move to drafts")').click(); await p.waitForTimeout(2500);
   t('expired posts move to the drafts tray', await p.locator('.soc-banner').count() === 0 && await p.locator('.soc-tray .d').count() > 0, exp);
   // drag a draft onto a future day
-  const d0 = p.locator('.soc-tray .d[draggable=true]').first(); const cnt = await p.locator('.soc-weekgrid .soc-day').nth(3).locator('.soc-post').count();
-  await d0.dragTo(p.locator('.soc-weekgrid .soc-day').nth(3)); await p.waitForTimeout(2500);
-  t('a draft dropped on a day is scheduled (Proposed)', await p.locator('.soc-weekgrid .soc-day').nth(3).locator('.soc-post').count() === cnt + 1, await p.locator('p.hint').last().innerText().catch(() => 'no message'));
+  const d0 = p.locator('.soc-tray .d[draggable=true]').first(); const cnt = await p.locator('.soc-weekgrid .soc-day').nth(6).locator('.soc-post').count(); // Sunday: a day that has not passed (the test ran on a Friday and Thursday refuses a draft)
+  await d0.dragTo(p.locator('.soc-weekgrid .soc-day').nth(6)); await p.waitForTimeout(2500);
+  if (await p.locator('.soc-weekgrid .soc-day').nth(6).locator('.soc-post').count() === cnt) { // the first drag sometimes starts before the page settles: do it by hand, in steps
+    const from = await p.locator('.soc-tray .d[draggable=true]').first().boundingBox(), to = await p.locator('.soc-weekgrid .soc-day').nth(6).boundingBox();
+    if (from && to) { await p.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await p.mouse.down(); await p.mouse.move(to.x + to.width / 2, to.y + 40, { steps: 12 }); await p.mouse.up(); await p.waitForTimeout(2500); }
+  }
+  t('a draft dropped on a day is scheduled (Proposed)', await p.locator('.soc-weekgrid .soc-day').nth(6).locator('.soc-post').count() === cnt + 1, (await p.locator('p.hint, .hint').allInnerTexts()).join(' | ') + ' cnt=' + cnt + ' now=' + await p.locator('.soc-weekgrid .soc-day').nth(6).locator('.soc-post').count());
 
   // review & approve
   await go(p, 'social/review');
@@ -84,7 +90,7 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await p.locator('.ops-slides .upl input').setInputFiles(O + '/wide.mp4'); await p.waitForTimeout(2500);
   t('video uploaded to Drive as slide 4', await p.locator('.ops-slides ol li').count() === 4 && /Uploaded to Drive/.test(await p.locator('.ops-slides .note').innerText()));
   await p.locator('.ops-se-comp button:text-is("Add as proposed")').click(); await p.waitForTimeout(2500);
-  t('carousel saved and back on the calendar', new URL(p.url()).pathname === '/ops/social', p.url());
+  t('carousel saved and back on the calendar', new URL(p.url()).pathname === '/ops/publish', p.url());
   await p.locator('.soc-seg button:text-is("List")').click(); await p.waitForTimeout(500);
   t('it shows as Carousel · 4, by the author', /Carousel · 4/.test(await p.locator('.soc-table').innerText()));
   // composer page + library + old links
@@ -92,11 +98,11 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await go(p, 'social/library'); t('library opens on Art', /Art/.test(await p.locator('.ops-soc-tabs a[aria-current=page]').innerText()));
   await p.locator('.lib-grid li button').first().click(); await p.waitForTimeout(400);
   await p.locator('button:text-is("Use in a post")').click(); await p.waitForTimeout(1800);
-  t('Use in a post opens the composer page with that picture', /\/ops\/social\/compose/.test(p.url()) && await p.locator('.phone .frame img').count() === 1, p.url());
-  for (const [old, now] of [['content?tab=social', '/ops/social'], ['content?tab=social&s=review', '/ops/social/review'], ['content?tab=social&s=history', '/ops/social/published'], ['content?tab=social&s=quotes', '/ops/social/sources']]) {
-    await p.goto('http://localhost:3100/ops/' + old, { waitUntil: 'networkidle' }); t(`old link ${old} → ${now}`, new URL(p.url()).pathname === now.split('?')[0], p.url());
+  t('Use in a post opens the composer page with that picture', /view=compose/.test(p.url()) && await p.locator('.phone .frame img').count() === 1, p.url());
+  for (const [old, now] of [['content?tab=social', '/ops/publish'], ['content?tab=social&s=review', '/ops/publish?view=review'], ['content?tab=social&s=history', '/ops/publish?view=published'], ['content?tab=social&s=quotes', '/ops/publish?view=library']]) {
+    await p.goto('http://localhost:3100/ops/' + old, { waitUntil: 'networkidle' }); t(`old link ${old} → ${now}`, new URL(p.url()).pathname === now.split('?')[0] && (!now.includes('view=') || p.url().includes(now.split('?')[1])), p.url());
   }
-  await go(p, 'content'); t('Content keeps Overview, Email, Media, Review (no Social tab)', !/Social/.test(await p.locator('.ops-head nav').innerText()), (await p.locator('.ops-head nav').innerText()).replace(/\n/g, ' '));
+  await go(p, 'content'); t('the old Content address lands on Publish', new URL(p.url()).pathname === '/ops/publish', p.url());
   await p.close();
 
   // permissions: a Publisher sees New post but not day-category editing; a viewer can't edit

@@ -36,7 +36,7 @@ export default async function YouTube({ searchParams }) {
       {s.error && <p className="ops-err" role="alert">Couldn’t load YouTube records: {s.error}</p>}
       {!dispatchConfigured() && <p className="ops-note">The YouTube pipeline isn’t connected yet, so Approve, Re-cut, Re-render and Push won’t start anything. Add GITHUB_PIPELINE_TOKEN to the ep-ops project on Vercel.</p>}
       <nav className="ops-tabs" aria-label="YouTube">
-        {TABS.map(([k, name]) => <a key={k} href={`/ops/youtube?tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count[k]}</span></a>)}
+        {TABS.map(([k, name]) => <a key={k} href={`/ops/publish?view=video&tab=${k}`} aria-current={k === tab ? 'page' : undefined}>{name}<span className="chipn mono">{count[k]}</span></a>)}
       </nav>
       {tab === 'week' && <Proposals rows={[...s.proposals, ...s.earlier]} series={SERIES} hasWeek={!!s.week} />}
       {tab === 'review' && <Review cuts={s.review} series={SERIES} privacy={PRIVACY} />}

@@ -8,9 +8,9 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const ctx = await b.newContext({ viewport: vp }); await ctx.addCookies([{ name: 'ep_ops', value: cookie, url: U }]);
     const p = await ctx.newPage(); const errs = [], dl = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => { dl.push(d.message()); d.accept(); });
     const noScroll = async n => ck(`${name}: no sideways scroll (${n})`, !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
-    await p.goto(U + '/ops/content?tab=review'); ck(`${name}: the old Review tab lands on the Teachers review queue`, p.url().includes('/ops/email/teachers?tab=review'));
+    await p.goto(U + '/ops/content?tab=review'); ck(`${name}: the old Review tab lands on the Teachers review queue`, p.url().includes('/ops/people') && p.url().includes('tab=review'));
     await p.waitForSelector('[aria-label="Bios waiting"]');
-    ck(`${name}: the sidebar has Teachers and no longer has Site copy review`, (await p.locator('.ops-side').innerText()).includes('Teachers') && !(await p.locator('.ops-side').innerText()).includes('Site copy review'));
+    ck(`${name}: Teacher profiles is a People tab, and Site copy review is gone`, (await p.locator('nav[aria-label="people views"]').innerText()).includes('Teacher profiles') && !(await p.locator('.ops-side').innerText()).includes('Site copy review'));
     await p.waitForSelector('.em-diff .add'); ck(`${name}: a change shows added words against what is live`, await p.locator('.em-diff .add').count() > 0);
     ck(`${name}: course pages are in the queue now`, await p.locator('[aria-label="Course pages"]').count() === 1);
     await noScroll('review'); await p.screenshot({ path: `${__dirname}/out/email-teachers-review-${name}.png`, fullPage: true });

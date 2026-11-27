@@ -38,10 +38,10 @@ export function EmailCalendar() {
     try { await post({ action: 'reschedule', id: item.id, date, confirm: sched }); setMsg(sched ? 'Rescheduled in Kit.' : `Moved to ${long(date)}.`); await load(true); } catch (e) { setErr(e.message); }
   };
   const open = async item => {
-    if (item.kind === 'plan') { window.location.href = `/ops/email/edit?id=${item.id}`; return; }
-    if (item.kind === 'auto') { window.location.href = '/ops/email/emails'; return; }
+    if (item.kind === 'plan') { window.location.href = `/ops/publish?view=compose-email&id=${item.id}`; return; }
+    if (item.kind === 'auto') { window.location.href = '/ops/publish?view=email'; return; }
     if (!canEdit || !confirm(`Take “${item.title}” into the Ops plan?\n\nThen you can edit it here and drag it to another day. Kit is not changed.`)) return;
-    try { const j = await post({ action: 'adopt', kit_id: item.kit_id }); window.location.href = `/ops/email/edit?id=${j.id}`; } catch (e) { setErr(e.message); }
+    try { const j = await post({ action: 'adopt', kit_id: item.kit_id }); window.location.href = `/ops/publish?view=compose-email&id=${j.id}`; } catch (e) { setErr(e.message); }
   };
   const Chip = ({ i }) => {
     const [bg, fg] = colourOf(i.program || (i.kind === 'auto' ? 'MM' : ''));
@@ -56,7 +56,7 @@ export function EmailCalendar() {
     return (
       <div className={`em-cell${dim ? ' dim' : ''}${date === today() ? ' today' : ''}`} onDragOver={e => canEdit && e.preventDefault()} onDrop={e => { e.preventDefault(); try { move(JSON.parse(e.dataTransfer.getData('text/plain')), date); } catch {} }} aria-label={long(date)}>
         <div className="dn"><span className="mono">{at(date).getUTCDate()}</span>{warn.length > 0 && <span className="em-warn" title={warn.map(w => w.text).join('\n')} aria-label={warn.map(w => w.text).join('. ')}>⚠</span>}
-          {canEdit && <a className="plus" href={`/ops/email/edit?date=${date}`} aria-label={`New email on ${long(date)}`}>+</a>}</div>
+          {canEdit && <a className="plus" href={`/ops/publish?view=compose-email&date=${date}`} aria-label={`New email on ${long(date)}`}>+</a>}</div>
         {auto.length > 0 && <div className="em-auto" title="Automatic reminders (Kit sends these on its own)">{auto.length} automatic</div>}
         {mine.map(i => <Chip key={i.key} i={i} />)}
         {showEv && (d?.events || []).filter(e => e.date === date).map(e => <span key={e.id} className="em-ev" style={{ borderLeftColor: colourOf(e.program)[0] }}>{e.title}</span>)}

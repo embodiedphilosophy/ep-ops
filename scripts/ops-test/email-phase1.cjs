@@ -8,9 +8,9 @@ const U = 'http://localhost:3100'; let bad = 0; const ck = (n, c) => { if (!c) {
     const ctx = await b.newContext({ viewport: vp }); await ctx.addCookies([{ name: 'ep_ops', value: cookie, url: U }]);
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
     const dialogs = []; p.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
-    await p.goto(U + '/ops/content'); ck(`${name}: old Content page lands on This week`, p.url().endsWith('/ops/email'));
+    await p.goto(U + '/ops/content'); ck(`${name}: the old Content address lands on Publish`, new URL(p.url()).pathname === '/ops/publish'); await p.goto(U + '/ops/email'); ck(`${name}: the old This week address lands on the This week view`, p.url().includes('view=week'));
     await p.waitForSelector('text=Needs attention'); await p.waitForSelector('text=On this week');
-    ck(`${name}: sidebar says Teachers & Email`, (await p.locator('.ops-nav, .ops-side').first().innerText()).includes('Teachers & Email'));
+    ck(`${name}: Publish is in the sidebar and has the Emails tab`, (await p.locator('.ops-side').innerText()).includes('Publish') && (await p.locator('nav[aria-label="publish views"]').innerText()).includes('Emails'));
     ck(`${name}: Kit banner shows connected`, await p.locator('text=Kit is connected').count() > 0);
     await p.getByRole('button', { name: /Show Programming/ }).click(); await p.waitForSelector('aside[aria-label="Programming"] li');
     ck(`${name}: Programming panel lists events`, await p.locator('aside[aria-label="Programming"] li').count() > 0);

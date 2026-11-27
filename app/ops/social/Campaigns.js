@@ -72,7 +72,7 @@ export default function Campaigns({ embedded = false }) {
                     <span className="mono meta">{launch ? 'Launch' : `Day ${s.step} of the countdown`} · {short(s.date)} · {s.time_et} ET</span>
                     <b>{s.theme}</b>
                     <span className="chips">
-                      {s.plan_post_id ? <a className="gchip" href={`/ops/social?post=${s.plan_post_id}`}>On the calendar · {s.plan_post_id}</a> : <span className="gchip">Not on the calendar yet</span>}
+                      {s.plan_post_id ? <a className="gchip" href={`/ops/publish?post=${s.plan_post_id}`}>On the calendar · {s.plan_post_id}</a> : <span className="gchip">Not on the calendar yet</span>}
                       {!launch && (clip ? <span className="gchip">Clip: {clip.status}</span> : <span className="gchip">Clip: {s.teacher ? 'Not requested' : 'No takeover'}</span>)}
                     </span>
                     {!launch && <input aria-label={`Takeover teacher for day ${s.step}`} placeholder="Takeover teacher (optional)" defaultValue={s.teacher} disabled={!edit} maxLength={80}

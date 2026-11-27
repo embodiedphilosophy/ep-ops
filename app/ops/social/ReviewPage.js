@@ -28,7 +28,7 @@ export default function ReviewPage({ closes }) {
     <div className="soc">
       <header className="soc-head">
         <div><span className="eyebrow">Content · Social</span><h1>Review <em>&amp; approve</em></h1><p>{closes}</p></div>
-        <div className="soc-act"><a className="soc-btn" href="/ops/social/team">Who can approve</a><a className="soc-btn" href="/ops/social">← Calendar</a></div>
+        <div className="soc-act"><a className="soc-btn" href="/ops/settings?view=team">Who can approve</a><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
       </header>
       <div className="soc-review">
         <div className="main">
@@ -45,7 +45,7 @@ export default function ReviewPage({ closes }) {
                     {r.blocked.map(x => <span key={x} className="gchip bad">{x}</span>)}
                     {r.flags.map(x => <span key={x} className="gchip flag">{x}</span>)}
                     {!blocked && !r.flags.length && <span className="gchip ok">Ready</span>}
-                    <a href={`/ops/social/compose?row=${r.row}`}>Open</a>
+                    <a href={`/ops/publish?view=compose&row=${r.row}`}>Open</a>
                   </span>
                   {sel[r.row] && r.flags.length > 0 && <input className="why" placeholder="Why is it OK to approve? One line, saved on the post." value={why[r.row] || ''} onChange={e => setWhy(s => ({ ...s, [r.row]: e.target.value }))} />}
                 </div>

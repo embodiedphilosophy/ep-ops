@@ -34,7 +34,7 @@ export default async function Team({ searchParams }) {
   const groups = [...new Set(links.map(r => r.group))];
 
   return (
-    <Shell user={user} current="team" desc="Who does what, and where everything lives." head={!teacher && <a className="chip" href="/ops/hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="Faculty & team">
+    <Shell user={user} current="team" desc="Who does what, and where everything lives." head={!teacher && <a className="chip" href="/ops/people?view=hours">{user.director ? 'Team hours' : 'My hours'}</a>} eyebrow={teacher ? 'Contacts and your guide' : 'Who does what, and where it lives'} title="Faculty & team">
       {canEditEvents(user) && <Tabs current="people" />}
       <div className="ops-grid">
         <section className="ops-col">
@@ -65,7 +65,7 @@ export default async function Team({ searchParams }) {
           {manage && (<>
             <h2>Add someone</h2>
             <AddPerson types={TYPES} director={!!user.director} />
-            <p className="ops-meta" style={{ margin: '8px 0 20px' }}>To ask a teacher to teach something (with a fee and, if you like, an agreement), use <a href="/ops/team?tab=invitations">Invitations</a>: saying yes puts them on the sessions.</p>
+            <p className="ops-meta" style={{ margin: '8px 0 20px' }}>To ask a teacher to teach something (with a fee and, if you like, an agreement), use <a href="/ops/people?tab=invitations">Invitations</a>: saying yes puts them on the sessions.</p>
           </>)}
           {teacher ? (<>
             <h2>Your guide</h2>
@@ -77,7 +77,7 @@ export default async function Team({ searchParams }) {
           </>)}
           {user.director && (<>
             <h2>Teacher onboarding</h2>
-            <p className="ops-empty">See each teacher’s onboarding as they will, adjust it and send their invitation: <a href="/ops/team?tab=onboarding">Faculty → Onboarding →</a></p>
+            <p className="ops-empty">See each teacher’s onboarding as they will, adjust it and send their invitation: <a href="/ops/people?tab=onboarding">Faculty → Onboarding →</a></p>
           </>)}
           <h2>Resources</h2>
           {resources === null || links.length === 0 ? (
@@ -97,9 +97,9 @@ export default async function Team({ searchParams }) {
 function Tabs({ current }) {
   return (
     <nav className="ops-filters" aria-label="Faculty" style={{ marginBottom: 16 }}>
-      <a href="/ops/team" aria-current={current === 'people' ? 'page' : undefined}>People</a>
-      <a href="/ops/team?tab=invitations" aria-current={current === 'invitations' ? 'page' : undefined}>Invitations</a>
-      <a href="/ops/team?tab=onboarding" aria-current={current === 'onboarding' ? 'page' : undefined}>Onboarding</a>
+      <a href="/ops/people" aria-current={current === 'people' ? 'page' : undefined}>People</a>
+      <a href="/ops/people?tab=invitations" aria-current={current === 'invitations' ? 'page' : undefined}>Invitations</a>
+      <a href="/ops/people?tab=onboarding" aria-current={current === 'onboarding' ? 'page' : undefined}>Onboarding</a>
     </nav>
   );
 }
