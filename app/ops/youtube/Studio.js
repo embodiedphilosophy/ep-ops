@@ -93,7 +93,7 @@ const formOf = c => ({
 });
 const forSave = f => ({ ...f, hashtags: f.hashtags.split(/[\s,]+/).filter(Boolean) });
 
-function Cut({ c: initial, series, privacy }) {
+export function Cut({ c: initial, series, privacy, checks }) {
   const [c, setC] = useState(initial), [f, setF] = useState(() => formOf(initial));
   const [io, setIo] = useState({ start: hms(initial.start_sec), end: hms(initial.end_sec) }), [showIo, setShowIo] = useState(false);
   const [busy, setBusy] = useState(''), [err, setErr] = useState(''), [msg, setMsg] = useState('');
@@ -116,10 +116,11 @@ function Cut({ c: initial, series, privacy }) {
     <article className="ops-panel ops-yt-cut" id={c.id}>
       <header className="head">
         <span><span className="ops-eyebrow">{c.series || 'Embodied Philosophy'}{c.teacher ? ` · ${c.teacher}` : ''}</span><h2>{c.source_title || c.yt_title}</h2></span>
-        <Status k={c.status} map={CSTATUS} />
+        <span className="acts"><Status k={c.status} map={CSTATUS} />{!checks && <a className="btn ghost" href={`/ops/publish?view=compose&kind=video&id=${encodeURIComponent(c.id)}`}>Open in Compose</a>}</span>
       </header>
       {locked && <p className="ops-note">{c.status === 'publishing' ? `Sent to YouTube ${when(c.fired_at)}. The link appears on Published when the upload finishes.` : c.status === 'recutting' ? `Re-cutting ${hms(c.asked_start)}–${hms(c.asked_end)} (asked ${when(c.fired_at)}). You can keep editing the text below.` : `Making a new thumbnail (asked ${when(c.fired_at)}).`}</p>}
       {c.error && <p className="ops-err" role="alert">{c.error}</p>}
+      <div className="pub-cols">
       <div className="ops-yt-media">
         <div className="vid">
           <div className="frame">{c.cut_vimeo_id ? <iframe src={`https://player.vimeo.com/video/${c.cut_vimeo_id}`} title={`Cut of ${c.source_title || c.yt_title}`} allow="fullscreen; picture-in-picture" allowFullScreen loading="lazy" /> : <span>The cut hasn’t arrived yet.</span>}</div>
@@ -157,6 +158,12 @@ function Cut({ c: initial, series, privacy }) {
           <label>Release time<input type="time" value={f.publish_time} onChange={set('publish_time')} disabled={!f.publish_date} /></label>
         </div>
         {f.publish_date && <p className="ops-help">A scheduled release goes up as private and YouTube makes it public at that time.</p>}
+      </div>
+      {checks && <aside className="pub-yt-checks" aria-label="Checks">
+        <h3 className="ops-sub">Checks</h3>
+        {!checks.length ? <p className="g ok">✓ Everything YouTube needs is in place.</p> : <ul>{checks.map(x => <li key={x} className="g bad">✗ {x}</li>)}</ul>}
+        <p className="ops-help">Read when this page opened. They run again when you press the button.</p>
+      </aside>}
       </div>
       {err && <p className="ops-err" role="alert">{err}</p>}
       <div className="ops-yt-acts">

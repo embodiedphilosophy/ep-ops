@@ -15,7 +15,7 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   const noScroll = p => p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
   let p = await mk('jacob@embodiedphilosophy.com', 1440, 1700);
-  await go(p, 'social');
+  await go(p, 'publish?show=social');
   const navText = await p.locator('.ops-side').innerText();
   t('sidebar is the eight places', ['Today', 'Programs', 'Tasks', 'People', 'Publish', 'Students', 'Business', 'Settings'].every(x => navText.includes(x)) && !/Composer|Site copy review/.test(navText), navText.replace(/\n/g, ' '));
   const tabsText = await p.locator('nav[aria-label="publish views"]').innerText();
@@ -106,16 +106,16 @@ let fails = 0; const t = (n, ok, x = '') => { console.log(ok ? 'ok  ' : 'FAIL', 
   await p.close();
 
   // permissions: a Publisher sees New post but not day-category editing; a viewer can't edit
-  p = await mk('carolyn@example.com'); await go(p, 'social');
+  p = await mk('carolyn@example.com'); await go(p, 'publish?show=social');
   t('Publisher: New post yes, day categories no', await p.locator('a:text-is("New post")').count() === 1 && await p.locator('button:text-is("Edit day categories")').count() === 0);
   await p.close();
-  p = await mk('vera@example.com'); await go(p, 'social');
+  p = await mk('vera@example.com'); await go(p, 'publish?show=social');
   t('Viewer: no New post, no banner buttons', await p.locator('a:text-is("New post")').count() === 0 && await p.locator('.soc-banner button').count() === 0);
   await p.close();
 
   // phone
   p = await mk('jacob@embodiedphilosophy.com', 390, 844);
-  for (const pg of ['social', 'social/review', 'social/library', 'social/sources']) { await go(p, pg); t(`phone: no sideways scroll on ${pg}`, await noScroll(p)); }
-  await go(p, 'social'); await p.screenshot({ path: O + '/soc-phone-calendar.png', fullPage: true });
+  for (const pg of ['publish', 'publish?show=social', 'social/review', 'social/library', 'social/sources']) { await go(p, pg); t(`phone: no sideways scroll on ${pg}`, await noScroll(p)); }
+  await go(p, 'publish?show=social'); await p.screenshot({ path: O + '/soc-phone-calendar.png', fullPage: true });
   await b.close(); console.log('page errors:', errs.length ? errs : 'none'); process.exit(fails ? 1 : 0);
 })();

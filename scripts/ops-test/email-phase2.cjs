@@ -36,7 +36,7 @@ const lab = s => new Date(s + 'T12:00:00Z').toLocaleDateString('en-GB', { weekda
       ck('desktop: scheduled', true);
     }
     await p.goto(U + '/ops/email/calendar'); await p.waitForSelector('[role=grid]');
-    ck(`${name}: the Email calendar is a tab under Publish`, (await p.locator('nav[aria-label="publish views"]').innerText()).includes('Email calendar'));
+    ck(`${name}: the Email calendar is the Email kind of the Publish calendar`, (await p.locator('.pub-chips a[aria-current=page]').innerText()).startsWith('Email'));
     await p.getByRole('button', { name: 'Week', exact: true }).click(); await p.waitForSelector('.em-grid.week');
     ck(`${name}: the automatic lane or Programming overlay is drawn`, await p.locator('.em-auto, .em-ev').count() > 0 || true);
     await noScroll('week');

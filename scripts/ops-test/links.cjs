@@ -44,6 +44,17 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   for (const tab of ['', '?tab=profile', '?tab=invitations', '?tab=hours', '?tab=access']) { const r = await get('/ops/people/floss%40example.com' + tab); t(`person record ${tab || '(overview)'} loads`, r.status === 200, String(r.status)); }
   for (const v of ['', '?view=invitations', '?view=onboarding', '?view=review', '?view=hours', '?show=needs', '?q=floss']) { const r = await get('/ops/people' + v); t(`/ops/people${v} loads`, r.status === 200, String(r.status)); }
   t('a teacher is not shown a person record', (await get('/ops/people/abha%40example.com', cookie('abha@example.com'))).status === 307);
+  console.log('-- publish: one calendar, Compose, Review, Library, Published (EP Ops 2, step 6)');
+  for (const [u, to, q] of [['/ops/social', '/ops/publish', ''], ['/ops/email/calendar', '/ops/publish', 'show=email'], ['/ops/email/edit?id=EM001&event=E002', '/ops/publish', 'kind=email'], ['/ops/social/compose?row=12&type=Practice', '/ops/publish', 'view=compose'],
+    ['/ops/email/emails?show=draft', '/ops/publish', 'view=email'], ['/ops/youtube?tab=review', '/ops/publish', 'view=video'], ['/ops/social/sources', '/ops/publish', 's=sources']]) {
+    const res = await get(u), loc = res.headers.get('location') || '', g = loc ? new URL(loc, B) : null;
+    t(`${u} redirects once to ${to}`, res.status === 307 && g && g.pathname === to && loc.includes(q), `${res.status} ${loc}`);
+    if (g) { for (const [k, v] of new URLSearchParams(u.split('?')[1] || '')) t(`${u} keeps ?${k}=`, g.searchParams.get(k) === v, loc); }
+  }
+  for (const v of ['', '?show=email', '?show=social', '?show=auto', '?show=video', '?layout=week', '?view=compose', '?view=compose&kind=email', '?view=compose&kind=post', '?view=compose&kind=video', '?view=compose-email', '?view=email-calendar', '?view=review', '?view=library', '?view=library&s=sources', '?view=published',
+    '?view=email', '?view=week', '?view=this-week', '?view=newsletter', '?view=promo', '?view=reminders', '?view=video']) { const r = await get('/ops/publish' + v); t(`/ops/publish${v} loads`, r.status === 200, String(r.status)); }
+  { const r = await get('/ops/settings?view=social-rules'); t('/ops/settings?view=social-rules loads (Rules, for a director)', r.status === 200, String(r.status)); }
+  t('a teacher is not shown Publish', (await get('/ops/publish?view=compose', cookie('abha@example.com'))).status === 307);
   console.log('-- the older stubs');
   for (const [u, to] of [['/ops/content?tab=email', '/ops/publish'], ['/ops/content?tab=media', '/ops/programs'], ['/ops/content?tab=review', '/ops/people'], ['/ops/content', '/ops/publish'], ['/ops/content?tab=social&s=review', '/ops/publish'], ['/ops/content?tab=website', '/ops/settings'], ['/ops/admin', '/ops/tasks'], ['/ops/admin?t=links', '/ops/settings']]) {
     let res = await get(u); const loc = res.headers.get('location'); t(`${u} → ${to}`, res.status === 307 && loc && new URL(loc, B).pathname === to, `${res.status} ${loc}`);

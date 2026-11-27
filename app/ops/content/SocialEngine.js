@@ -25,14 +25,14 @@ export default function SocialEngine({ director, keys, initial, base = '/ops/pub
   const views = (keys ? keys.map(k => VIEWS.find(v => v.key === k)) : VIEWS).filter(v => v && !v.virtual && v.key !== 'plan' && (!v.director || director));
   const [view, setView] = useState(views.some(v => v.key === initial) ? initial : views[0]?.key);
   const [seed, setSeed] = useState(null); // "Use in a post": carried to the Composer page
-  const go = k => { setView(k); try { history.replaceState(null, '', `${base}?s=${k}`); } catch {} };
+  const go = k => { setView(k); try { history.replaceState(null, '', `${base}${base.includes('?') ? '&' : '?'}s=${k}`); } catch {} };
   // Starting a post from a picture or words: the Composer is its own page
   const useIn = s => { try { sessionStorage.setItem('ep-social-seed', JSON.stringify(s)); } catch {} window.location.href = '/ops/publish?view=compose&seed=1'; };
   return (
     <section className="ops-se">
       {views.length > 1 && (
         <nav className="ops-soc-tabs" aria-label="Sections">
-          {views.map(v => <a key={v.key} href={`${base}?s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
+          {views.map(v => <a key={v.key} href={`${base}${base.includes('?') ? '&' : '?'}s=${v.key}`} aria-current={v.key === view ? 'page' : undefined} onClick={e => { e.preventDefault(); go(v.key); }}>{v.label}</a>)}
         </nav>)}
       {view === 'history' ? <History /> : <Library key={view} view={views.find(v => v.key === view)} onUse={useIn} />}
     </section>

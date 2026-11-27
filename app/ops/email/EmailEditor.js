@@ -88,7 +88,7 @@ export function EmailEditor() {
   const run = async (key, fn, ok) => { setBusy(key); setErr(''); setMsg(''); try { await fn(); if (ok) setMsg(ok); } catch (e) { setErr(e.message); if (e.checks) setDlg(x => x && { ...x, checks: e.checks, needNote: true }); } setBusy(''); };
   const changes = () => ({ subject: f.subject, preview_text: f.preview_text, planned_date: f.planned_date, planned_time_et: f.planned_time_et, event_id: f.event_id, type: f.type, step: f.step, blocks, audience: aud });
   const save = (toKit) => run(toKit ? 'kit' : 'save', async () => {
-    if (f._new) { const j = await post({ action: 'create', ...changes() }); window.location.href = `/ops/publish?view=compose-email&id=${j.id}`; return; }
+    if (f._new) { const j = await post({ action: 'create', ...changes() }); window.location.href = `/ops/publish?view=compose&kind=email&id=${j.id}`; return; }
     await post({ action: 'save', id, changes: changes(), pushToKit: !!toKit }); await load(id, true);
   }, toKit ? 'Saved, and sent to Kit as a draft. Nothing was scheduled.' : 'Saved in Ops.');
   const openSchedule = () => setDlg({ checks: d.checks, needNote: d.checks.length > 0 || f.status !== 'Ready for Jake' });
@@ -96,7 +96,7 @@ export function EmailEditor() {
   const rev = d?.revisions || [];
   return (
     <Layout title={<>{f._new ? 'New' : 'Edit'} <em>email</em></>} intro={f._new ? 'Write it here. It reaches Kit as a draft when you save it to Kit.' : `${f.id} · ${f.status}${f.kit_id ? ' · in Kit' : ' · not in Kit yet'}`} panel={panel} setPanel={setPanel} d={side}>
-      <p><a href="/ops/publish?view=email">← All emails</a> · <a href="/ops/publish?view=email-calendar">Email calendar</a></p>
+      <p><a href="/ops/publish?view=email">← All emails</a> · <a href="/ops/publish?show=email">Email calendar</a></p>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
       {locked && <p className="em-banner" role="status">This email has been sent, so it can’t be changed.</p>}
       {d && (f.conflict === 'kit' || f.conflict === 'both') && <section className="em-banner bad" role="alert">
@@ -127,6 +127,12 @@ export function EmailEditor() {
           <iframe title="Email preview" sandbox="" srcDoc={`<!doctype html><meta charset="utf-8"><body style="margin:0;background:#EFE9DA"><div style="max-width:${mobile ? 360 : 600}px;margin:0 auto">${html}</div>`} style={{ width: mobile ? 380 : '100%', height: 620 }} />
           <p className="sub">What you see is what goes to Kit. Members and everyone else get different text in Kit; both are shown here.</p>
           {d && <p>{d.event && <><Chip program={d.event.program} /> {d.event.title}</>}</p>}
+        </aside>
+        <aside className="em-checks soc-panel" aria-label="Checks">
+          <div className="ph"><h2>Checks</h2></div>
+          {!d ? <p className="sub">The checks appear once the email is saved.</p> : !d.checks.length ? <p className="g ok">✓ All the checks passed. Nothing is sent until you schedule it.</p>
+            : <><p className="sub">These must pass, or be explained, before it is scheduled in Kit.</p><ul>{d.checks.map(c => <li key={c.key} className="g bad">✗ {c.text}</li>)}</ul></>}
+          {d && <p className="sub">{f.status}{f.kit_id ? ' · in Kit' : ' · not in Kit yet'}{f.planned_date ? ` · goes out ${f.planned_date}` : ''}</p>}
         </aside>
       </div>
       <div className="soc-sumbar">

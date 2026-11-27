@@ -1,23 +1,5 @@
-import Shell, { opsUser } from '../../Shell';
-import { isStaff } from '@/lib/ops/nav';
-import ComposePage from '../ComposePage';
-import '../social.css';
+import { redirect } from 'next/navigation';
 
+// Moved in EP Ops 2 (step 6): this address redirects to its new home (lib/ops/redirects.mjs does it first; this is the fallback)
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Composer — Embodied Philosophy', robots: { index: false, follow: false } };
-
-export default async function Page({ searchParams }) {
-  const user = await opsUser(isStaff);
-  const sp = await searchParams;
-  return (
-    <Shell user={user} current="social">
-      <div className="soc">
-        <header className="soc-head">
-          <div><span className="eyebrow">Content · Social</span><h1>{sp?.row ? 'Edit' : 'New'} <em>post</em></h1></div>
-          <div className="soc-act"><a className="soc-btn" href="/ops/publish">← Calendar</a></div>
-        </header>
-        <ComposePage row={sp?.row || ''} type={sp?.type || ''} date={sp?.date || ''} seeded={!!sp?.seed} />
-      </div>
-    </Shell>
-  );
-}
+export default function Page() { redirect('/ops/publish?view=compose'); }
