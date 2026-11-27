@@ -19,6 +19,8 @@ const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const pool = async (items, n, fn) => { const out = []; let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } })); return out; };
 
 // Kept on purpose: copies of the website's libraries (CLAUDE.md: "libraries shared with the site are copies"). The website's pages use them; here nothing does.
+// Kept on purpose: the Ads database files (Ads PR 1). Nothing in the app may import them until the first Ads page (PR 2); that is the point (merging creates no tables).
+const ADS_NEXT = ['lib/ops/adsstore.js', 'lib/ops/adsdb.js'];
 const KEPT_FILES = ['lib/hub/meditation.js', 'lib/member/schedule.js', 'lib/mentee/partners.js', 'lib/mentee/reflectionstore.js'];
 // The page list under /ops after the reorganisation. /ops/content shows Publish › Promo emails (app/ops/place.js asks it for that) and
 // sends its older ?tab= addresses on; /ops/admin sends ?t= to the right Settings section.
@@ -46,8 +48,9 @@ const NEW_PLACES = /^\/ops(\/(programs|tasks|people|publish|students|business|se
     const roots = files.filter(f => /(^|[\\/])app[\\/](.*[\\/])?(page|layout|route|loading|error|global-error|not-found|template|default|icon|apple-icon|robots|sitemap|opengraph-image)\.(js|mjs)$/.test(path.relative(R, f)) || /next\.config/.test(f));
     const seen = new Set(roots), q = [...roots];
     while (q.length) for (const x of edges[q.pop()] || []) if (!seen.has(x)) { seen.add(x); q.push(x); }
-    const orphans = files.filter(f => !seen.has(f)).map(f => path.relative(R, f)).filter(f => !KEPT_FILES.includes(f));
+    const orphans = files.filter(f => !seen.has(f)).map(f => path.relative(R, f)).filter(f => !KEPT_FILES.includes(f) && !ADS_NEXT.includes(f));
     t('no component, page body or library file that nothing imports', orphans.length === 0, orphans.join(' '));
+    t('the Ads database files are still not imported by the app (PR 2 adds the first import and removes this line)', ADS_NEXT.every(f => fs.existsSync(path.join(R, f)) && !seen.has(path.join(R, f))), 'the app now imports one of them: remove it from ADS_NEXT');
     t('the kept website copies are still the only ones', KEPT_FILES.every(f => fs.existsSync(path.join(R, f)) && !seen.has(path.join(R, f))), 'one of them is now used or gone: update KEPT_FILES');
   }
   console.log('-- 1b. no exported helper in app/ops or lib/ops that nothing uses');

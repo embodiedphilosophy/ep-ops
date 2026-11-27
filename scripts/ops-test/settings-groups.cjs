@@ -47,13 +47,13 @@ const log = () => fs.readFileSync(path.join(__dirname, 'out/mock.log'), 'utf8');
 
   await p.goto(U + '/ops/settings?view=connections'); await p.waitForSelector('[aria-label="Scheduled jobs"]');
   ck('Connections and jobs: Systems and jobs, Circle spaces, Funnel steps', (await sections(p, 'Connections and jobs')) === 'Systems and jobs|Circle spaces|Funnel steps (Kit tags)' && (await p.locator('h1').innerText()) === 'Connections and scheduled jobs');
-  ck('systems listed (Google Sheets, Circle, Kit, Instagram, Zoom, Make, Motion), with no health claimed', await p.locator('[aria-label="Connections"] tbody tr').count() === 7 && /isn’t shown yet/.test(await main(p)));
+  ck('systems listed (Google Sheets, Circle, Kit, Instagram, Meta ads, Zoom, Make, Motion), with no health claimed', await p.locator('[aria-label="Connections"] tbody tr').count() === 8 && /isn’t shown yet/.test(await main(p)));
   const jobs = await p.locator('[aria-label="Scheduled jobs"] tbody tr').allInnerTexts();
   ck('the eight scheduled jobs, read from vercel.json, with plain times', jobs.length === 8 && jobs.some(j => /Ticking things off\s+Every 15 minutes/.test(j)) && jobs.some(j => /The daily job\s+Every day at 13:00 UTC/.test(j)) && jobs.some(j => /Weekly Scaffolding draft\s+Thursdays at 14:00 UTC/.test(j)));
   ck('nothing on the jobs list can be run from here (no buttons)', await p.locator('[aria-label="Scheduled jobs"] button').count() === 0 && await p.locator('[aria-label="Connections"] button').count() === 0);
   await p.goto(U + '/ops/settings?view=connections&s=circlegroups'); await p.waitForSelector('.ops-site'); ck('Circle spaces table', (await curSection(p, 'Connections and jobs')) === 'Circle spaces');
   await p.goto(U + '/ops/settings?view=connections&s=funnel'); await p.waitForSelector('.ops-site'); ck('Funnel steps table (the steps Business › Audience reads)', (await curSection(p, 'Connections and jobs')) === 'Funnel steps (Kit tags)' && /Business → Audience/.test(await main(p)));
-  ck('no Connections health, Run now, Dry run or Pause controls (later piece)', !/Run now|Dry run|Pause|Connected|Failing/.test(await (async () => { await p.goto(U + '/ops/settings?view=connections'); return main(p); })()));
+  ck('no Connections health, Run now, Dry run or Pause controls (later piece)', !/Run now|Dry run|Pause|Connected|Failing/.test(await (async () => { await p.goto(U + '/ops/settings?view=connections'); return (await main(p)).replace(await p.locator('[aria-label="Connections"] tr', { hasText: 'Meta ads' }).innerText(), ''); })()));   // the Meta ads row says its own mode (ads-settings.sh checks it)
 
   // the older addresses
   for (const [u, g, s] of [['/ops/settings?t=templates', 'Templates', 'Task templates'], ['/ops/settings?t=links', 'Website copy', 'Links & prices'], ['/ops/settings?t=team', 'Team and roles', 'Team'], ['/ops/settings?t=funnel', 'Connections and jobs', 'Funnel steps (Kit tags)'], ['/ops/settings?t=circlegroups', 'Connections and jobs', 'Circle spaces'],
