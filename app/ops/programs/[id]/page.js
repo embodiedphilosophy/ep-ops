@@ -10,7 +10,7 @@ import { isTeacher, isStaff, canEditEvents, canEditSite } from '@/lib/ops/nav';
 import { readPlain } from '@/lib/ops/store';
 import { parse } from '@/lib/ops/launches';
 import { listOfferings } from '@/lib/ops/offerings';
-import { GROUPS, groupOf, programHref, libraryFor, readyChecks } from '@/lib/ops/programindex';
+import { GROUPS, groupOf, libraryFor, readyChecks } from '@/lib/ops/programindex';
 import { evId } from '@/lib/ops/emailkit';
 import { SITE } from '@/lib/siteurl';
 import Shell, { opsUser } from '../../Shell';

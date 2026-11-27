@@ -25,7 +25,7 @@ order. This file adds the safety rules and how to test.
   use fresh reads.
 - Never print secrets or env values. Credentials are environment variables (Vercel and the cloud environment).
 - One branch + PR per piece of work (Jacob merges). Before opening the PR: `npm run build`, the relevant
-  `scripts/ops-test/` flows and phone width. Say in the PR
+  `scripts/ops-test/` flows (`final-sweep.cjs` too: it fails on a file, export or CSS class nothing uses, and on an old address that no longer redirects once) and phone width. Say in the PR
   what you tested and what you couldn't.
 - Write UI copy and messages in plain, warm English; no jargon in what staff read.
 
@@ -37,7 +37,7 @@ order. This file adds the safety rules and how to test.
   Library, Caption Bank, Rules… Make scenario "EP Social: Publish approved posts" publishes `Approved` rows at
   their time, downloading the picture **from Drive** (image_url must be an lh3 Drive link). New pictures (uploads,
   crops) go to Drive through the Make scenario "EP Social: Dashboard images ↔ Drive" (`SOCIAL_IMAGES_HOOK`).
-- **EP Revenue & Metrics System (2026)** (`1gK_02Szjd76AYEUCNcUHAXZtJZh5PYIwSpzrek4OSYs`): Insights reads it
+- **EP Revenue & Metrics System (2026)** (`1gK_02Szjd76AYEUCNcUHAXZtJZh5PYIwSpzrek4OSYs`): Business (Finance and Audience) reads it
   (Make fills it from Stripe, PayPal, Meta).
 - **Tarka Operations** (`1BYfIfwxeLiJ1cln855c5t8PVT1Hg6QPqdRYDhI8NShc`): the Tarka journal's tracker (Calendar,
   Tasks, Editorial Pipeline, Editions, Contacts, Targets, Team, Task Templates, Key). Planned Tarka area.
@@ -45,7 +45,7 @@ order. This file adds the safety rules and how to test.
   Motion only gets Jacob's daily digest. Local tests unset `DATABASE_URL` (tasks then read from Motion, read only).
 - **Kit** (email, `KIT_API_KEY`; read-only checks; promo broadcasts carry the
   event ID like `[E047] Promo #2`), **Circle** (community + live streams, `CIRCLE_API_TOKEN` = an Admin **V2** token; event sync is a dry
-  run until `CIRCLE_EVENT_SYNC=live`. New Circle events are drafts until "Push to Circle" on the event's drawer,
+  run until `CIRCLE_EVENT_SYNC=live`. New Circle events are drafts until "Push to Circle" on the program page's Circle tab,
   `app/ops/events/CirclePanel.js`; standalone courses (track EVENT) get a hidden course space + live-sessions space
   from "Set up course in Circle", `lib/ops/circlecourse.js`), **Make** (automations), **Vercel Blob** (teacher uploads).
 - Being retired: Kajabi, Uscreen, Vimeo (the Vimeo ID only feeds the site's free-preview players).

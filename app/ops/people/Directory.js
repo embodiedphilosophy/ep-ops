@@ -13,7 +13,6 @@ import '../social/social.css';
 import '../email/email.css';
 
 const first = v => (Array.isArray(v) ? v[0] : v) || '';
-const tzOf = m => m.time_zone || m.timezone || m.tz || '';
 
 // People › Directory (EP Ops 2, step 5): staff and faculty in one list, each with what they need. It puts together what the old
 // Faculty page (the Team tab, invitations), Teacher profiles (the Teachers tab) and Hours (requests waiting on a yes) already read.

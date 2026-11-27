@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { api, day, time, kindLabel } from '../content/SocialEngine';
-import { POST_TYPES, isFeed, timeKey, readSlides } from '@/lib/ops/socialengine';
+import { POST_TYPES, isFeed, timeKey } from '@/lib/ops/socialengine';
 import { rhythmWarnings, weekAhead, isTextHeavy, DEFAULT_RULES, WEEKDAYS, categoryFor, dayState, STATE_LABEL, guardrails } from '@/lib/ops/socialrules';
 
 const nyToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });

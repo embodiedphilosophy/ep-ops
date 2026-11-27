@@ -1,6 +1,6 @@
 import { isStaff } from '@/lib/ops/nav';
 import { loadTeam } from '@/lib/ops/tasks';
-import { statusFor, teamHours, pendingRequests, clockAvailable, monthNow } from '@/lib/ops/hours';
+import { teamHours, pendingRequests, clockAvailable, monthNow } from '@/lib/ops/hours';
 import { redirect } from 'next/navigation';
 import Shell, { opsUser } from '../Shell';
 import { HoursDecide, FixShift, SubmitHours } from './HoursActions';

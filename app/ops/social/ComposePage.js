@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useView, Composer, blankPost, KINDS } from '../content/SocialEngine';
+import { useView, Composer, blankPost } from '../content/SocialEngine';
 
 // The Composer as a page: /ops/publish?view=compose&row=N edits a post; without row it starts a new one
 // (optionally from a picture or words carried over from the Library or Sources, or a type or date from the Calendar).

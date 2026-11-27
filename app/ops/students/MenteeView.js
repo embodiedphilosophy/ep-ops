@@ -1,7 +1,8 @@
+import { SITE } from '@/lib/siteurl';
 import data from '@/data/mentee-year.json';
 import { isStaff, canEditSite } from '@/lib/ops/nav';
 import { todayET } from '@/lib/events';
-import { segments, nextSteps, currentMonth, reviewFor, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
+import { segments, currentMonth, daysUntil, PROJECTS, laneStyle } from '@/lib/ops/menteeyear';
 import { loadOpsYear } from '@/lib/ops/menteeyearops';
 import Shell, { opsUser } from '../Shell';
 import PollResults from './PollResults';
@@ -129,7 +130,7 @@ export default async function MenteeView({ searchParams }) {
     <Shell user={user} current="students" eyebrow="Sahṛdaya Upāya · 2026–27 cohort" title="The mentee year"
       head={tabNav}>
       <p className="ops-empty ops-my-lede"><Words v={T('lede')} long /></p>
-      <p className="ops-more"><a href="/school/mentee-year" target="_blank" rel="noopener">View the mentee version (what mentees see) →</a></p>
+      <p className="ops-more"><a href={`${SITE}/school/mentee-year`} target="_blank" rel="noopener">View the mentee version (what mentees see) →</a></p>
       {canEdit && <p className="ops-note ops-my-howto">Everything here is editable, and it is what mentees see: every line of words (Edit, Remove, + Add a line), each month’s list as it appears under “This month” in Circle (immersions, books, the one-to-one, the reflection, tasks, and the order), the project steps, and the manual (The manual tab, in its Google Doc). Changes show for mentees within a minute.</p>}
 
       {tab === 'now' && (<div className="ops-my-cols">
