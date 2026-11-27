@@ -38,7 +38,7 @@ const videoItems = videos => (videos || []).map(c => {
     status: c.status === 'published' ? 'On YouTube' : c.status === 'review' ? 'In review' : c.status === 'publishing' ? 'Uploading' : 'Being cut', href: `/ops/publish?view=compose&kind=video&id=${encodeURIComponent(c.id)}` };
 });
 
-export default function PublishCalendar({ show = 'all', videos = null, socialProps = null, canVideo = false, initialLayout = 'month' }) {
+export default function PublishCalendar({ show = 'all', videos = null, socialProps = null, canVideo = false, canPost = false, canEmail = false, initialLayout = 'month' }) {
   const kinds = KINDS.filter(([k]) => k !== 'video' || canVideo);
   const kind = kinds.some(([k]) => k === show) ? show : 'all';
   // One read of the Weekly Plan, shared by the merged grid and the full Social calendar
@@ -121,8 +121,8 @@ export default function PublishCalendar({ show = 'all', videos = null, socialPro
         </div>
         <span className="pub-new">
           <a className="soc-btn small" href="/ops/publish?view=review">Review &amp; approve</a>
-          <details className="pub-menu"><summary className="soc-btn primary">New…</summary>
-            <div role="menu"><a role="menuitem" href="/ops/publish?view=compose&kind=email">New email</a><a role="menuitem" href="/ops/publish?view=compose&kind=post">New post</a>{canVideo && <a role="menuitem" href="/ops/publish?view=compose&kind=video">Video cut</a>}</div></details>
+          {merged && (canPost || canEmail || canVideo) && <details className="pub-menu"><summary className="soc-btn primary">New…</summary>
+            <div role="menu">{canEmail && <a role="menuitem" href="/ops/publish?view=compose&kind=email">New email</a>}{canPost && <a role="menuitem" href="/ops/publish?view=compose&kind=post">New post</a>}{canVideo && <a role="menuitem" href="/ops/publish?view=compose&kind=video">Video cut</a>}</div></details>}
         </span>
       </div>
 

@@ -19,7 +19,7 @@ const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8')
   ck('programming overlay shows, and can be switched off', await p.locator('.pub-ev').count() > 0 && (await p.getByLabel('Programming overlay').uncheck(), await p.locator('.pub-ev').count() === 0));
   ck('the key names the kinds', /Email\s*Social\s*Video\s*Automatic/.test(await p.locator('.pub-key').innerText()));
   ck('"Checks across channels" gathers the old warnings', await p.locator('[aria-label="Checks across channels"] li').count() > 0);
-  await p.getByRole('button', { name: 'Week' }).click(); await p.waitForSelector('.pub-grid.week');
+  await p.getByRole('button', { name: 'Week' }).click(); await p.waitForSelector('.pub-grid.week .pub-it');
   ck('Week shows seven days', await p.locator('.pub-grid.week .pub-cell').count() === 7);
   await p.getByRole('button', { name: 'List' }).click(); await p.waitForSelector('.pub-list');
   ck('List shows dated rows', await p.locator('.pub-list li').count() > 0);
@@ -49,6 +49,9 @@ const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8')
   ck('Floss sees no Video chip or tab', !(await chips(fl)).includes('Video') && !(await tabs(fl)).includes('Video'));
   const ca = await as(cookie('carolyn@example.com')); await ca.goto(U + '/ops/publish'); await ca.waitForSelector('.pub-grid .pub-it');
   ck('the Social role sees the calendar', (await chips(ca)) === 'All|Email|Social|Automatic');
+  ck('the "New…" menu offers only what the role can make (Carolyn: a post, not an email)', (await ca.locator('.pub-menu a').allTextContents()).join('|') === 'New post');
+  const ve = await as(cookie('vera@example.com')); await ve.goto(U + '/ops/publish'); await ve.waitForSelector('.pub-grid .pub-it');
+  ck('a viewer sees the calendar but no "New…" menu', await ve.locator('.pub-menu').count() === 0);
   const te = await as(cookie('abha@example.com')); await te.goto(U + '/ops/publish'); ck('a teacher is sent away from Publish', !new URL(te.url()).pathname.startsWith('/ops/publish'));
   // phone
   const ph = await as(DIRECTOR, { width: 390, height: 800 }); await ph.goto(U + '/ops/publish'); await ph.waitForSelector('.pub-grid .pub-it');

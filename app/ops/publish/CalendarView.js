@@ -1,5 +1,5 @@
 import Shell, { opsUser } from '../Shell';
-import { isStaff, canYouTube } from '@/lib/ops/nav';
+import { isStaff, canYouTube, canEditSocial, canEditEmail } from '@/lib/ops/nav';
 import { statusCards, planLine } from '@/lib/ops/socialcards';
 import { studio } from '@/lib/ops/youtube';
 import PublishCalendar from './PublishCalendar';
@@ -25,7 +25,7 @@ export default async function Page({ searchParams } = {}) {
   const videos = s ? [...s.review, ...s.published].map(c => ({ id: c.id, status: c.status, yt_title: c.yt_title, source_title: c.source_title, publish_at: c.publish_at || '', published_at: c.published_at || '' })) : null;
   return (
     <Shell user={user} current="publish">
-      <PublishCalendar show={show} canVideo={canVideo} videos={videos} initialLayout={first(sp.layout)}
+      <PublishCalendar show={show} canVideo={canVideo} canPost={canEditSocial(user)} canEmail={canEditEmail(user)} videos={videos} initialLayout={first(sp.layout)}
         socialProps={cards ? { cards: cards.cards, reviewCount: cards.reviewCount, dateLine: planLine() } : null} />
     </Shell>
   );
