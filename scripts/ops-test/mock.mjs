@@ -301,6 +301,7 @@ const grid = {};
 // Column grid like Google's: a tab is as wide as its widest row (at least 26); writing past it is a 400
 const cgrid = {};
 const colsOf = t => (cgrid[t] ??= Math.max(26, ...(tabs[t] || []).map(r => r.length)));
+const readLog = [];
 const send = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
 
 const gradientPng = (w = 1200, h = 800) => {
@@ -318,6 +319,8 @@ http.createServer(async (req, res) => {
   const p = url.pathname;
   try {
     if (p === '/token' && req.method === 'POST') return send(res, 200, { access_token: 'mock', expires_in: 3600 });
+    // Sheet-read counter for the tests (EP Ops 2 step 9): GET /__reads lists every sheet read since the last GET /__reads?reset=1
+    if (p === '/__reads') { const out = { total: readLog.length, reads: readLog.slice() }; if (url.searchParams.get('reset')) readLog.length = 0; return send(res, 200, out); }
     // Calendly (read only): the one-to-one bookings and what each invitee wrote (lib/mentee/calendly.js, CALENDLY_API_BASE=$M/calendly)
     if (p.startsWith('/calendly/')) {
       const iso = h => new Date(Date.now() + h * 3600e3).toISOString();
@@ -339,6 +342,7 @@ http.createServer(async (req, res) => {
       if (range.endsWith(':append')) { const b = await body(req); const { tab } = parseRange(range.slice(0, -7)); if (!tabs[tab]) return send(res, 400, { error: { message: 'Unable to parse range' } }); for (const l of b.values) tabs[tab].push(l); log('APPENDED', tab, JSON.stringify(b.values).slice(0, 200)); return send(res, 200, {}); }
       if (req.method === 'PUT') { setCells(range, (await body(req)).values); return send(res, 200, {}); }
       const { tab, row } = parseRange(range);
+      if (req.method === 'GET') readLog.push(`${tab}!${range.split('!')[1] || ''}${url.searchParams.get('valueRenderOption') === 'FORMULA' ? ' (formula)' : ''}`);
       if (!tabs[tab]) { log('sheet: no tab', tab); return send(res, 400, { error: { message: `Unable to parse range: ${range}` } }); }
       let values = computed(tab);
       if (tab !== 'Master Schedule') values = values.slice(row - 1);
