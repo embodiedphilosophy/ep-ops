@@ -132,7 +132,7 @@ export default function LibraryPage({ canEdit }) {
               </dl>)}
             {creditOf(selected.values) && <div className="credit"><span className="cap">Credit line · added to captions automatically</span>{creditOf(selected.values)}</div>}
             <div className="acts">
-              {canEdit && <button className="soc-btn" style={{ background: '#20302A', color: '#FAF5EB' }} disabled={!T(selected.values.reuse_ok) || T(selected.values.hasText) || T(selected.values.has_text) || T(selected.values.hidden)} onClick={useInPost} title={T(selected.values.reuse_ok) && !T(selected.values.has_text) ? '' : 'Only Art that is OK to reuse can go in a post'}>Use in a post</button>}
+              {canEdit && <button className="soc-btn" style={{ background: 'var(--pine)', color: 'var(--ground)' }} disabled={!T(selected.values.reuse_ok) || T(selected.values.hasText) || T(selected.values.has_text) || T(selected.values.hidden)} onClick={useInPost} title={T(selected.values.reuse_ok) && !T(selected.values.has_text) ? '' : 'Only Art that is OK to reuse can go in a post'}>Use in a post</button>}
               {canEdit && <button className="soc-btn" disabled={!T(selected.values.reuse_ok) || T(selected.values.has_text) || T(selected.values.hidden)} onClick={openTemplate}>Open in a template</button>}
               {canEdit && <button className="soc-btn small" onClick={() => setEditing(e => !e)}>{editing ? 'Cancel editing' : 'Edit details'}</button>}
               {canEdit && <button className="link" onClick={hide}>{T(selected.values.hidden) ? 'Show to the planner' : 'Hide from the planner'}</button>}

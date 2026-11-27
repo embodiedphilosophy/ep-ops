@@ -54,7 +54,7 @@ export default function ReviewPage({ closes }) {
             <span><b className="mono">{picked.length}</b> selected · <b>{blockedN}</b> blocked and left out · DRAFT sentences in selected posts are approved as written{needWhy.length ? ` · ${needWhy.length} still need a reason` : ''}</span>
             <span className="soc-act">
               {data?.canPublish && ready.length > 0 && <button className="soc-btn small" type="button" onClick={() => setSel(Object.fromEntries(ready.map(r => [r.row, true])))}>Tick the {ready.length} that are ready</button>}
-              <button className="soc-btn" style={{ background: '#20302A', color: '#FAF5EB' }} type="button" disabled={busy || !picked.length || needWhy.length > 0 || !data?.canPublish} onClick={go}>{picked.length ? `Approve ${picked.length} post${picked.length === 1 ? '' : 's'}` : 'Approve'}</button>
+              <button className="soc-btn" style={{ background: 'var(--pine)', color: 'var(--ground)' }} type="button" disabled={busy || !picked.length || needWhy.length > 0 || !data?.canPublish} onClick={go}>{picked.length ? `Approve ${picked.length} post${picked.length === 1 ? '' : 's'}` : 'Approve'}</button>
             </span>
           </div>
           {msg && <p className="hint" role="status" style={{ margin: 0 }}>{msg}</p>}

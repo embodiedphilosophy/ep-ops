@@ -1,5 +1,5 @@
 /* Teachers & Email: programme chips, Kit banner, side panel. Builds on the .soc workspace styles. */
-.soc .em-chip { display: inline-block; padding: 1px 8px; border-radius: 3px; font: 600 11px/18px 'JetBrains Mono', monospace; letter-spacing: .02em; }
+.soc .em-chip { display: inline-block; padding: 1px 9px; border-radius: 999px; font: 600 11.5px/18px var(--mono, Inter, sans-serif); letter-spacing: 0; }
 .soc .em-banner { padding: 10px 14px; border: 1px solid var(--line, #d9d2c3); border-radius: 6px; background: #fbf7ee; font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .soc .em-banner.bad { border-color: #A5432A; background: #fbeee9; }
 .soc .em-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
