@@ -29,7 +29,7 @@ export function AddProgram({ tracks, past = [] }) {
     const j = await post({ action: 'create', ...f, count: n, series: slug });
     setBusy(false);
     if (j.error) return setErr(j.error);
-    setOpen(false); router.push(`/ops/programs?all=1&event=${encodeURIComponent(j.key)}`); router.refresh();
+    setOpen(false); router.push(`/ops/programs/${encodeURIComponent(j.key)}?tab=sessions`); router.refresh();
   };
   return (
     <form className="ops-edit ops-add ops-program-add" onSubmit={save}>
@@ -194,7 +194,7 @@ export function ProgramEditor({ series }) {
 
 // The drawer's heading for a program: its title, which staff can click to rename. Saves to every session
 // (and renames their website titles), the same as the old "Program name" field did.
-export function ProgramTitle({ series, title, saved = '', parent = '', editable = false }) {
+export function ProgramTitle({ series, title, saved = '', parent = '', editable = false, as: H = 'h2' }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [v, setV] = useState(title);
@@ -202,9 +202,9 @@ export function ProgramTitle({ series, title, saved = '', parent = '', editable 
   const [msg, setMsg] = useState('');
   useEffect(() => { setV(title); }, [title]);
   const eyebrow = parent ? <p className="ops-parent">{parent}</p> : null;
-  if (!editable) return <>{eyebrow}<h2>{title}</h2></>;
+  if (!editable) return <>{eyebrow}<H className={H === 'h1' ? 'ops-name' : undefined}>{title}</H></>;
   if (!editing) return (<>{eyebrow}
-    <h2 className="ops-title-edit"><button type="button" onClick={() => { setMsg(''); setEditing(true); }} title="Rename this program">{title}<span aria-hidden="true">✎</span><span className="sr">Rename</span></button></h2>
+    <H className={`ops-title-edit${H === 'h1' ? ' ops-name' : ''}`}><button type="button" onClick={() => { setMsg(''); setEditing(true); }} title="Rename this program">{title}<span aria-hidden="true">✎</span><span className="sr">Rename</span></button></H>
     {msg && <p className="hint">{msg}</p>}
   </>);
   const save = async e => {

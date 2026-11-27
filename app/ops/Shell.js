@@ -24,7 +24,7 @@ const roleOf = u => u.director ? 'Director' : isTeacher(u) ? 'Teacher' : (String
 
 // Sidebar and page header shared by every ops page. A terra count shows only when something needs action.
 // eyebrow: the small line over the page title (a date, a range, what the page covers).
-export default async function Shell({ user, current, title, eyebrow, desc, head, children }) {
+export default async function Shell({ user, current, title, titleEl, eyebrow, desc, head, children }) {
   const items = navFor(user);
   const badges = isStaff(user) ? { home: await needsYouCount(user) } : {};
   const link = i => (
@@ -51,9 +51,9 @@ export default async function Shell({ user, current, title, eyebrow, desc, head,
         </div>
       </aside>
       <main className="ops">
-        {(title || head) && (
+        {(title || titleEl || head) && (
           <div className="ops-head">
-            {title && <div className="ttl">{eyebrow && <span className="ops-eyebrow">{eyebrow}</span>}<h1>{title}</h1>{desc && <p className="ops-desc">{desc}</p>}</div>}
+            {(title || titleEl) && <div className="ttl">{eyebrow && <span className="ops-eyebrow">{eyebrow}</span>}{titleEl || <h1>{title}</h1>}{desc && <p className="ops-desc">{desc}</p>}</div>}
             {head}
           </div>
         )}

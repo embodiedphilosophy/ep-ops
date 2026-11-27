@@ -9,13 +9,14 @@ import { readRange, toObjects } from '@/lib/google';
 import { readPlain } from '@/lib/ops/store';
 import { parse } from '@/lib/ops/launches';
 import { GROUPS, groupOf, programHref, launchFor, circleOf, readyOf, sections, campaignRows } from '@/lib/ops/programindex';
+import { redirect } from 'next/navigation';
 import Shell, { opsUser } from '../Shell';
 import { AddEvent } from '../events/EventActions';
 import { AddProgram } from '../events/ProgramEditor';
 
-// Everything EP runs (EP Ops 2, step 4a): the old Programming list as one table, needs attention first, then month by month, with the
+// Everything EP runs (EP Ops 2, step 4): the old Programming list as one table, needs attention first, then month by month, with the
 // campaigns beside the programs. It reads exactly what the old page read; a row opens the program. The older modes of that page
-// (a session opened by ?event=, Past, Cancelled, Recently done) still run the old page's own code.
+// (Past, Cancelled, Recently done) are in Older.js; a program opens its own page.
 const RANGES = [['8w', 8, '8 weeks'], ['3m', 13, '3 months'], ['6m', 26, '6 months'], ['12m', 52, '12 months']];
 const rangeOf = sp => RANGES.find(([k]) => k === sp?.range) || RANGES[2];
 const first = v => (Array.isArray(v) ? v[0] : v) || '';
@@ -31,8 +32,9 @@ const labelOfGroup = k => (GROUPS.find(g => g[0] === k) || [])[1] || '';
 
 export default async function ProgramsIndex({ searchParams }) {
   const sp = (await searchParams) || {};
-  // The older modes of Programming: one session opened, Past, Cancelled, Recently done
-  if (first(sp.event) || first(sp.show)) return (await import('../events/page')).default({ searchParams: Promise.resolve(sp) });
+  // The older lists of Programming: Past, Cancelled, Recently done. One program is its own page now (an old ?event= link is sent there).
+  if (first(sp.show)) return (await import('./Older')).default({ searchParams: Promise.resolve(sp) });
+  if (first(sp.event)) redirect(`/ops/programs/${encodeURIComponent(first(sp.event))}`);
 
   const user = await opsUser();
   const teacherView = isTeacher(user), staff = isStaff(user), editor = canEditEvents(user);
@@ -102,7 +104,7 @@ export default async function ProgramsIndex({ searchParams }) {
       {issues.length > 0 && (
         <details className="ops-sheetchecks">
           <summary>{issues.length} thing{issues.length === 1 ? '' : 's'} on the Master Schedule look{issues.length === 1 ? 's' : ''} off</summary>
-          <ul>{issues.map((x, i) => <li key={i}><span className="trk">{x.kind}</span> {x.key ? <a href={href(sp, { event: x.key })}>{x.text}</a> : x.text}</li>)}</ul>
+          <ul>{issues.map((x, i) => <li key={i}><span className="trk">{x.kind}</span> {x.key ? <a href={programHref(x.key)}>{x.text}</a> : x.text}</li>)}</ul>
         </details>)}
       {shown.length + shownCamps.length === 0 ? <p className="ops-empty pg-empty">{chip === 'all' ? `No events in the next ${rangeLabel}.` : `Nothing here in the next ${rangeLabel}.`}</p>
         : calendar ? <MonthGrid items={[...shown, ...shownCamps]} today={today} target={target} /> : (

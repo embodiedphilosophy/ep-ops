@@ -38,7 +38,7 @@ export default async function Search({ searchParams }) {
     for (const e of [...mine].sort((a, b) => (a.date < today) - (b.date < today) || (a.date < today ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)))) {
       if (!hit(e.title, e.internal_title, e.teachers, e.series, e.program_name, e.module_title, e.track, e.course_host)) continue;
       if (e.series && e.track !== 'MM') { if (seen.has(e.series)) continue; seen.add(e.series); }
-      sessions.push({ href: e.series && e.track !== 'MM' ? `/ops/programs?all=1&event=P-${e.series}` : e.date >= today ? `/ops/programs?all=1&event=${e.id}` : `/ops/programs?show=past&event=${e.sched_id}`,
+      sessions.push({ href: e.series && e.track !== 'MM' ? `/ops/programs/P-${encodeURIComponent(e.series)}` : e.date >= today ? `/ops/programs/${encodeURIComponent(e.id)}` : `/ops/programs?show=past&event=${e.sched_id}`,
         title: e.series && e.track !== 'MM' && e.program_name ? e.program_name : e.title, sub: `${short(e.date)} · ${e.track}${e.teachers ? ` · ${e.teachers}` : ''}${e.series ? ` · ${e.series}` : ''}` });
     }
     const visible = user.director ? tasks : visibleTo(user, tasks);

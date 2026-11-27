@@ -51,13 +51,13 @@ export function useSide(panel) {
 // Emails is one menu item with three views: the list, the calendar, and the promo emails planned per event
 export const EMAIL_VIEWS = [['list', 'List', '/ops/publish?view=email'], ['calendar', 'Calendar', '/ops/publish?view=email-calendar'], ['promo', 'Promo emails by event', '/ops/content?tab=email']];
 export const EmailViews = ({ on }) => <nav className="ops-filters em-views" aria-label="Emails view">{EMAIL_VIEWS.map(([k, l, h]) => <a key={k} href={h} aria-current={k === on ? 'page' : undefined}>{l}</a>)}</nav>;
-export function Layout({ children, panel, setPanel, d, title, intro, view }) {
+export function Layout({ children, panel, setPanel, d, title, intro, view, embedded = false }) {
   return (
     <div className="soc">
-      <header className="soc-head">
+      {!embedded && <header className="soc-head">
         <div><span className="eyebrow">Teachers · Email · Launches</span><h1>{title}</h1><p>{intro}</p></div>
         <div className="soc-act"><button className="soc-btn" aria-pressed={panel} onClick={() => setPanel(!panel)}>{panel ? 'Hide' : 'Show'} Programming</button></div>
-      </header>
+      </header>}
       {view && <EmailViews on={view} />}
       <div className={`em-layout${panel ? ' panel' : ''}`}><div>{children}</div>{panel && <Panel d={d} />}</div>
     </div>);
