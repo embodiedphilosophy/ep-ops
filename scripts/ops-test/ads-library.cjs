@@ -65,7 +65,7 @@ const SECRET = 'mock-ads-token-for-the-settings-test', PERSON = /Synthetic Perso
     await p.getByRole('button', { name: 'Save tags' }).click(); await p.waitForSelector('text=Tags saved.'); await p.waitForTimeout(700);
     ck('tags are edited by a person and shown after saving', /Tagged for: kali, tantra, wisdom school/.test(await p.innerText('[aria-label="What it does and doesn’t buy"]')) && JSON.stringify((await api('/api/ops/ads-library')).rows.find(r => r.name === name1).tags) === JSON.stringify(['kali', 'tantra', 'wisdom school']));
     await p.fill('.ads-inline input:not([type])', '<b>');
-    await p.getByRole('button', { name: 'Save tags' }).click(); await p.waitForSelector('[role=alert]'); await p.waitForTimeout(300);
+    await p.getByRole('button', { name: 'Save tags' }).click(); await p.waitForSelector('[role=alert]:has-text("short word")'); await p.waitForTimeout(300);
     ck('a bad tag is refused in plain words', /short word or two/.test(await p.locator('[role=alert]').first().innerText()));
 
     console.log('-- Use in a campaign');
@@ -108,7 +108,7 @@ const SECRET = 'mock-ads-token-for-the-settings-test', PERSON = /Synthetic Perso
     ck('the section is in Connections and jobs, with the five thresholds at their starting values', await p.locator('.ads-set input').count() === 5 && (await p.locator('.ads-set input').evaluateAll(l => l.map(i => i.value))).join() === '2,1,3,40,3');
     await p.fill('[aria-label="Times below the floor to retire"]', '4'); await p.getByRole('button', { name: 'Save' }).click(); await p.waitForSelector('text=Saved.');
     ck('a director saves a threshold: it says so, and it is kept', (await api('/api/ops/ads-library?settings=1')).values.retire_after === 4);
-    await p.fill('[aria-label="Times below the floor to retire"]', '0'); await p.getByRole('button', { name: 'Save' }).click(); await p.waitForSelector('[role=alert]');
+    await p.fill('[aria-label="Times below the floor to retire"]', '0'); await p.getByRole('button', { name: 'Save' }).click(); await p.waitForSelector('[role=alert]:has-text("whole number")');
     ck('a nonsense value is refused in plain words', /whole number/.test(await p.locator('[role=alert]').first().innerText()));
     await p.fill('[aria-label="Times below the floor to retire"]', '3'); await p.getByRole('button', { name: 'Save' }).click(); await p.waitForSelector('text=Saved.');
     ck('and put back', (await api('/api/ops/ads-library?settings=1')).values.retire_after === 3);
