@@ -9,7 +9,7 @@ const licenceOf = v => String(v.license || v.licence || '').trim();
 const creditOf = v => String(v.credit_line || '').trim() || (licenceOf(v) ? [v.artist, v.source_institution].filter(Boolean).join(', ') : '');
 
 // The Library (design: "Media library"): filters on the left, the pictures in the middle, provenance on the right
-export default function LibraryPage({ canEdit }) {
+export default function LibraryPage({ canEdit, director = false }) {
   const [tab, setTab] = useState('art');
   const [q, setQ] = useState('');
   const [category, setCategory] = useState(''); const [deity, setDeity] = useState(''); const [program, setProgram] = useState('');
@@ -63,8 +63,8 @@ export default function LibraryPage({ canEdit }) {
         <div><span className="eyebrow">Content · Social</span><h1>Library</h1><p>One place for art, promo graphics, video and finished designs.</p></div>
         <div className="soc-act">
           {canEdit && <label className="soc-btn primary upl">{pct != null ? `Uploading… ${pct}%` : 'Upload images or video'}<input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" disabled={pct != null} onChange={e => { drop([...e.target.files]); e.target.value = ''; }} /></label>}
-          <a className="soc-btn" href="/ops/publish?view=library&s=sources">Quotes &amp; captions</a>
-          <a className="soc-btn" href="/ops/publish?view=library&s=categories">Categories &amp; folders</a>
+          <a className="soc-btn" href="/ops/publish?view=library&s=quotes">Quotes &amp; captions</a>
+          {director && <a className="soc-btn" href="/ops/publish?view=library&s=categories">Categories &amp; folders</a>}
         </div>
       </header>
       <nav className="ops-soc-tabs" aria-label="Library">{TABS.map(([k, l]) => (

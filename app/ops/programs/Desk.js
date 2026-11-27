@@ -9,7 +9,6 @@ async function call(body) {
   return j;
 }
 const day = iso => iso ? new Date(iso).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' }) : '';
-const initials = t => String(t || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 export function SyncButton() {
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');

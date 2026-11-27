@@ -20,7 +20,6 @@ const toSec = t => {
   if (!parts.length || parts.some(n => Number.isNaN(n))) return null;
   return parts.reduce((a, n) => a * 60 + n, 0);
 };
-const mins = s => s ? `${Math.round(s / 60)} min` : '';
 const when = iso => iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 const ago = iso => iso ? (Date.now() - Date.parse(iso)) / 60e3 : 0;
 

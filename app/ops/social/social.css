@@ -163,7 +163,7 @@
 .ops-shell .soc-feed .tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: #FFF7F3; color: var(--terra-d); border: 1px solid var(--terra) }
 .ops-shell .soc-feed .pl { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: var(--sand2) }
 .ops-shell .soc-scroll { overflow-x: auto }
-.ops-shell .soc-tabs, .ops-shell .ops-soc-tabs { display: flex; flex-wrap: wrap; gap: 6px 18px; border-bottom: 1px solid var(--line2); margin-bottom: 14px }
+.ops-shell .ops-soc-tabs { display: flex; flex-wrap: wrap; gap: 6px 18px; border-bottom: 1px solid var(--line2); margin-bottom: 14px }
 .ops-shell .ops-soc-tabs a { padding: 8px 0; color: var(--ink-soft); text-decoration: none; font-size: 14px }
 .ops-shell .ops-soc-tabs a[aria-current=page] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--terra) }
 @media (max-width: 860px) {

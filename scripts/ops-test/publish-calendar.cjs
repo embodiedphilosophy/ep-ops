@@ -23,7 +23,7 @@ const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8')
   // The grid briefly re-renders while the week is read, so wait for the seven days to settle instead of counting once
   await p.waitForFunction(() => document.querySelectorAll('.pub-grid.week .pub-cell').length === 7, null, { timeout: 8000 }).catch(() => {});
   ck('Week shows seven days', await p.locator('.pub-grid.week .pub-cell').count() === 7);
-  await p.getByRole('button', { name: 'List' }).click(); await p.waitForSelector('.pub-list');
+  await p.getByRole('button', { name: 'List' }).click(); await p.waitForSelector('.pub-list'); await p.waitForSelector('.pub-list li', { timeout: 8000 }).catch(() => {});
   ck('List shows dated rows', await p.locator('.pub-list li').count() > 0);
   await p.goto(U + '/ops/publish?layout=week'); await p.waitForSelector('.pub-grid.week'); ck('?layout=week opens the week', true);
   // items open the right editor

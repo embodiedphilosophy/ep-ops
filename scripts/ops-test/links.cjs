@@ -46,7 +46,7 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   t('a teacher is not shown a person record', (await get('/ops/people/abha%40example.com', cookie('abha@example.com'))).status === 307);
   console.log('-- publish: one calendar, Compose, Review, Library, Published (EP Ops 2, step 6)');
   for (const [u, to, q] of [['/ops/social', '/ops/publish', ''], ['/ops/email/calendar', '/ops/publish', 'show=email'], ['/ops/email/edit?id=EM001&event=E002', '/ops/publish', 'kind=email'], ['/ops/social/compose?row=12&type=Practice', '/ops/publish', 'view=compose'],
-    ['/ops/email/emails?show=draft', '/ops/publish', 'view=email'], ['/ops/youtube?tab=review', '/ops/publish', 'view=video'], ['/ops/social/sources', '/ops/publish', 's=sources']]) {
+    ['/ops/email/emails?show=draft', '/ops/publish', 'view=email'], ['/ops/youtube?tab=review', '/ops/publish', 'view=video'], ['/ops/social/sources', '/ops/publish', 's=quotes']]) {
     const res = await get(u), loc = res.headers.get('location') || '', g = loc ? new URL(loc, B) : null;
     t(`${u} redirects once to ${to}`, res.status === 307 && g && g.pathname === to && loc.includes(q), `${res.status} ${loc}`);
     if (g) { for (const [k, v] of new URLSearchParams(u.split('?')[1] || '')) t(`${u} keeps ?${k}=`, g.searchParams.get(k) === v, loc); }

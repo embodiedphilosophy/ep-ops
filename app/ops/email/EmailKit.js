@@ -49,7 +49,7 @@ export function useSide(panel) {
   return side;
 }
 // Emails is one menu item with three views: the list, the calendar, and the promo emails planned per event
-export const EMAIL_VIEWS = [['list', 'List', '/ops/publish?view=email'], ['calendar', 'Calendar', '/ops/publish?show=email'], ['promo', 'Promo emails by event', '/ops/content?tab=email']];
+export const EMAIL_VIEWS = [['list', 'List', '/ops/publish?view=email'], ['calendar', 'Calendar', '/ops/publish?show=email'], ['promo', 'Promo emails by event', '/ops/publish?view=promo']];
 export const EmailViews = ({ on }) => <nav className="ops-filters em-views" aria-label="Emails view">{EMAIL_VIEWS.map(([k, l, h]) => <a key={k} href={h} aria-current={k === on ? 'page' : undefined}>{l}</a>)}</nav>;
 export function Layout({ children, panel, setPanel, d, title, intro, view, embedded = false }) {
   return (
@@ -72,7 +72,7 @@ export function ThisWeek() {
       <div className="b"><span className="mono meta">{day(e.date)}{e.time ? ` · ${e.time}` : ''} · {e.id}</span><br /><Chip program={e.program} /> <b>{e.title}</b>
         {e.missing.length > 0 && <span className="chips"><span className="gchip bad">Missing in Programming: {e.missing.join(', ')}</span></span>}</div>
       <div className="em-evmails">
-        {e.planned > 0 && <span className="gchip">{e.inKit} of {e.planned} promo emails in Kit · <a href="/ops/content?tab=email">Promo emails</a></span>}
+        {e.planned > 0 && <span className="gchip">{e.inKit} of {e.planned} promo emails in Kit · <a href="/ops/publish?view=promo">Promo emails</a></span>}
         {e.emails?.length ? <ul aria-label={`Emails for ${e.title}`}>{e.emails.map(m => (
           <li key={m.key}><span className="mono meta">{m.date ? day(m.date) : ''}{m.state ? ` · ${m.state}` : ''}</span> <span className="t">{m.label}</span>{' '}
             <a href={m.href} {...(m.external ? { target: '_blank', rel: 'noreferrer' } : {})}>{m.where}{m.external ? ' ↗' : ''}</a></li>))}</ul>

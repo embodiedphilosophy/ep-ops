@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, timeKey, isFeed, daysBetween, mondayOf } from '@/lib/ops/socialengine';
+import { VIEWS, colType, PLAN_EDITABLE, readSlides, MAX_SLIDES, MIN_SLIDES, POST_TYPES, MAX_HASHTAGS, hashtagCount, isFeed, daysBetween } from '@/lib/ops/socialengine';
 
 import Cropper, { shrink } from './Cropper';
 import TemplatePanel from '../social/TemplatePanel';
@@ -48,83 +48,6 @@ export function useView(view, q = '', offset = 0, extra = '') {
   };
   useEffect(() => { setData(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [view, q, offset, extra]);
   return [data, load];
-}
-
-// ---------- Plan: the feed, and each post edited where it shows ----------
-const weekOf = p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') ? mondayOf(p.publish_date) : p.week_of || '';
-
-
-// The Instagram profile grid: three across, newest top left. Upcoming posts first (the week as it will look once posted), then what's
-// already out. Drag an upcoming post onto another to swap their times, or use its Earlier / Later buttons.
-export function GridPreview({ posts, past, canEdit, open, reload, setMsg }) {
-  const [drag, setDrag] = useState(null);
-  const upcoming = posts.filter(p => isFeed(p) && !['Skip', 'Failed', 'Posted', 'Manual'].includes(p.status) && (p.publish_date || '') >= today())
-    .sort((a, b) => `${b.publish_date} ${timeKey(b.publish_time_ET)}`.localeCompare(`${a.publish_date} ${timeKey(a.publish_time_ET)}`));
-  const out = past.filter(p => !upcoming.some(u => u._row === p._row));
-  const swap = async (a, b) => {
-    if (!a || !b || a._row === b._row) return;
-    setMsg('Moving…');
-    const j = await api({ view: 'plan', swap: [{ row: a._row, before: a._raw }, { row: b._row, before: b._raw }] });
-    setMsg(j.ok ? 'Swapped their times.' : j.status === 409 ? `${j.error}. Reload to see their version.` : j.error || 'Couldn’t move it');
-    reload();
-  };
-  // later in time = earlier in this list (newest first)
-  const tile = (p, i) => (
-    <li key={p._row} draggable={canEdit} className={drag === p._row ? 'drag' : ''}
-      onDragStart={e => { setDrag(p._row); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => setDrag(null)}
-      onDragOver={e => { if (drag != null && drag !== p._row) e.preventDefault(); }}
-      onDrop={e => { e.preventDefault(); const a = upcoming.find(x => x._row === drag); setDrag(null); swap(a, p); }}>
-      <button onClick={() => open(p._row)} aria-label={`${day(p.publish_date)} ${time(p.publish_time_ET)}: ${String(p.caption || 'no caption').slice(0, 60)}`}>
-        {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
-        <span className={`st s-${String(p.status || 'Proposed').replace(/\s/g, '')}`}>{day(p.publish_date).replace(/^\w+, /, '')} · {time(p.publish_time_ET)}</span>
-      </button>
-      {canEdit && (
-        <span className="mv">
-          <button type="button" className="chip" disabled={i >= upcoming.length - 1} onClick={() => swap(p, upcoming[i + 1])} aria-label="Post earlier">← Earlier</button>
-          <button type="button" className="chip" disabled={i === 0} onClick={() => swap(p, upcoming[i - 1])} aria-label="Post later">Later →</button>
-        </span>
-      )}
-    </li>
-  );
-  return (
-    <div className="ops-se-gridprev">
-      <p className="ops-empty">This is how the profile will look: the newest post is top left. {canEdit ? 'Drag a post onto another to swap their times.' : ''}</p>
-      {!upcoming.length && <p className="ops-empty">No upcoming feed posts.</p>}
-      <ul className="g3">{upcoming.map(tile)}</ul>
-      {out.length > 0 && <>
-        <h3 className="ops-se-h">Already out</h3>
-        <ul className="g3 done">{out.map(p => (
-          <li key={p._row}><button onClick={() => open(p._row)} aria-label={`Posted ${day(p.publish_date)}`}>
-            {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none">No image</span>}
-            <span className="st s-Posted">{day(p.publish_date).replace(/^\w+, /, '')}</span></button></li>))}</ul>
-      </>}
-    </div>
-  );
-}
-
-// Publish → Overview: the next posts as a strip. Each opens the same editor as the Social tab, right here.
-const todayNY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-const flag = p => !p._thumb ? 'No image yet' : p.image_review !== 'Kept' ? 'Image not reviewed' : '';
-export function NextPosts({ n = 9 }) {
-  const [data] = useView('plan');
-  if (!data) return <p className="ops-empty">Loading the next posts…</p>;
-  if (data.error) return <p className="ops-empty">{data.error}</p>;
-  const today = todayNY();
-  const posts = data.rows.map(r => ({ ...r.values, _row: r.row, _thumb: r.thumb }))
-    .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.publish_date || '') && p.publish_date >= today && !/^skip/i.test(p.status || '') && p.status !== 'Draft')
-    .slice(0, n);
-  if (!posts.length) return <p className="ops-empty">No posts scheduled.</p>;
-  return (
-    <ul className="ops-strip">{posts.map(p => (
-      <li key={p._row}>
-        <a href={`/ops/publish?view=compose&row=${p._row}`} aria-label={`Open the ${day(p.publish_date)} post`}>
-          {p._thumb ? <img src={p._thumb} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="none" aria-hidden="true" />}
-          <span className="d">{day(p.publish_date)}{p.publish_time_ET ? ` · ${time(p.publish_time_ET)}` : ''}</span>
-          <span className="p">{p.platforms}</span>
-          <span className={`s${flag(p) ? ' warn' : ''}`}>{flag(p) || p.status || 'Proposed'}</span>
-        </a>
-      </li>))}</ul>
-  );
 }
 
 const tomorrow = () => { const d = new Date(Date.now() + 864e5); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
@@ -750,6 +673,4 @@ function UploadBox({ kind, onDone }) {
 
 
 // ---------- Calendar: a week of seven days (or the month), each with its category, and drag to reschedule ----------
-const addD = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
-const monOf = d => addD(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
 const out = p => ['Posted', 'Manual'].includes(p.status);

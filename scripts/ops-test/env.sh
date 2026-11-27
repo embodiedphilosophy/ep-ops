@@ -33,5 +33,5 @@ export GITHUB_API_BASE=$M/github GITHUB_PIPELINE_TOKEN=mock-gh OPS_PIPELINE_SECR
 # Content v2: Instagram (read only) and Drive uploads against the mock; a local-only cron key for /api/ops/social-sync
 export META_GRAPH_URL=$M/graph META_ACCESS_TOKEN=mock META_IG_USER_ID=IG1 META_APP_ID=1 META_APP_SECRET=mock
 export DRIVE_API_BASE=$M/gdrive DRIVE_UPLOAD_USER=jacob@embodiedphilosophy.com SOCIAL_UPLOADS_FOLDER_ID=mockfolder0123456789
-export CRON_SECRET=mock-cron-secret OPS_LIVE=1
+export CRON_SECRET=mock-cron-secret OPS_LIVE=${MOCK_OPS_LIVE:-1}   # MOCK_OPS_LIVE=0: the app starts as it does on a project where the jobs are paused (final-sweep-crons.sh)
 export SOCIAL_INGEST_SECRET=mock-ingest-secret-0123456789

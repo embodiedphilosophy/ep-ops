@@ -16,13 +16,16 @@ const SECTIONS = {
 };
 
 export default async function Page({ params, searchParams }) {
-  const { section } = await params;
+  const { section: asked } = await params;
+  const sp = await searchParams;
+  // ?s=quotes or ?s=captions is the Sources page (Quotes & captions); the Library's own tables are ?s=categories and ?s=sources (Archive folders)
+  const section = asked === 'library' && ['quotes', 'captions'].includes(sp?.s) ? 'sources' : asked;
   const cfg = SECTIONS[section];
   if (!cfg) notFound();
   const user = await opsUser(u => isStaff(u) && (!cfg.director || u.director));
-  const sp = await searchParams;
   // The Library is its own three-pane screen (filters, pictures, provenance); its categories and archive folders stay as tables behind a link
-  if (section === 'library' && !['categories', 'sources'].includes(sp?.s)) return <Shell user={user} current={cfg.nav}><LibraryPage canEdit={canEditSocial(user)} /></Shell>;
+  // (directors only: they are director tables, so anyone else asking for them gets the Library, not an error)
+  if (section === 'library' && !(['categories', 'sources'].includes(sp?.s) && user.director)) return <Shell user={user} current={cfg.nav}><LibraryPage canEdit={canEditSocial(user)} director={!!user.director} /></Shell>;
   return (
     <Shell user={user} current={cfg.nav}>
       <div className="soc">
@@ -30,7 +33,7 @@ export default async function Page({ params, searchParams }) {
           <div><span className="eyebrow">Content · Social</span><h1>{cfg.title} {cfg.em && <em>{cfg.em}</em>}</h1><p>{cfg.desc}</p></div>
           <div className="soc-act">{section === 'sources' ? <a className="soc-btn" href="/ops/publish?view=library">← Library</a> : <a className="soc-btn" href="/ops/publish">← Calendar</a>}</div>
         </header>
-        <SocialEngine director={!!user.director} keys={cfg.keys} initial={sp?.s} base={`/ops/publish?view=${section}`} />
+        <SocialEngine director={!!user.director} keys={cfg.keys} initial={sp?.s} base={`/ops/publish?view=${section === 'sources' ? 'library' : section}`} />
       </div>
     </Shell>
   );
