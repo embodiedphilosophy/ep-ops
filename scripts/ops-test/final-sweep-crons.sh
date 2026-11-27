@@ -13,7 +13,7 @@ WRITES='^(WROTE|ADDED|APPENDED|COPIED|RENAMED|CIRCLE WRITE|CIRCLE DATA|DRIVE|GIT
 writes() { grep -cE "$WRITES" $LOG; }
 t "the app is running with the jobs paused (OPS_LIVE is not 1)" "${OPS_LIVE:-unset}" "0"
 PATHS=$(python3 -c "import json; print(' '.join(c['path'] for c in json.load(open('vercel.json'))['crons']))")
-t "vercel.json lists the eleven crons" "$(echo $PATHS | wc -w | tr -d ' ')" "11"
+t "vercel.json lists the twelve crons" "$(echo $PATHS | wc -w | tr -d ' ')" "12"
 BASE=$(writes)
 echo "-- each cron, the way Vercel Cron calls it"
 for p in $PATHS; do
@@ -28,7 +28,7 @@ echo "-- the dry-run and preview modes that exist (they work with the jobs pause
 # The mock's sheet starts without some tabs (Reminder Rules, Email Plan, Change Log): the first read of any of them sets the tab up, as every page does. So
 # run the modes once, require that all they did was that set-up, then run them again: the second round must write nothing at all.
 D=$(date -u -d "$(( (7 - $(date -u +%w)) % 7 - 14 )) days" +%F)   # a Sunday whose Weekly Scaffolding row is an unsent Draft in the mock
-MODES=("/api/zoom/sync?dry=1" "/api/ops/auto?dry=1" "/api/ops/reminders?dry=1" "/api/ops/mentee-digest?dry=1" "/api/ops/social-sync?dry=1" "/api/scaffolding?dry=1&date=$D" "/api/scaffolding?preview=1&date=$D" "/api/ops/daily?preview=21" "/api/ops/daily?digest=preview" "/api/ops/ads-sync?dry=1" "/api/ops/ads-rules?dry=1" "/api/ops/ads-audiences?dry=1")
+MODES=("/api/zoom/sync?dry=1" "/api/ops/auto?dry=1" "/api/ops/reminders?dry=1" "/api/ops/mentee-digest?dry=1" "/api/ops/social-sync?dry=1" "/api/scaffolding?dry=1&date=$D" "/api/scaffolding?preview=1&date=$D" "/api/ops/daily?preview=21" "/api/ops/daily?digest=preview" "/api/ops/ads-sync?dry=1" "/api/ops/ads-rules?dry=1" "/api/ops/ads-audiences?dry=1" "/api/ops/ads-watch?dry=1")
 SETUP="^(ADDED (TAB|COLUMNS)|WROTE '[^']*'!A1:|APPENDED Change Log .*(new tab|new column))"
 round() { for u in "${MODES[@]}"; do code=$(curl -s -o /dev/null -w '%{http_code}' -H "$AUTH" "$B$u"); t "$u answers 200" "$code" "200"; done; }
 round
@@ -43,6 +43,7 @@ t "social-sync?dry=1 is a dry run" "$(curl -s -H "$AUTH" "$B/api/ops/social-sync
 t "daily?preview=21 sends nothing" "$(curl -s -H "$AUTH" "$B/api/ops/daily?preview=21" | q "'nothing was sent' in d['mode']")" "True"
 t "ads-sync?dry=1 is a dry run and, with no ads key, says Meta isn't connected" "$(curl -s -H "$AUTH" "$B/api/ops/ads-sync?dry=1" | q "(d['dry'], d.get('notConnected'))")" "(True, True)"
 t "ads-rules?dry=1 is a preview: nothing recorded, and with the jobs paused the first lock is closed" "$(curl -s -H "$AUTH" "$B/api/ops/ads-rules?dry=1" | q "(d['preview'], d['recorded'], d['locks']['cron'], d['locks']['open'])")" "(True, 0, False, False)"
+t "ads-watch?dry=1 is a preview that records nothing and, with no Meta key, says Meta isn't connected" "$(curl -s -H "$AUTH" "$B/api/ops/ads-watch?dry=1" | q "(d['preview'], d.get('notConnected'))")" "(True, True)"
 t "ads-audiences?dry=1 is a preview that records nothing and, with no campaigns, says so" "$(curl -s -H "$AUTH" "$B/api/ops/ads-audiences?dry=1" | q "(d['preview'], d.get('note'), d['audiences']['created'])")" "(True, 'No campaigns yet.', 0)"
 t "the newsletter sample is a page of HTML" "$([ "$(curl -s -H "$AUTH" "$B/api/scaffolding?preview=1&date=$D" | grep -c "<")" -gt 0 ] && echo yes)" "yes"
 echo "-- the paused gate is the only thing that stopped them: the same call with the jobs live is not skipped (mock)"
@@ -52,5 +53,6 @@ t "/api/ops/auto is not skipped when the jobs are live" "$(curl -s -H "$AUTH" "$
 t "/api/ops/ads-sync is not skipped when the jobs are live (no ads key here, so it reads nothing)" "$(curl -s -H "$AUTH" "$B/api/ops/ads-sync" | q "d.get('skipped') is None and d.get('notConnected') is True")" "True"
 t "/api/ops/ads-rules is not skipped when the jobs are live (no campaigns, nothing to do, nothing sent)" "$(curl -s -H "$AUTH" "$B/api/ops/ads-rules" | q "d.get('skipped') is None and d['recorded'] == 0 and d['applied'] == 0")" "True"
 t "/api/ops/ads-audiences is not skipped when the jobs are live (no campaigns: it says so and makes no table)" "$(curl -s -H "$AUTH" "$B/api/ops/ads-audiences" | q "d.get('skipped') is None and d['note'] == 'No campaigns yet.' and d['audiences']['created'] == 0")" "True"
+t "/api/ops/ads-watch is not skipped when the jobs are live (no Meta key here, so it watches nothing and sends nothing)" "$(curl -s -H "$AUTH" "$B/api/ops/ads-watch" | q "d.get('skipped') is None and d.get('notConnected') is True")" "True"
 t "/api/ops/library-sync is not skipped when the jobs are live" "$(curl -s -H "$AUTH" "$B/api/ops/library-sync" | q "d.get('skipped') is None")" "True"
 echo; echo "$ok passed, $bad failed"; [ $bad = 0 ]

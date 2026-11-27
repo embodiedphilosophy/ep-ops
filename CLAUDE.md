@@ -48,6 +48,7 @@ order. This file adds the safety rules and how to test.
   run until `CIRCLE_EVENT_SYNC=live`. New Circle events are drafts until "Push to Circle" on the program page's Circle tab,
   `app/ops/events/CirclePanel.js`; standalone courses (track EVENT) get a hidden course space + live-sessions space
   from "Set up course in Circle", `lib/ops/circlecourse.js`), **Make** (automations), **Vercel Blob** (teacher uploads).
+- **Ads has a safety net that must never go silent** (`lib/ops/adswatch.js`, `lib/ops/alerts.js`; hourly, read-only on Meta). Alerts carry **personal phone numbers** (Settings, directors only; Twilio): never print or log one, or put one in the Change Log.
 - Being retired: Kajabi, Uscreen, Vimeo (the Vimeo ID only feeds the site's free-preview players).
 
 ## People and access (`lib/ops/nav.js`, Team tab)
