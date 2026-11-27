@@ -159,3 +159,29 @@
 .ops-shell .ads-set .ads-facts label { max-width: 320px }
 .ops-shell .ads-set .ads-facts input { width: 140px }
 .ops-shell .ads-scroll { position: relative }
+/* Ads safety net (Safety net tab and its Settings section) */
+.ops-shell .ads-mode.bad { background: #F2D9D2; border-color: #D9A99B; color: #6B2412 }
+.ops-shell .ads-mode.warn { background: #F4E3C4; border-color: #E3C98F }
+.ops-shell .ads-board { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.ops-shell .ads-check { background: var(--panel); border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--r-panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.ops-shell .ads-check.green { border-left-color: var(--pine) }
+.ops-shell .ads-check.amber { border-left-color: #D9A441 }
+.ops-shell .ads-check.red { border-left-color: #B5432A }
+.ops-shell .ads-check.grey { border-left-color: var(--line) }
+.ops-shell .ads-check .top { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center }
+.ops-shell .ads-check p { margin: 0; font-size: 13px }
+.ops-shell .ads-people { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.ops-shell .ads-person { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #FBF9F4; border: 1px solid var(--line); border-radius: var(--r-ctl); min-width: 0 }
+.ops-shell .ads-person .top, .ops-shell .ads-person .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center }
+.ops-shell .ads-person label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-soft) }
+.ops-shell .ads-person input:not([type=checkbox]) { min-height: 44px; box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 0 10px; font: inherit; background: #fff }
+.ops-shell .ads-check-in { display: inline-flex !important; flex-direction: row !important; align-items: center; gap: 6px !important; min-height: 44px; color: var(--ink) !important }
+.ops-shell .ads-check-in input { width: 20px; height: 20px; min-height: 0 }
+.ops-shell fieldset.ads-facts { border: 0; padding: 0; margin: 0 0 8px }
+.ops-shell fieldset.ads-facts legend { font-weight: 600; padding: 0; margin-bottom: 6px }
+.ops-shell .ads-facts label { max-width: 260px }
+@media (max-width: 760px) {
+  .ops-shell .ads-board, .ops-shell .ads-people { grid-template-columns: minmax(0, 1fr) }
+  .ops-shell .ads-facts label { max-width: none; width: 100% }
+  .ops-shell .ads-facts input { width: 100% }
+}

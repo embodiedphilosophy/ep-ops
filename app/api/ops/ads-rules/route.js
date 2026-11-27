@@ -5,6 +5,9 @@ import { buildDigest, adsRecipients } from '@/lib/ops/adsdigest';
 import { loadTeam } from '@/lib/calendar';
 import { sendEmail } from '@/lib/ops/email';
 import { jobsHere, SKIPPED } from '@/lib/crongate';
+import { runHeartbeat } from '@/lib/ops/adswatch';
+import { routineAlerts, routineHtml } from '@/lib/ops/alerts';
+import { layout } from '@/lib/ops/email';
 
 // Every morning (vercel.json cron): the automatic rules, then the daily ad digest. Judges each running campaign whose rules a person switched on, ad set by ad set, on
 // the last 72 hours; records every decision; and changes Meta ONLY when all three locks are open (jobs live here, META_ADS_LIVE=live, and Make's Ad Agent OFF).
@@ -27,12 +30,17 @@ export async function GET(req) {
     const run = await runMorningRules({ now, preview });
     const team = await loadTeam({ fresh: true }).catch(() => []), to = adsRecipients(team);
     const d = run.note ? null : await buildDigest({ run, base, now });
-    const digest = d && { subject: d.subject, to, made: d.made, would: d.would, sections: d.sections, sent: false };
-    if (preview && url.searchParams.get('html') === '1' && d) return new NextResponse(`<!doctype html><meta charset="utf-8"><title>${d.subject.replace(/</g, '')}</title>${d.html}`, { headers: { 'content-type': 'text/html; charset=utf-8' } });
-    if (!preview && d && to.length) {
-      try { for (const email of to) await sendEmail({ to: email, subject: d.subject, html: d.html }); digest.sent = true; }
+    // The ad safety net rides along: this daily job checks the hourly watchdog is alive (alerts if it has gone quiet) and puts any routine safety notes in the digest
+    const heartbeat = await runHeartbeat({ now, preview, team, base }).catch(() => ({ error: 'The safety net check could not run' }));
+    const routine = await routineAlerts().catch(() => []), extra = routineHtml(routine, base);
+    if (d && extra) d.html += `<div style="max-width:560px;margin:0 auto;padding:0 28px 28px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#3a342b">${extra}</div>`;
+    const note = !d && extra ? { subject: 'Ads: notes from the safety net', html: layout('Ads: notes from the safety net', extra), sections: [], made: 0, would: 0 } : null, mail = d || note;
+    const digest = mail && { subject: mail.subject, to, made: mail.made, would: mail.would, sections: mail.sections, sent: false, routine: routine.length };
+    if (preview && url.searchParams.get('html') === '1' && mail) return new NextResponse(`<!doctype html><meta charset="utf-8"><title>${mail.subject.replace(/</g, '')}</title>${mail.html}`, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    if (!preview && mail && to.length) {
+      try { for (const email of to) await sendEmail({ to: email, subject: mail.subject, html: mail.html }); digest.sent = true; }
       catch (e) { digest.error = 'The digest could not be sent just now'; console.error('ads digest', e.message); }
     }
-    return NextResponse.json({ ...run, sync: sync && { campaigns: sync.campaigns, rows: sync.rows, errors: sync.errors }, digest });
+    return NextResponse.json({ ...run, sync: sync && { campaigns: sync.campaigns, rows: sync.rows, errors: sync.errors }, digest, safety: { heartbeat } });
   } catch (e) { console.error('ads-rules', e.message); return NextResponse.json({ error: 'The morning rules could not run just now' }, { status: 500 }); }
 }

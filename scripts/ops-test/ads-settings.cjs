@@ -21,7 +21,7 @@ const metaLog = async () => (await (await fetch('http://localhost:4556/__log')).
   await p.goto(U + '/ops/settings?view=connections'); await p.waitForSelector('[aria-label="Meta ads settings"]');
   const row = p.locator('[aria-label="Connections"] tr', { hasText: 'Meta ads' });
   const text = await row.innerText();
-  ck(`[${MODE}] the Meta ads row is in the systems list (eight systems)`, await p.locator('[aria-label="Connections"] tbody tr').count() === 8 && await row.count() === 1);
+  ck(`[${MODE}] the Meta ads row is in the systems list (nine systems)`, await p.locator('[aria-label="Connections"] tbody tr').count() === 9 && await row.count() === 1);
   ck(`[${MODE}] it says “${WANT.label}”`, WANT.text.test(text));
   const items = await p.locator('[aria-label="Meta ads settings"] li').allInnerTexts();
   ck(`[${MODE}] the six settings are listed by name, ${WANT.set} of them in place`, items.length === 6 && ['META_ADS_TOKEN', 'META_AD_ACCOUNT_ID', 'META_PIXEL_ID', 'META_PAGE_ID', 'META_IG_USER_ID', 'META_ADS_LIVE'].every(n => items.some(i => i.includes(n))) && items.filter(i => !/not set$/.test(i)).length === WANT.set, items.join(' | '));
@@ -55,7 +55,7 @@ const metaLog = async () => (await (await fetch('http://localhost:4556/__log')).
   ck(`[${MODE}] ${pages.length} pages loaded as a director (none broke)`, codes.every(c => c < 500), codes.join(','));
   ck(`[${MODE}] loading every page asked Meta nothing, in any mode (even Live)`, (await metaLog()).total === 0);
   // The database: loading pages never makes the Ads tables (the app's log has no mention), and only Ads code may use the store.
-  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/ads[a-z]*\.js$|app\/api\/ops\/ads(-library|-audiences)?\/route\.js$/.test(f));
+  const srcHit = execFileSync('grep', ['-rlE', 'ensureAdsTables|adsstore|adsdb|ads_campaigns', path.join(__dirname, '../../app'), path.join(__dirname, '../../lib')]).toString().split('\n').filter(f => f && !/lib\/ops\/ads[a-z]*\.js$|app\/api\/ops\/ads(-library|-audiences|-safety|-watch)?\/route\.js$|lib\/ops\/alerts\.js$|app\/ops\/ads\/Safety/.test(f));
   ck(`[${MODE}] only Ads code uses the Ads store (lib/ops/ads*.js and the Ads routes: ads, ads-library, ads-audiences): no other page, API or library file (Ads PR 2: the store is used by Ads, and by nothing else)`, srcHit.length === 0, srcHit.join(' '));
   let traced = ''; try { traced = execFileSync('grep', ['-rlE', 'electric-sql', path.join(__dirname, '../../.next/server'), '--include=*.nft.json']).toString().trim(); } catch (e) { traced = ''; }
   ck(`[${MODE}] the build does not trace PGlite (a test tool) into any route`, traced === '', traced);

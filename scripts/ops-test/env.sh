@@ -50,3 +50,12 @@ if [ "$MOCK_NOKEY" = 1 ]; then unset ANTHROPIC_API_KEY; fi   # ads-drafts.sh: a 
 # otherwise the link is not connected. Inert unless set; not set in production.
 unset REPORT_DATABASE_URL REPORT_TEST_DB
 if [ "$MOCK_REPORT" = 1 ]; then export REPORT_TEST_DB=pglite; fi
+# Alerts (Ads safety net): text and WhatsApp go through Twilio. Never inherit real settings; TWILIO_BASE points at the Twilio mock (:4557) so even a stray call cannot reach Twilio.
+# MOCK_TWILIO=sms | both | template (alert flows only) gives the app throwaway settings so the alert channels have something to send through (at the mock only).
+unset TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_SMS_FROM TWILIO_WHATSAPP_FROM TWILIO_WHATSAPP_TEMPLATE_SID
+export TWILIO_BASE=http://localhost:4557
+if [ "$MOCK_TWILIO" = sms ] || [ "$MOCK_TWILIO" = both ] || [ "$MOCK_TWILIO" = template ]; then export TWILIO_ACCOUNT_SID=ACmocktwilioaccount0000000000000000 TWILIO_AUTH_TOKEN=mock-twilio-token-not-real TWILIO_SMS_FROM=+15005550006; fi
+if [ "$MOCK_TWILIO" = both ] || [ "$MOCK_TWILIO" = template ]; then export TWILIO_WHATSAPP_FROM=+14155238886; fi
+[ "$MOCK_TWILIO" = template ] && export TWILIO_WHATSAPP_TEMPLATE_SID=HXmocktemplate00000000000000000000
+# MOCK_META=ready (alert flows only): the Meta key, ad account and pixel set (the safety switch stays OFF: reads need only the key) so the watchdog has an account to read at the mock.
+if [ "$MOCK_META" = ready ]; then export META_ADS_TOKEN=mock-ads-token-for-the-safety-test META_AD_ACCOUNT_ID=act_MOCK1 META_PIXEL_ID=PIX1 META_PAGE_ID=PAGE1; fi
