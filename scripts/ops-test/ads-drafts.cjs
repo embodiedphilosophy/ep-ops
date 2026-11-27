@@ -150,7 +150,7 @@ const get = (u, ck_) => fetch(U + u, { redirect: 'manual', headers: { Cookie: `e
   await p.getByLabel('Rules on').click(); await p.waitForTimeout(800);
   tree = await (await fetch(`${U}/api/ops/ads?id=${cid}`, { headers: { Cookie: `ep_ops=${DIRECTOR}` } })).json();
   ck('the cap and the rules (25%, 7 days, switched on) are stored', tree.campaign.spend_cap_cents === 150000 && tree.rules.raise_pct === 25 && tree.rules.pause_weakest_after_days === 7 && tree.campaign.rules_on === true && tree.campaign.rules_dry_run === true);
-  ck('the page says the rules are only stored here', /Saved here only/.test(await p.innerText('[aria-label="Automatic rules"]')));
+  ck('the page says the rules are applied each morning once running, as a dry run beside Make, and change nothing in Meta from here', /dry run beside Make’s Ad Agent, and nothing changes in Meta from this page/.test(await p.innerText('[aria-label="Automatic rules"]')));
   ck('Meta settings are filled in from Settings (pixel and event, Page, Instagram account, placements, campaign name), no ids shown', (await p.locator('[aria-label="Meta settings"]').innerText()).includes('Purchase') && !/PIX1|PAGE1|IG1/.test(await p.locator('[aria-label="Meta settings"]').innerText()) && (await p.getByLabel('Campaign name in Meta').inputValue()).includes('Wizard On 2027'));
   await p.screenshot({ path: path.join(OUT, 'ads-budget-desktop.png'), fullPage: true });
 

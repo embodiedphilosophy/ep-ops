@@ -3,7 +3,7 @@
 // Endpoints (under /v21.0): act_MOCK1 (account), PIX1 (pixel, last fired 2 hours ago), PAGE1 (page), search?type=adinterest, act_*/campaigns,
 // act_*/adsets, act_*/adcreatives, act_*/ads, act_*/adimages, act_*/customaudiences (GET and POST), <id>/users (hashed emails), POST <id> (update),
 // act_*/insights (a week of per-day results, the same every time).
-// Test controls: GET /__log (every request, newest last; ?reset=1 clears), GET /__mode?rejectWrites=1|0, ?pixelAgeHours=N, ?noPayment=1|0, GET /__state (what exists), GET /__reset (forget everything).
+// Test controls: GET /__log (every request, newest last; ?reset=1 clears), GET /__mode?rejectWrites=1|0, ?pixelAgeHours=N, ?noPayment=1|0, ?failInsights=1|0 (results answer with Meta's "too many calls" error), GET /__state (what exists), GET /__reset (forget everything).
 // The log records the method, the path, the body (hashes shortened) and whether a Bearer token was present, never the token itself.
 // The mock refuses a campaign, ad set or ad that is not PAUSED, as a check on the client.
 import http from 'node:http';
@@ -11,7 +11,7 @@ import http from 'node:http';
 const PORT = Number(process.env.META_MOCK_PORT || 4556);
 const V = '/v21.0';
 const log = [];
-const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false };
+const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false };
 const objects = { campaigns: [], adsets: [], adcreatives: [], ads: [], adimages: [], customaudiences: [], users: {} };
 let counter = 0;
 
@@ -26,24 +26,30 @@ const send = (res, code, o) => { res.writeHead(code, { 'Content-Type': 'applicat
 const fail = (res, message, code = 100, status = 400) => send(res, status, { error: { message, code, type: 'OAuthException', error_user_msg: message } });
 const day = n => new Date(Date.now() - n * 86400e3).toISOString().slice(0, 10);
 
-function insights(level) {
-  const sets = objects.adsets.length ? objects.adsets : ROAS.map((_, i) => ({ id: `mock_adset_${i + 1}`, campaign_id: 'mock_campaign_1' }));
+// Results a day at a time. Per ad set (by the order made) the return on ad spend each day is spend x roas (2.4, 1.8, 1.2, 0.8, 0.4) and the cost per lead is CPL
+// (1.00, 1.50, 2.00, 3.00, 5.00), so a rule can raise, hold and turn off for a Purchase campaign and for a Lead campaign. At ad level each ad has a fifth of the set's spend
+// and a different share of its return, ad 5 always the weakest. campaignId limits the answer to one campaign's ad sets (as the client's filtering does).
+const CPL = [1, 1.5, 2, 3, 5], AD_SHARE = [1.15, 1.05, 1, 0.9, 0.5];
+function insights(level, campaignId) {
+  const sets = (objects.adsets.length ? objects.adsets : ROAS.map((_, i) => ({ id: `mock_adset_${i + 1}`, campaign_id: 'mock_campaign_1' }))).map((s, i) => ({ ...s, i })).filter(s => !campaignId || s.campaign_id === campaignId);
   const rows = [];
-  for (let d = 7; d >= 1; d--) sets.forEach((s, i) => {
-    const spend = 10 + i * 2 + (d % 3), purchases = Math.round((spend * ROAS[i % 5]) / 60 * 10) / 10;
-    rows.push({ date_start: day(d), date_stop: day(d), campaign_id: s.campaign_id, ...(level === 'campaign' ? {} : { adset_id: s.id }),
-      spend: spend.toFixed(2), impressions: String(1000 + i * 100), clicks: String(20 + i),
-      actions: [{ action_type: 'purchase', value: String(Math.round(purchases)) }, { action_type: 'lead', value: String(i + 1) }],
-      action_values: [{ action_type: 'purchase', value: (spend * ROAS[i % 5]).toFixed(2) }],
-      purchase_roas: [{ action_type: 'omni_purchase', value: String(ROAS[i % 5]) }] });
-  });
+  for (let d = 7; d >= 1; d--) for (const s of sets) {
+    const i = s.i % 5, spend = 10 + i * 2 + (d % 3), items = level === 'ad' ? objects.ads.filter(a => a.adset_id === s.id).map((a, k) => ({ ad: a.id, share: 0.2, f: AD_SHARE[k % 5] })) : [{ ad: null, share: 1, f: 1 }];
+    for (const it of items) {
+      const sp = spend * it.share, roas = ROAS[i] * it.f, rev = sp * roas, leads = Math.round(sp / (CPL[i] / it.f));
+      rows.push({ date_start: day(d), date_stop: day(d), campaign_id: s.campaign_id, ...(level === 'campaign' ? {} : { adset_id: s.id }), ...(it.ad ? { ad_id: it.ad } : {}),
+        spend: sp.toFixed(2), impressions: String(Math.round(1000 * it.share + i * 100)), clicks: String(Math.round(20 * it.share + i)),
+        actions: [{ action_type: 'purchase', value: String(Math.round(rev / 20)) }, { action_type: 'lead', value: String(leads) }],
+        action_values: [{ action_type: 'purchase', value: rev.toFixed(2) }], purchase_roas: [{ action_type: 'omni_purchase', value: String(roas) }] });
+    }
+  }
   return rows;
 }
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   if (p === '/__log') { const out = { total: log.length, requests: log.slice() }; if (url.searchParams.get('reset')) log.length = 0; return send(res, 200, out); }
-  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false }); return send(res, 200, { reset: true }); }
+  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false }); return send(res, 200, { reset: true }); }
   if (p === '/__mode') {
     for (const [k, v] of url.searchParams) mode[k] = k === 'pixelAgeHours' ? Number(v) : v === '1';
     return send(res, 200, mode);
@@ -66,7 +72,12 @@ http.createServer(async (req, res) => {
     if (first === 'search') { const q = (url.searchParams.get('q') || '').toLowerCase(); return send(res, 200, { data: INTERESTS.filter(([, n]) => n.toLowerCase().includes(q)).map(([id, name], i) => ({ id, name, audience_size_lower_bound: 1000000 * (i + 1), path: ['Interests', name] })) }); }
     if (second === 'campaigns') return send(res, 200, { data: objects.campaigns });
     if (second === 'customaudiences') return send(res, 200, { data: objects.customaudiences });
-    if (second === 'insights') return send(res, 200, { data: insights(url.searchParams.get('level')) });
+    if (second === 'insights') {
+      if (mode.failInsights) return fail(res, '(mock) Too many calls to this ad-account. Please try again later.', 17, 400);
+      let only = ''; try { only = (JSON.parse(url.searchParams.get('filtering') || '[]').find(f => f.field === 'campaign.id') || {}).value || ''; } catch {}
+      return send(res, 200, { data: insights(url.searchParams.get('level'), only) });
+    }
+    if (!second) { const o = Object.values(objects).flat().find(x => x?.id === first); if (o) return send(res, 200, { id: o.id, name: o.name, status: o.status, effective_status: o.status, ...(o.daily_budget ? { daily_budget: o.daily_budget } : {}) }); }
     return fail(res, 'Unsupported get request', 100, 400);
   }
 

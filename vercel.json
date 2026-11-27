@@ -31,6 +31,14 @@
     {
       "path": "/api/ops/reminders",
       "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/ops/ads-sync",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/ops/ads-rules",
+      "schedule": "30 13 * * *"
     }
   ]
 }

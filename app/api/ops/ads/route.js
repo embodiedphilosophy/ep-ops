@@ -7,7 +7,9 @@ import { GOAL_LIST, TYPE_LIST, CTA_LIST, adDatesOf, adLink, campaignTotal, launc
 import { isPlaceholder, aiConfigured } from '@/lib/ops/adscopy';
 import { artChoices, cropFrom, cropUpload } from '@/lib/ops/adsimages';
 import { runChecks } from '@/lib/ops/adscheck';
-import { sendPaused, startCampaign } from '@/lib/ops/adssend';
+import { sendPaused, startCampaign, setRunning } from '@/lib/ops/adssend';
+import { liveView, listSummary } from '@/lib/ops/adsview';
+import { lockState, reverseAction } from '@/lib/ops/adsrules';
 import { launchRows } from '@/lib/ops/launches';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +49,7 @@ export async function GET(req) {
       const launch = t.campaign.launch_id ? await launchById(t.campaign.launch_id) : null;
       t = { ...t, campaign: await follow(t.campaign, launch) };
       const out = { ...meta, ...t, launch: launch && { id: launch.id, name: launch.name, event_id: launch.event_id }, total_cents: campaignTotal(t.campaign, t.adsets), link: adLink(t.campaign), cta_list: CTA_LIST, goals: GOAL_LIST, types: TYPE_LIST };
+      if (t.campaign.status !== 'draft') { out.live = await liveView(t); out.locks = await lockState({ fresh: true }); }   // a campaign in Meta: its results, rules and changes (Make's Ad Agent setting is read fresh here: one read when this page opens, so the page never shows an old answer)
       if (q.get('checks')) out.checks = await runChecks(t);
       if (q.get('art')) out.art = (await artChoices({ limit: 40 }).catch(() => [])).map(a => ({ id: a.id, name: a.name }));
       return NextResponse.json(out);
@@ -54,7 +57,9 @@ export async function GET(req) {
     const cs = exists ? await listRows('campaigns') : [], launches = cs.some(c => c.launch_id) ? await launchRows().catch(() => []) : [];
     const rows = [];
     for (const c0 of cs) { const l = launches.find(x => x.id === c0.launch_id) || null, c = await follow(c0, l); rows.push({ ...brief(c, await listRows('adsets', { campaign_id: c.id })), launch_name: l?.name || '', event_id: l?.event_id || '', rules_on: c.rules_on }); }
-    return NextResponse.json({ ...meta, campaigns: rows });
+    const sum = await listSummary(cs);
+    for (const r of rows) Object.assign(r, sum.byCampaign[r.id] || {});
+    return NextResponse.json({ ...meta, campaigns: rows, today: sum.today || [], holds_today: sum.holds || 0, locks: sum.today?.length || rows.some(r => r.rules_on) ? await lockState() : null });
   } catch (e) { console.error('Ads read failed', e.message); return bad('Couldn’t read the campaigns', 502); }
 }
 
@@ -85,6 +90,22 @@ export async function POST(req) {
       if (!b.confirm) return bad('Please confirm first');
       const r = b.action === 'start' ? await startCampaign(c.id, me) : await sendPaused(c.id, me);
       return NextResponse.json(r, { status: r.ok ? 200 : 409 });
+    }
+    if (b.action === 'setRules') {   // the morning rules for a campaign: a person switches them on or off, at any stage
+      if (c.goal === 'Traffic') return bad('Traffic campaigns have no automatic rules.');
+      if (!(await listRows('rules', { campaign_id: c.id }))[0]) return bad('This campaign has no rules saved yet.');
+      await updateRow('campaigns', c.id, { rules_on: !!b.rules_on });
+      return NextResponse.json({ ok: true, rules_on: !!b.rules_on });
+    }
+    if (b.action === 'pauseCampaign' || b.action === 'resumeCampaign') {
+      if (!b.confirm) return bad('Please confirm first');
+      const r = await setRunning(c.id, b.action === 'resumeCampaign', me);
+      return NextResponse.json(r, { status: r.ok ? 200 : 409 });
+    }
+    if (b.action === 'reverse') {   // a person, through the write gate: puts the earlier value back, or says plainly why it can't
+      if (!b.confirm) return bad('Please confirm first');
+      const r = await reverseAction(String(b.action_id || ''), me, c.id);
+      return NextResponse.json(r, { status: r.ok ? 200 : r.status || 409 });
     }
     if (c.status !== 'draft') return bad('This campaign is already in Meta, so it can’t be edited here.', 409);
     const id = c.id;
