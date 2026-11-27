@@ -71,12 +71,12 @@ const call = (p, path, body) => p.evaluate(async ([u, b]) => { const r = await f
   const r = await call(p, '/api/ops/faculty', { action: 'create', name: 'Abha Rajbhandari', email: 'abha@example.com', kind: 'Course', offering: 'event:E006', fee: '500', fee_unit: 'flat', template: 'Standard teaching agreement' });
   ok(r.ok && r.link, 'second invitation by API');
   ok((await call(p, '/api/invite', { token: r.link.split('/invite/')[1], action: 'sign', name: 'Abha Rajbhandari', agree: true })).ok, 'signed by API');
-  await p.goto(`${BASE}/ops/insights`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/business?view=finance`, { waitUntil: 'networkidle' });
   const pay = await p.locator('#to-pay').innerText();
   ok(/Abha Rajbhandari/.test(pay) && /\$500/.test(pay) && !/Tova/.test(pay), 'To pay lists the taught session only');
   await p.locator('#to-pay button', { hasText: 'Mark paid' }).first().click();
   await p.waitForTimeout(2500);
-  await p.goto(`${BASE}/ops/insights`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/ops/business?view=finance`, { waitUntil: 'networkidle' });
   ok(/Nobody is owed/.test(await p.locator('#to-pay').innerText()), 'marked paid');
   ok(/Contractor Payables/.test(fs.readFileSync(__dirname + '/out/mock.log', 'utf8')), 'payment recorded on the Contractor Payables tab');
 

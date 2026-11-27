@@ -48,7 +48,7 @@ export function InviteForm({ offerings, templates, kinds, units, prefill }) {
         <span className="hint">Goes into the agreement and, once taught, into Finance → To pay.</span></div>
       <div className="row"><label htmlFor="iv-msg">Personal note</label><textarea id="iv-msg" rows={4} value={f.message} onChange={set('message')} placeholder="A few warm lines from you (blank: a short standard invitation)" /></div>
       <div className="row"><label htmlFor="iv-tpl">Agreement</label><select id="iv-tpl" value={f.template} onChange={set('template')}>{templates.map(t => <option key={t}>{t}</option>)}<option value="">No agreement: they just accept</option></select>
-        <span className="hint">{noAgreement ? <>They say yes, go on the sessions and get their onboarding link. {!templates.length && <>To have them sign an agreement, add one in <a href="/ops/settings?t=contracts">Settings → Contracts</a>.</>}</> : 'They read and sign it online before onboarding.'}</span></div>
+        <span className="hint">{noAgreement ? <>They say yes, go on the sessions and get their onboarding link. {!templates.length && <>To have them sign an agreement, add one in <a href="/ops/settings?view=templates&s=contracts">Settings → Contracts</a>.</>}</> : 'They read and sign it online before onboarding.'}</span></div>
       {!noAgreement && <div className="row"><label htmlFor="iv-terms">Course-specific terms</label><textarea id="iv-terms" rows={3} value={f.terms} onChange={set('terms')} placeholder="Fills {{terms}} in the agreement, e.g. recording rights, number of sessions" /></div>}
       {preview && <div className="row"><span className="hint">The agreement as they will read it</span><pre className="ops-contract">{preview}</pre></div>}
       <div className="bar">

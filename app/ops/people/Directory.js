@@ -101,7 +101,7 @@ export default async function Directory({ searchParams }) {
       <section className="pp-res" aria-label="Resources">
         <h2>Resources</h2>
         {resources === null || links.length === 0 ? (
-          <p className="ops-empty">{user.director ? <>No links yet. Add them in <a href="/ops/settings?t=resources">Settings → Resources</a>: SOPs, brand assets, Drive, Circle and Kit.</> : 'No links yet.'}</p>
+          <p className="ops-empty">{user.director ? <>No links yet. Add them in <a href="/ops/settings?view=team&s=resources">Settings → Team and roles → Team links</a>: SOPs, brand assets, Drive, Circle and Kit.</> : 'No links yet.'}</p>
         ) : groups.map(g => (
           <div key={g} className="ops-res">
             <h3>{g}</h3>

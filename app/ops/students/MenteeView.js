@@ -38,7 +38,7 @@ function RowBody({ r, ym, canEdit, counts, mentees }) {
       {r.hint && <span className="ev">{r.hint}</span>}
       {r.kind === 'buddy' && <span className="ev">Who is paired with whom: <a href="/ops/students?view=mentee&tab=partners">Articulation partners</a></span>}
       {r.kind === 'task' && mentees > 0 && <span className="ev">{counts[r.key] || 0} of {mentees} ticked</span>}
-      {canEdit && (r.kind === 'task' ? <EditItem kind="task" item={r.task} /> : r.edit === 'settings' ? <a className="chip ops-my-editbtn" href="/ops/settings?t=massignments">Edit in Settings</a> : <RowEdit month={ym} row={r} />)}</span>
+      {canEdit && (r.kind === 'task' ? <EditItem kind="task" item={r.task} /> : r.edit === 'settings' ? <a className="chip ops-my-editbtn" href="/ops/settings?view=website&s=massignments">Edit in Settings</a> : <RowEdit month={ym} row={r} />)}</span>
   </>);
 }
 const MonthRow = props => <li className={`ops-my-step${props.r.hidden ? ' off' : ''}`}><RowBody {...props} /></li>;

@@ -154,7 +154,7 @@ export default function PublishCalendar({ show = 'all', videos = null, socialPro
           </div></div>)}
         {undated.length > 0 && <section className="soc-panel" aria-label="No date yet"><div className="ph"><h2>No date yet</h2><span className="sub">YouTube cuts waiting for a release date.</span></div><ul className="pub-list">{undated.map(i => <li key={i.key}>{chip(i)}</li>)}</ul></section>}
         {kind === 'video' && <p className="ops-note">Proposals, the review queue and what has gone out are on <a href="/ops/publish?view=video">Video</a>. A cut opens in Compose to edit it.</p>}
-        {kind === 'auto' && <p className="ops-note">Kit sends these on its own. The reminder rules are in <a href="/ops/settings?view=reminders">Settings</a>; every coming send is on <a href="/ops/publish?view=reminders">Reminder sends</a>.</p>}
+        {kind === 'auto' && <p className="ops-note">Kit sends these on its own. The reminder rules are in <a href="/ops/settings?view=templates&s=reminders">Settings</a>; every coming send is on <a href="/ops/publish?view=reminders">Reminder sends</a>.</p>}
         {kind === 'all' && checks.length > 0 && <section className="soc-panel pub-checks" aria-label="Checks across channels"><div className="ph"><h2>Checks across channels</h2></div>
           <ul className="pub-list">{checks.map((c, i) => <li key={i}>{c.date ? <span className="mono meta">{long(c.date)}</span> : null}<span>{c.text}</span></li>)}</ul></section>}
         <p className="pub-key" aria-label="Key">{Object.entries(LABEL).filter(([k]) => k !== 'video' || canVideo).map(([k, l]) => <span key={k} className={`k-${k}`}><i />{l}</span>)}</p>

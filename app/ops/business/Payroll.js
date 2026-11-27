@@ -14,6 +14,8 @@ const label = m => new Date(`${m}-15T12:00:00Z`).toLocaleDateString('en-GB', { m
 const usd = n => n == null || n === '' ? '' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const day = d => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
 const when = iso => iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+// A line's person opens their record in People (the id is their email)
+const Who = ({ name, email }) => email ? <a className="pr-person" href={`/ops/people/${encodeURIComponent(email)}`}><b>{name}</b></a> : <b>{name}</b>;
 const post = async body => {
   const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
   const j = await res?.json().catch(() => ({})) || {};
@@ -94,7 +96,7 @@ function Section({ kind, title, lines, month, locked, reload, setErr }) {
       <div className="pr-table" role="table">
         <div className="pr-row head" role="row"><span>{kind === 'faculty' ? 'Session' : 'Person'}</span><span>Hours</span><span>Rate $/h</span><span>Amount $</span><span /></div>
         {groups.map((g, i) => <div key={i} className="pr-group">
-          {kind === 'faculty' && g[0] && <div className="pr-who"><b>{g[0].name}</b> <span className="sub">{g[0].email || 'no email'}</span><span className="pr-subtotal">{usd(g.reduce((s, l) => s + (l.amount_due || 0), 0))}</span></div>}
+          {kind === 'faculty' && g[0] && <div className="pr-who"><Who name={g[0].name} email={g[0].email} /> <span className="sub">{g[0].email || 'no email'}</span><span className="pr-subtotal">{usd(g.reduce((s, l) => s + (l.amount_due || 0), 0))}</span></div>}
           {g.map(l => <Line key={l.key} l={l} kind={kind} month={month} locked={locked} reload={reload} setErr={setErr} />)}
         </div>)}
       </div>
@@ -120,7 +122,7 @@ function Line({ l, kind, month, locked, reload, setErr }) {
   return (
     <div className={`pr-row${removed ? ' removed' : ''}${preview == null && !removed ? ' missing' : ''}`} role="row">
       <span className="pr-what">
-        {kind === 'faculty' ? <><span className="mono">{day(l.date)}</span> {l.what}</> : <><b>{l.name}</b> <span className="sub">{l.email}</span><br />{l.what}</>}
+        {kind === 'faculty' ? <><span className="mono">{day(l.date)}</span> {l.what}</> : <><Who name={l.name} email={l.email} /> <span className="sub">{l.email}</span><br />{l.what}</>}
         {!removed && <span className={`pr-via-tag ${l.pay_via || 'unset'}`}>{viaLabel(l.pay_via)}</span>}
         {l.note && <span className="sub pr-note">{l.note}</span>}
         {l.unsaved && <span className="sub pr-note">Worked out, not saved yet</span>}

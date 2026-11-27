@@ -5,10 +5,6 @@ import { loadMetrics, METRICS_URL } from '@/lib/ops/metrics';
 import { readTab } from '@/lib/sheet';
 import { todayET } from '@/lib/events';
 import Trend from './Trend';
-import { loadFunnel, PERIODS } from '@/lib/ops/funnel';
-
-export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Insights — Embodied Philosophy', robots: { index: false, follow: false } };
 
 const usd = n => `${n < 0 ? '−' : ''}$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
 const monthName = m => new Date(`${m}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -17,22 +13,20 @@ const short = m => new Date(`${m}-15T12:00:00Z`).toLocaleDateString('en-US', { m
 const ENROLL = [['Sādhana School – Full Year', 'sadhana_year_price'], ['Sādhana School – Semester', 'sadhana_semester_price'], ['Wisdom School – Annual', 'wisdom_price']];
 const TIER = { GOLDEN: 'good', WINNER: 'good', HOLD: 'warning', LOSING: 'critical' };
 
-// Is the business healthy? Director only. Everything comes from the EP Revenue & Metrics System sheet,
+// Business › Finance (was Insights): is the business healthy? Director only. Everything comes from the EP Revenue & Metrics System sheet,
 // which Make fills from Stripe, PayPal and Meta.
-export default async function Insights({ searchParams }) {
+export default async function FinanceView({ searchParams }) {
   const user = await opsUser(u => u.director);
   const sp = await searchParams;
   let m, error = '';
   try { m = await loadMetrics(); } catch (e) { error = /403/.test(e.message) ? 'The Revenue & Metrics sheet isn’t shared with the website.' : 'Couldn’t read the Revenue & Metrics sheet right now.'; }
   // Contractor pay doesn't depend on the metrics sheet, so it shows even when that can't be read
-  const toPay = (<section className="ops-goal" id="to-pay">
+  const toPay = (<section className="ops-goal bz-panel" id="to-pay">
     <h2 className="ops-sub">To pay</h2>
     <ToPay rows={await payablesView().catch(() => [])} />
   </section>);
-  if (error) return <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"><p className="ops-note">{error}</p>{toPay}</Shell>;
+  if (error) return <Shell user={user} current="business" eyebrow="Business · directors" desc="Is EP healthy? Revenue, ad spend, what is owed and where the year stands against the plan." title="Finance"><p className="ops-note">{error}</p>{toPay}</Shell>;
 
-  const period = PERIODS.some(([k]) => k === sp?.f) ? sp.f : '30';
-  const funnel = await loadFunnel(Number(period)).catch(() => ({ steps: [], hidden: [], error: 'Couldn’t load the funnel.' }));
   const now = todayET().slice(0, 7);
   // Every month of this year so far (none in the future)
   const year = now.slice(0, 4);
@@ -65,7 +59,7 @@ export default async function Insights({ searchParams }) {
   const trend = m.monthly.filter(x => x.month.startsWith(year) && x.month <= now);
 
   return (
-    <Shell user={user} current="insights" desc="Is EP healthy? Revenue, ads and the path from first practice to Sādhana School." title="Finance"
+    <Shell user={user} current="business" eyebrow="Business · directors" desc="Is EP healthy? Revenue, ad spend, what is owed and where the year stands against the plan." title="Finance"
       head={<nav className="ops-filters" aria-label="Month">{choices.map(c => <a key={c} href={`/ops/business?view=finance&m=${c}`} aria-current={c === month ? 'page' : undefined}>{short(c)}{c === now ? ' (now)' : ''}</a>)}</nav>}>
       <p className="ops-empty">{monthName(month)}{live ? ', so far this month' : ''}. From the Revenue & Metrics sheet: Stripe and PayPal sales, Meta ad spend and your Budget.</p>
       {missing && <p className="ops-note">No sales or ad spend have been imported for {monthName(month)} yet, so its figures read $0. The plan for the month was {usd(cur.plan || 0)}.</p>}
@@ -81,7 +75,7 @@ export default async function Insights({ searchParams }) {
         <li className={m.runway && m.runway < 2 ? 'is-bad' : ''}><span className="l">Cash</span><span className="v">{usd(m.cash)}</span><span className={`d${m.runway < 2 ? ' bad' : ''}`}>{m.runway ? `${m.runway} months of runway` : ''}{m.cashAsOf ? ` · as of ${m.cashAsOf}` : ''}</span></li>
       </ul>
 
-      <section className="ops-ytd">
+      <section className="ops-ytd bz-panel">
         <h2 className="ops-sub">Year to date <span>Jan–{short(month)} {year}</span></h2>
         <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={ytd.annual || 1} aria-valuenow={ytd.gross} aria-label={`Revenue so far against the ${year} budget`}>
           <span className="fill" style={{ width: `${Math.min(100, Math.max((ytd.gross / (ytd.annual || 1)) * 100, 0.6))}%` }} />
@@ -105,7 +99,7 @@ export default async function Insights({ searchParams }) {
 
       {toPay}
 
-      <section className="ops-goal">
+      <section className="ops-goal bz-panel">
         <h2 className="ops-sub">$1M after ads</h2>
         <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={m.goal} aria-valuenow={m.afterAdsTotal} aria-label="Revenue after ads toward the goal">
           <span style={{ width: `${Math.max(progress * 100, 0.6)}%` }} />
@@ -113,7 +107,7 @@ export default async function Insights({ searchParams }) {
         <p className="ops-empty">{usd(m.afterAdsTotal)} of {usd(m.goal)} ({(progress * 100).toFixed(1)}%){m.monthsToGoal ? ` · about ${m.monthsToGoal} months to go at the current pace` : ''}</p>
       </section>
 
-      <section>
+      <section className="bz-panel">
         <h2 className="ops-sub">Revenue by program vs plan</h2>
         {programs.length === 0 ? <p className="ops-empty">No revenue or plan for this month.</p> : (
           <ul className="ops-bullets">
@@ -140,23 +134,12 @@ export default async function Insights({ searchParams }) {
         <p className="ops-legend"><span className="sw fill" /> Revenue <span className="sw tick" /> Plan</p>
       </section>
 
-      <section>
+      <section className="bz-panel">
         <h2 className="ops-sub">Month by month</h2>
         <Trend data={trend.map(x => ({ month: x.month, label: short(x.month), gross: x.gross, ads: x.ads, plan: x.plan, roas: x.roas }))} now={now} />
       </section>
 
-      <section>
-        <h2 className="ops-sub">Funnel <span>{funnel.steps.length || ''}</span></h2>
-        <nav className="ops-filters" aria-label="Funnel period">{PERIODS.map(([k, l]) => <a key={k} href={`/ops/business?view=finance&m=${month}&f=${k}`} aria-current={k === period ? 'page' : undefined}>{l}</a>)}</nav>
-        {funnel.error ? <p className="ops-empty">{funnel.error}</p>
-          : funnel.steps.length === 0 ? <p className="ops-empty">No funnel steps yet. Add them in <a href="/ops/settings?t=funnel">Settings → Funnel</a>: a step name and the Kit tag people get when they reach it.</p> : (
-          <ol className="ops-funnel">{funnel.steps.map(s => (
-            <li key={s.step}><span className="n">{s.step}</span><span className="bar" aria-hidden="true"><span style={{ width: `${Math.max(2, s.ofFirst * 100)}%` }} /></span><span className="v">{s.n.toLocaleString('en-US')}{s.ofPrev != null && <span className="sub"> {Math.round(s.ofPrev * 100)}% of the step before</span>}</span></li>))}</ol>
-        )}
-        {funnel.hidden.length > 0 && <p className="ops-empty">Left out for now: {funnel.hidden.map(h => `${h.step} (${h.why})`).join(', ')}.</p>}
-      </section>
-
-      <section>
+      <section className="bz-panel">
         <h2 className="ops-sub">Meta ad sets <span>{m.adSets.length}</span></h2>
         <p className="ops-empty">The Ad Agent’s latest read (last 3 days){m.mode ? `, in ${m.mode === 'AUTO' ? 'auto mode: it pauses and scales these itself' : 'recommend-only mode'}` : ''}. Pauses below {m.pauseBelow}×.</p>
         <div className="ops-table-wrap">

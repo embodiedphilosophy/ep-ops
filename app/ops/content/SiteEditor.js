@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { SITE_TABLES, ADMIN_TABLES, MENTEE_TABLES, SS_TABLES, LIBRARY_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
+import { SITE_TABLES, ADMIN_TABLES, SCAFFOLDING, SCAFFOLDING_STATUSES, tableOf, typeOf, RULE_OPTIONS, TYPE_OPTIONS, NEWSLETTER_OPTIONS } from '@/lib/ops/sitetables';
 
 const SELECTS = { readkind: ['session', 'core', 'suggested', 'need', 'intro', 'footer'], bookkind: ['required', 'suggested'], rule: RULE_OPTIONS, teamtype: TYPE_OPTIONS, newsletter: NEWSLETTER_OPTIONS, scaffstatus: SCAFFOLDING_STATUSES };
 const RULE_LABEL = { '': 'Worked out from the wording', bio: 'Bio and headshot are in', title: 'Public title and summary are in', blurbs: 'Promo blurbs are in', readings: 'Readings shared up front', video_id: 'Replay link (or Vimeo ID) is in', manual: 'Only by hand' };
@@ -16,10 +16,9 @@ const yes = v => String(v).toUpperCase() !== 'FALSE';
 // Content → Website (scope 'site'), Content → Email (scope 'email': the Weekly Scaffolding) and
 // Admin → Settings (scope 'admin'): sheet tabs as lists, each row edited as a short form.
 // base: the page's own address, for the tab links.
-// scope 'settings' (Settings): the operations tables (directors) and the website tables, in two groups.
-export default function SiteEditor({ initial = 'links', scope = 'site', base = '/ops/settings?', director = false }) {
-  const GROUPS = scope === 'settings' ? [...(director ? [['Operations', ADMIN_TABLES]] : []), ['Website', SITE_TABLES], ['Sādhana School', SS_TABLES], ['Sahṛdaya Upāya', MENTEE_TABLES], ['Library', LIBRARY_TABLES]] : null;
-  const TABLES = GROUPS ? GROUPS.flatMap(g => g[1]) : scope === 'admin' ? ADMIN_TABLES : scope === 'email' ? [SCAFFOLDING] : SITE_TABLES;
+// Settings (EP Ops 2, step 8) shows one table at a time (the section list is on the page, app/ops/settings/Group.js): pass its key as `only`.
+export default function SiteEditor({ initial = 'links', scope = 'site', base = '/ops/settings?', only = null }) {
+  const TABLES = only ? only.map(tableOf).filter(Boolean) : (scope === 'admin' ? ADMIN_TABLES : scope === 'email' ? [SCAFFOLDING] : SITE_TABLES);
   const [tab, setTab] = useState(initial);
   const [data, setData] = useState(null);     // { head, rows, locked, canEdit } | { error }
   const [sel, setSel] = useState(null);       // row number, 'new', or null
@@ -42,16 +41,7 @@ export default function SiteEditor({ initial = 'links', scope = 'site', base = '
 
   return (
     <section className="ops-site">
-      {GROUPS ? (
-        <div className="ops-set-nav">
-          {GROUPS.map(([name, list]) => (
-            <nav key={name} aria-label={name}>
-              <span className="g">{name}</span>
-              {list.map(x => <a key={x.key} href={`${base}t=${x.key}`} aria-current={x.key === tab ? 'page' : undefined} onClick={e => { e.preventDefault(); go(x.key); }}>{x.label}</a>)}
-            </nav>
-          ))}
-        </div>
-      ) : TABLES.length > 1 && <nav className="ops-filters ops-site-tabs" aria-label="Website content">
+      {TABLES.length > 1 && <nav className="ops-filters ops-site-tabs" aria-label="Website content">
         {TABLES.map(x => <a key={x.key} href={`${base}t=${x.key}`} aria-current={x.key === tab ? 'page' : undefined} onClick={e => { e.preventDefault(); go(x.key); }}>{x.label}</a>)}
       </nav>}
       <p className="ops-empty">{t.help}</p>

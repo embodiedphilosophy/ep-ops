@@ -44,7 +44,7 @@ const DIRECTOR = fs.readFileSync(path.join(__dirname, 'out/cookie.txt'), 'utf8')
   await p.goto(U + '/ops/email/calendar'); await p.waitForSelector('.em-grid'); ck('/ops/email/calendar lands on the Email kind', p.url().includes('show=email'));
   await p.goto(U + '/ops/publish?view=email-calendar'); await p.waitForSelector('.em-grid'); ck('?view=email-calendar still works', true);
   await p.goto(U + '/ops/publish?view=reminders'); await p.waitForSelector('[aria-label="Handled elsewhere"]');
-  ck('Reminder sends view reads the sends and points to the rules in Settings', await p.locator('a[href="/ops/settings?view=reminders"]').count() >= 1);
+  ck('Reminder sends view reads the sends and points to the rules in Settings', await p.locator('a[href="/ops/settings?view=templates&s=reminders"]').count() >= 1);
   await p.goto(U + '/ops/email/reminders'); ck('the reminder rules stay in Settings', p.url().includes('/ops/settings'));
   // roles
   const fl = await as(cookie('floss@example.com')); await fl.goto(U + '/ops/publish'); await fl.waitForSelector('.pub-grid .pub-it');

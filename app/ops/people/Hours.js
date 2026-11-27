@@ -32,7 +32,7 @@ export function TeamHours({ rows, reqs }) {
     <section className="ops-col">
       <h2>Everyone <span>{rows.length}</span></h2>
       {rows.length === 0 ? <p className="ops-empty">Nobody has a cap or any hours yet. Add monthly hours in Settings → Team.</p> : <ul className="ops-hours-team">{rows.map(rowOf)}</ul>}
-      <p className="ops-more">The thin mark is where each person ends the month at their current pace. Caps live in <a href="/ops/settings?t=team">Settings → Team</a>.</p>
+      <p className="ops-more">The thin mark is where each person ends the month at their current pace. Caps live in <a href="/ops/settings?view=team&s=team">Settings → Team</a>.</p>
     </section>
   </>);
 }
@@ -47,7 +47,7 @@ export function PersonHours({ row, req, name }) {
     <section className="ops-col">
       <h2>This month</h2>
       {row ? <ul className="ops-hours-team">{rowOf(row)}</ul> : <p className="ops-empty">{name} has no cap and no hours this month.</p>}
-      <p className="ops-more">Caps live in <a href="/ops/settings?t=team">Settings → Team</a>.</p>
+      <p className="ops-more">Caps live in <a href="/ops/settings?view=team&s=team">Settings → Team</a>.</p>
     </section>
   </>);
 }

@@ -43,7 +43,7 @@ export default function ToPay({ rows }) {
       </ul>
       <div className="bar">
         <button className="chip" onClick={copy}>Copy the list for Gusto</button>
-        <a className="chip" href="/ops/settings?t=team">Hourly rates</a>
+        <a className="chip" href="/ops/settings?view=team&s=team">Hourly rates</a>
         {msg && <span className="hint">{msg}</span>}
       </div>
     </div>

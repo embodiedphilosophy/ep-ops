@@ -17,7 +17,7 @@ export default function ReminderSends() {
       {d?.kitError && <p className="em-banner bad" role="status">{d.kitError}</p>}
       {!d && !err ? <p className="ops-empty">Reading the rules…</p> : d && (
         <section className="soc-panel" aria-label="Coming up">
-          <div className="ph"><h2>Coming up</h2><a className="soc-btn small" href="/ops/settings?view=reminders">Change the rules</a></div>
+          <div className="ph"><h2>Coming up</h2><a className="soc-btn small" href="/ops/settings?view=templates&s=reminders">Change the rules</a></div>
           {!rows.length ? <p className="ops-empty">No reminders are due. Every rule starts off: switch one on in Settings.</p> : (
             <ul className="em-list">{rows.map(u => <li key={u.key || `${u.rule.id}${u.event.id}${u.send_at}`} className="em-row"><div className="b"><span className="mono meta">{when(u.send_at)}</span> · {u.event.title} <span className="gchip">{STATE[u.state] || u.state}</span>
               <br /><span className="sub">{u.rule.name}{u.rule.enabled ? '' : ' (rule is off)'}{u.why ? ` · ${u.why}` : ''}</span></div></li>)}</ul>)}

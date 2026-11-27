@@ -2,9 +2,12 @@ import { redirect } from 'next/navigation';
 import Shell from './Shell';
 import { currentUser } from '@/lib/ops/auth';
 import { viewsFor, canSupport, canEditSite } from '@/lib/ops/nav';
+import { oldSettingsAddress } from '@/lib/ops/settingsgroups';
 
 // One of the eight places. A place is a page with views (tabs); each view shows what the old page showed, using that page's own
 // components, data and API calls (the old page runs and its content is placed inside the one shared shell). Nothing is re-implemented.
+// Settings: the four groups are one page given the group's name (app/ops/settings/Group.js)
+const group = g => async () => { const { default: Group } = await import('./settings/Group'); return { default: p => Group({ group: g, ...p }) }; };
 const LOADERS = {
   programs: {
     index: () => import('./programs/Index'), launches: () => import('./programs/LaunchesView'),
@@ -21,8 +24,8 @@ const LOADERS = {
     overview: () => import('./students/Overview'), support: () => import('./students/SupportView'), mentee: () => import('./students/MenteeView'),
     pods: () => import('./students/PodsView'), 'one-to-ones': () => import('./students/OneToOnesView'), ce: () => import('./students/CeView'),
   },
-  business: { finance: () => import('./insights/page'), payroll: () => import('./payroll/page') },
-  settings: { tables: () => import('./settings/Tables'), team: () => import('./social/team/page'), 'social-rules': () => import('./publish/LibraryView'), reminders: () => import('./email/reminders/page') },
+  business: { finance: () => import('./business/FinanceView'), payroll: () => import('./business/PayrollView'), audience: () => import('./business/AudienceView') },
+  settings: { team: group('team'), templates: group('templates'), website: group('website'), connections: group('connections') },
 };
 const first = v => (Array.isArray(v) ? v[0] : v) || '';
 
@@ -39,15 +42,21 @@ function wanted(place, sp) {
     if (v === 'email-calendar') return { view: 'calendar', sp: { ...sp, view: 'calendar', show: 'email' } };
     if (v === 'compose-email') return { view: 'compose', sp: { ...sp, view: 'compose', kind: 'email' } };
   }
+  // Business: the older Insights address carried the funnel's period (?f=); that block is now the Audience view
+  if (place === 'business' && !v && first(sp.f)) return { view: 'audience', sp: { ...sp, view: 'audience' } };
+  // Settings: the older ?t=<table> and ?view=tables | team | social-rules | reminders addresses open the right group and section
+  if (place === 'settings') { const o = oldSettingsAddress(sp); if (o) return { view: o.view || '', sp: { ...sp, ...o } }; }
   // Students: the older Surveys and Partners views are tabs of the Mentee year (the old Settings pages)
   if (place === 'students' && (v === 'polls' || v === 'partners')) return { view: 'mentee', sp: { ...sp, view: 'mentee', tab: v === 'polls' ? 'surveys' : 'partners' } };
   return { view: v, sp };
 }
 // Which view an address with no ?view= opens: the first the role may see, except that someone whose work here is only Support (Ichha) opens on Support
-const defaultView = (place, user, views) => (place === 'students' && canSupport(user) && !canEditSite(user) && views.find(v => v.key === 'support')) || views[0];
+// (Settings: a director opens on Templates, as the old All settings did; others on Website copy if they edit the site, else their first group)
+const defaultView = (place, user, views) => (place === 'students' && canSupport(user) && !canEditSite(user) && views.find(v => v.key === 'support'))
+  || (place === 'settings' && (user.director ? views.find(v => v.key === 'templates') : views.find(v => v.key === 'website'))) || views[0];
 // What the old page needs as its `params` (the social sections were one page with a section name)
 const paramsFor = (place, view, sp, extra) => (place === 'publish' && (view === 'library' || view === 'published')) ? { section: view }
-  : (place === 'settings' && view === 'social-rules') ? { section: 'rules' } : extra || {};
+  : extra || {};
 
 export async function renderPlace(place, { searchParams, params } = {}) {
   const sp0 = (await searchParams) || {}, user = await currentUser();

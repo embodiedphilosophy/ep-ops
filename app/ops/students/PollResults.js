@@ -17,7 +17,7 @@ export default function PollResults() {
   if (data.error) return <p className="ops-empty">{data.error} <button className="chip" onClick={load}>Try again</button></p>;
   return (
     <section className="ops-polls">
-      <p className="ops-empty">Times show in your own time zone. To change the options or confirm a time, edit the survey in <a href="/ops/settings?t=mpolls">Settings → Sahṛdaya Upāya → Polls</a> (set Final = Yes on the chosen time).{' '}<button className="chip" onClick={load}>Refresh</button></p>
+      <p className="ops-empty">Times show in your own time zone. To change the options or confirm a time, edit the survey in <a href="/ops/settings?view=website&s=mpolls">Settings → Sahṛdaya Upāya → Polls</a> (set Final = Yes on the chosen time).{' '}<button className="chip" onClick={load}>Refresh</button></p>
       {!data.votesOn && <p className="ops-empty" role="alert">Answers aren’t connected in this environment, so counts show as zero.</p>}
       {!data.polls.length && <p className="ops-empty">No survey is open. Add one under Settings → Sahṛdaya Upāya → Polls.</p>}
       {data.polls.map(p => {

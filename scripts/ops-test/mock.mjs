@@ -18,7 +18,7 @@ const team = [
   ['Ichha Nihalani', ex('Ichha'), '', 'Customer Happiness Manager', 'TRUE', '', ''],
   ['Rebecka Oberg', ex('Rebecka'), 'marketing', 'Marketing Assistant, Marketing, Media, Social, Ads', 'TRUE', '', ''],
   ['Carolyn Boucher', ex('Carolyn'), 'contractor', 'Publisher', 'TRUE', '', ''],
-  ['Stephanie Corigliano', ex('Stephanie'), 'contractor', 'Approver', 'TRUE', '', ''],
+  ['Stephanie Corigliano', ex('Stephanie'), 'contractor', 'Approver, Payroll', 'TRUE', '', ''],
   ['Creator Cleo', ex('Cleo'), 'contractor', 'Creator', 'TRUE', '', ''],
   ['Viewer Vera', ex('Vera'), 'contractor', 'Viewer', 'TRUE', '', ''],
   ['Abha Rajbhandari', ex('Abha'), 'teacher', 'Teacher', 'TRUE', '2026-09-01', ''],
@@ -275,6 +275,28 @@ const circleData = {
   ],
 };
 if (process.env.MOCK_NOCATALOG) delete tabs.catalog;
+// The EP Revenue & Metrics System sheet (Business › Finance reads it; any sheet id serves these tabs). Synthetic: January to the current month of the current year.
+// The Ad Agent mode is AUTO so Today's "waiting on your yes" list stays as it was.
+{
+  const now = new Date(), yr = now.getFullYear(), cur = now.getMonth() + 1, ms = Array.from({ length: 12 }, (_, i) => `${yr}-${String(i + 1).padStart(2, '0')}`);
+  const row = (name, f) => [name, ...ms.map((m, i) => f(i + 1, i + 1 <= cur))];
+  const usd = n => `$${n.toLocaleString('en-US')}`;
+  tabs['P&L'] = [['EP P&L'], ['Line', ...ms],
+    ['REVENUE'], row('Sādhana School', (n, past) => past ? usd(8000 + n * 500) : '-'), row('Wisdom School', (n, past) => past ? usd(3000 + n * 200) : '-'), row('Meditation Pass', (n, past) => past ? usd(900 + n * 40) : '-'),
+    row('Gross revenue', (n, past) => past ? usd(11900 + n * 740) : '-'), row('Refunds', (n, past) => past ? `($${200 + n * 5})` : '-'), row('Processor fees', (n, past) => past ? `($${350 + n * 10})` : '-'),
+    row('Net revenue', (n, past) => past ? usd(11000 + n * 700) : '-'), row('Meta ad spend', (n, past) => past ? usd(2500 + n * 60) : '-'), row('Net revenue after ads', (n, past) => past ? usd(8500 + n * 640) : '-'),
+    row('Total operating expenses', (n, past) => past ? usd(6000) : '-'), row('Net operating profit', (n, past) => past ? usd(2500 + n * 640) : '-'),
+    row('Budgeted revenue', n => usd(12000 + n * 600)), row('Budgeted ad spend', () => usd(2400))];
+  tabs.Budget = [['EP Budget'], ['Line', 'Maps to', 'Type', ...ms],
+    ['Sādhana School – Full Year', 'Sādhana School', 'Revenue', ...ms.map((m, i) => usd(7000 + i * 300))], ['Wisdom School – Annual', 'Wisdom School', 'Revenue', ...ms.map((m, i) => usd(3500 + i * 100))],
+    ['Meta ads', '', 'Ad spend', ...ms.map(() => usd(2400))]];
+  tabs.Config = [['Revenue-after-ads goal', '$1,000,000'], ['ROAS target', '1.5x'], ['Ad spend ceiling', '28%']];
+  tabs.Overview = [['Revenue after ads, all months', '$85,000'], ['Months to goal', '40'], ['Relay balance', '$52,000'], ['Balance as of', `${yr}-${String(cur).padStart(2, '0')}-01`], ['Runway', '5']];
+  tabs['Ad Agent'] = [['Mode', 'AUTO'], ['Pause below ROAS', '1.5'], [],
+    ['Ad Set ID', 'Ad set', 'Campaign', 'Product', 'Objective', 'Spend', 'Purchases', 'Value', 'ROAS', 'Leads', 'CPL', '', '', 'Tier', 'Action', 'Why', 'Status'],
+    ['a1', 'Meditation · warm audience', 'Mondays', 'Meditation Pass', '', '420', '11', '660', '1.57', '', '', '', '', 'WINNER', 'Scale +20%', 'Above target for 3 days', 'ACTIVE'],
+    ['a2', 'Wisdom School · cold', 'Wisdom', 'Wisdom School', '', '300', '2', '200', '0.67', '', '', '', '', 'LOSING', 'Pause', 'Below the pause line', 'PAUSED']];
+}
 const grid = {};
 // Column grid like Google's: a tab is as wide as its widest row (at least 26); writing past it is a 400
 const cgrid = {};
@@ -379,6 +401,8 @@ http.createServer(async (req, res) => {
     if (p.startsWith('/site/lp/')) { const ok = !p.endsWith('/old-retreat'); return ok ? (res.writeHead(200, { 'Content-Type': 'text/html' }), res.end('<h1>ok</h1>')) : send(res, 404, {}); }
     if (p === '/site/checkout/ok') { if (req.method === 'HEAD') { res.writeHead(405); return res.end(); } res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('checkout'); }
     if (p === '/site/checkout/broken') return send(res, 500, {});
+    // the website's cache refresh after a dashboard save (lib/ops/refresh.js): logged, nothing is refreshed
+    if (p === '/site/api/revalidate') { log('SITE REVALIDATE', req.method, req.headers['x-revalidate-secret'] === 'mock-secret' ? 'secret ok' : 'secret WRONG'); return send(res, 200, { ok: true }); }
     if (p === '/site/api/revalidate-courses') { log('SITE REVALIDATE-COURSES', req.method, req.headers['x-revalidate-secret'] === 'mock-secret' ? 'secret ok' : 'secret WRONG'); return send(res, 200, { ok: true }); }
     // GitHub repository_dispatch for the YouTube pipeline (GITHUB_API_BASE=$M/github): logged, nothing runs
     if (p.startsWith('/github/repos/') && p.endsWith('/dispatches') && req.method === 'POST') {
