@@ -260,12 +260,45 @@ const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); 
 // ins is changed by GET /__insights?kit=ok|fail|401|403|404|429&circle=ok|fail|none|401|403|429&bad=0|1&broadcasts=0|1 (kit=fail: purchases and stats answer 500; circle=none: Circle can't list purchases (404)).
 const anthropicLog = [];
 const ins = { kit: 'ok', circle: 'ok', bad: false, broadcasts: false };
+// Ads outside research (lib/ops/adsresearch.js): a stand-in for Anthropic's web search tool, in the documented response shape (server_tool_use, web_search_tool_result, text blocks with citations).
+// research is changed by GET /__research?mode=good|bad|empty|fail|searcherror|pause (good: three sourced statements; bad: those plus one of every kind the code must drop;
+// empty: "NOTHING_FOUND"; fail: HTTP 500; searcherror: the search tool itself reports an error; pause: the first answer stops with pause_turn and the second finishes it). Every request is kept in anthropicLog.
+const research = { mode: 'good', calls: 0 };
+const RS = [
+  { url: 'https://www.facebook.com/business/help/mock-policy', title: 'About ad policy updates for education advertisers', page_age: 'March 2026', cite: 'From 14 March 2026, ads for online courses will show the course provider’s name in the ad.' },
+  { url: 'https://www.wordstream.com/blog/mock-benchmarks', title: 'Facebook ad benchmarks by industry', page_age: 'January 2026', cite: 'Education advertisers on Meta paid an average cost per click of $1.72 in the period measured.' },
+  { url: 'https://transparency.meta.com/policies/ad-standards/mock-health', title: 'Ad standards: health and wellness', page_age: '', cite: 'Ads must not include before-and-after images that imply a result in health and wellness categories; ads with them are rejected.' },
+  { url: 'https://example-blog.invalid/mock-post', title: 'A blog that is not on the list', page_age: '', cite: 'Meta raised its prices by 40% on 2 February.' },
+];
+const researchAnswer = mode => {
+  const C = (i, text) => ({ type: 'text', text, citations: [{ type: 'web_search_result_location', url: RS[i].url, title: RS[i].title, encrypted_index: 'x', cited_text: RS[i].cite }] });
+  const search = [{ type: 'server_tool_use', id: 'srvtoolu_mock1', name: 'web_search', input: { query: 'meta ads policy education' } }, { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: RS.map(r => ({ type: 'web_search_result', url: r.url, title: r.title, page_age: r.page_age, encrypted_content: 'mock-encrypted' })) }];
+  const good = [C(0, 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.'), { type: 'text', text: '\n\n' }, C(1, 'WordStream reports an average cost per click of $1.72 for education advertisers on Meta.'), { type: 'text', text: '\n\n' }, C(2, 'Meta’s ad standards list before-and-after images as content that gets health and wellness ads rejected.')];
+  if (mode === 'empty') return [...search.slice(0, 1), { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: [] }, { type: 'text', text: 'NOTHING_FOUND' }];
+  if (mode === 'searcherror') return [search[0], { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: { type: 'web_search_tool_result_error', error_code: 'unavailable' } }, { type: 'text', text: 'NOTHING_FOUND' }];
+  if (mode === 'bad') return [...search, ...good,
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a duplicate
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the Learning Hub page confirms a new fee.', citations: [{ type: 'web_search_result_location', url: 'https://www.facebook.com/business/never-returned', title: 'Never returned', cited_text: 'a new fee' }] },   // an address the search never returned
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'WordStream reports an average cost per lead of $4.80 for wellness advertisers.', citations: [RS[1]].map(r => ({ type: 'web_search_result_location', url: r.url, title: r.title, cited_text: r.cite })) },   // a number that is not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says from 20 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a date that is not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says advertisers should add the course provider’s name to every online course ad.', citations: [good[0].citations[0]] },   // advice
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the course provider’s name appears on online course ads because trust matters.', citations: [good[0].citations[0]] },   // a reason
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta announced a brand new way to schedule reels for creators.', citations: [good[2].citations[0]] },   // words that are not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'A blog says Meta raised its prices by 40% on 2 February.', citations: [{ type: 'web_search_result_location', url: RS[3].url, title: RS[3].title, cited_text: RS[3].cite }] },   // a site not on the list
+    { type: 'text', text: '\n\nMeta will almost certainly change every rule in 2027, and nobody knows why.\n\n' },   // no source at all
+    { type: 'text', text: 'Meta says courses show a name.', citations: [{ type: 'web_search_result_location', url: RS[0].url, title: RS[0].title, cited_text: '' }] }];   // a source with no text
+  return [...search, ...good];
+};
 const daysAgo = (n, h = 10) => new Date(Date.now() - n * 864e5 + (h - 12) * 36e5).toISOString();
 const MARK = 'Marker';   // every made-up buyer is called "<Source> Marker Buyer N", with an address at example.invalid
 const buyProducts = [['Kali: the dark mother', 150], ['Meditation Pass', 20], ['Spanda Intensive', 45], ['Sādhana School: Fall 2026', 495]];
 const circlePurchases = Array.from({ length: 22 }, (_, i) => { const [name, price] = buyProducts[i % 4], n = i < 13 ? 1 + (i % 6) : 8 + (i % 6); return { id: 7000 + i, status: 'paid', created_at: daysAgo(n), amount_cents: price * 100, currency: 'usd', paywall: { id: 300 + (i % 4), name }, utm_campaign: i % 3 === 0 ? 'kali-winter-2027' : '', member: { id: 800 + i, name: `Circle ${MARK} Buyer ${i}`, email: `circle.marker.buyer.${i}@example.invalid` } }; });
 const kitPurchases = Array.from({ length: 16 }, (_, i) => { const [name, price] = buyProducts[(i + 1) % 4], n = i < 9 ? 1 + (i % 6) : 8 + (i % 6); return { id: 6000 + i, status: 'paid', transaction_id: `KITTXN-MARKER-${i}`, transaction_time: daysAgo(n), total: price, currency: 'USD', email_address: `kit.marker.buyer.${i}@example.invalid`, subscriber: { id: 900 + i, first_name: `Kit ${MARK} Buyer ${i}`, email_address: `kit.marker.buyer.${i}@example.invalid` }, utm_campaign: i % 4 === 0 ? 'kali-winter-2027' : '', products: [{ pid: 40 + ((i + 1) % 4), name, quantity: 1, unit_price: price, sku: '' }] }; });
 const kitSent = [{ id: 31, subject: '[E002] Promo #3', published_at: daysAgo(2), r: 1000, o: 42, c: 6.5 }, { id: 32, subject: '[E002] Promo #4', published_at: daysAgo(4), r: 900, o: 38, c: 5 }, { id: 33, subject: 'A note from the week before', published_at: daysAgo(9), r: 1000, o: 30, c: 3 }];
+// Real sales for the ads rules (GET /__sales?reset=1 | ?add=kit|circle&utm=tag&count=3&cents=10000&day=2026-11-20 | ?untagged=1): extra purchases tagged for a test campaign, each with a MARKER
+// buyer address that must never leave; untagged=1 strips the campaign tag from the built-in purchases (tagging "not working").
+const extraSales = { kit: [], circle: [], untagged: false };
+const salesOf = (list, extra) => [...list.map(p => (extraSales.untagged ? { ...p, utm_campaign: '' } : p)), ...extra];
 const circleData = {
   spaces: [
     { id: 2001, name: 'Meditation Mondays: November', slug: 'mm-nov', space_type: 'course', status: 'published', cover_image_url: 'http://localhost:4555/img/cover.png' },
@@ -330,6 +363,16 @@ http.createServer(async (req, res) => {
   try {
     if (p === '/token' && req.method === 'POST') return send(res, 200, { access_token: 'mock', expires_in: 3600 });
     // Sheet-read counter for the tests (EP Ops 2 step 9): GET /__reads lists every sheet read since the last GET /__reads?reset=1
+    if (p === '/__sales') {
+      if (url.searchParams.get('reset')) { extraSales.kit = []; extraSales.circle = []; extraSales.untagged = false; }
+      if (url.searchParams.get('untagged')) extraSales.untagged = url.searchParams.get('untagged') === '1';
+      const src = url.searchParams.get('add');
+      if (src) for (let i = 0; i < (Number(url.searchParams.get('count')) || 1); i++) { const n = 100 + extraSales.kit.length + extraSales.circle.length, at = url.searchParams.get('day') ? `${url.searchParams.get('day')}T17:00:00Z` : daysAgo(1), usd = (Number(url.searchParams.get('cents')) || 10000) / 100, utm = url.searchParams.get('utm') || '';
+        extraSales[src].push(src === 'kit' ? { id: 9000 + n, status: 'paid', transaction_time: at, total: usd, currency: 'USD', email_address: `kit.sales.marker.${n}@example.invalid`, utm_campaign: utm, products: [{ pid: 41, name: 'Meditation Pass', quantity: 1, unit_price: usd }] }
+          : { id: 9500 + n, status: 'paid', created_at: at, amount_cents: usd * 100, paywall: { id: 301, name: 'Meditation Pass' }, utm_campaign: utm, member: { id: 7000 + n, name: `Circle ${MARK} Sales ${n}`, email: `circle.sales.marker.${n}@example.invalid` } }); }
+      return send(res, 200, { kit: extraSales.kit.length, circle: extraSales.circle.length, untagged: extraSales.untagged });
+    }
+    if (p === '/__research') { for (const [k, v] of url.searchParams) research[k] = v; research.calls = 0; return send(res, 200, research); }
     if (p === '/__insights') { for (const [k, v] of url.searchParams) ins[k] = k === 'bad' || k === 'broadcasts' ? v === '1' : v; return send(res, 200, ins); }
     if (p === '/__anthropic-log') { const out = anthropicLog.slice(); if (url.searchParams.get('reset')) anthropicLog.length = 0; return send(res, 200, out); }
     if (p === '/__reads') { const out = { total: readLog.length, reads: readLog.slice() }; if (url.searchParams.get('reset')) readLog.length = 0; return send(res, 200, out); }
@@ -396,7 +439,7 @@ http.createServer(async (req, res) => {
       if (p === '/circle/events') return list(circleData.events);
       if (p === '/circle/course_sections') return list(circleData.sections.filter(x => String(x.space_id) === url.searchParams.get('space_id')));
       const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
-      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : /^(401|403|429)$/.test(ins.circle) ? send(res, Number(ins.circle), { message: 'mock refusal' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(circlePurchases);
+      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : /^(401|403|429)$/.test(ins.circle) ? send(res, Number(ins.circle), { message: 'mock refusal' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(salesOf(circlePurchases, extraSales.circle));
       if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
       return send(res, 404, { message: 'not found' });
@@ -468,6 +511,14 @@ http.createServer(async (req, res) => {
       const src = (() => { try { return JSON.parse(b.messages?.[0]?.content || '{}').sources || []; } catch { return []; } })();
       const user = String(b.messages?.[0]?.content || '');
       anthropicLog.push(raw);   // the whole request, so a test can look for anything that must never be sent
+      if ((b.tools || []).some(t => t.type === 'web_search_20250305')) {   // the outside research: Anthropic's web search tool
+        research.calls++;
+        log('ANTHROPIC RESEARCH', research.mode, 'tool=' + (b.tools.find(t => t.type === 'web_search_20250305').name), 'turns=' + (b.messages || []).length, req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY');
+        if (research.mode === 'fail') return send(res, 500, { error: { message: 'mock failure' } });
+        const say = (content, stop_reason = 'end_turn') => send(res, 200, { id: 'msg_mock_r', type: 'message', role: 'assistant', stop_reason, content });
+        if (research.mode === 'pause') { const all = researchAnswer('good'); return (b.messages || []).length > 1 ? say(all.slice(2)) : say(all.slice(0, 2), 'pause_turn'); }
+        return say(researchAnswer(research.mode));
+      }
       const asked = (() => { try { return JSON.parse(user); } catch { return {}; } })();
       if (asked.kind === 'weekly_read' || asked.kind === 'topic_ideas') {
         log('ANTHROPIC', asked.kind, 'metrics=' + (asked.metrics || []).length, ins.bad ? 'bad-answer' : 'good-answer');
@@ -485,6 +536,25 @@ http.createServer(async (req, res) => {
         const ideas = topics.map((t, i) => { const m = ms.find(x => x.topic === t); return { title: t, summary: `${m.label}: ${m.text}.`, format: (asked.formats[i % asked.formats.length] || {}).key, audience: asked.audiences[0], metric_ids: [m.id] }; });
         if (ins.bad && ms.length) ideas.push({ title: 'Quantum Crystal Healing', summary: 'A thing.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Fine words.', format: 'webinar-bootcamp', audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: `Only ${ms[0].text} of 99999 people.`, format: asked.formats[0]?.key, audience: 'An Imaginary Audience', metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Numbers that are not there: 7777.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: ['m9999'] });
         return say({ ideas });
+      }
+      if (asked.kind === 'history_findings') {   // Ads › What we've learned: phrase each finding from its numbers (bad = a deliberately wrong answer too)
+        const fs_ = asked.findings || [];
+        log('ANTHROPIC', 'history_findings', 'findings=' + fs_.length, ins.bad ? 'bad-answer' : 'good-answer');
+        if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
+        const say = o => send(res, 200, { id: 'msg_mock', type: 'message', role: 'assistant', content: [{ type: 'text', text: JSON.stringify(o) }] });
+        const out = fs_.map(f => {
+          const by = k => f.metrics.find(m => m.label.endsWith(k)), sp = by('ad spend'), rt = by('return on ad spend'), cp = by('cost per sign-up'), ad = by(': ads'), cm = by(': campaigns');
+          const head = rt ? `returned ${rt.text}` : `cost ${cp?.text} a sign-up`, line = rt ? `, ${f.side === 'ahead' ? 'ahead of' : 'behind'} the ${asked.line} line` : '';
+          return { id: f.id, text: `${f.group} ${head} on ${sp?.text} spent, across ${ad?.text} ads in ${cm?.text} campaigns${line}.`, metric_ids: f.metrics.filter(m => [sp, rt, cp, ad, cm].includes(m) || /aimed for/.test(m.label)).map(m => m.id) };
+        });
+        if (ins.bad && fs_[0]) {
+          const f0 = fs_[0], m0 = f0.metrics[1];
+          out.push({ id: f0.id, text: `${f0.group} returned 9.9× because of the pictures.`, metric_ids: f0.metrics.map(m => m.id) }, { id: f0.id, text: `${f0.group} are the best, so spend more on them (${m0.text}).`, metric_ids: [m0.id] },
+            { id: 'f99', text: 'Something about a group that does not exist, 12 times.', metric_ids: ['m1'] }, { id: f0.id, text: `${f0.group} did well with ${m0.text}.`, metric_ids: ['m9999'] }, { id: f0.id, text: `${f0.group} had a number nobody gave: $987654 and 41×.`, metric_ids: [m0.id] },
+            { id: f0.id, text: `Quiet.`, metric_ids: [m0.id] });
+          out[0].text = out[0].text.replace(/(ahead of|behind)/, f0.side === 'ahead' ? 'behind' : 'ahead of');   // the first answer says the wrong side
+        }
+        return say({ findings: out });
       }
       log('ANTHROPIC', `sources=${src.length}`, /[\w.+-]+@[\w-]+\.\w+/.test(user) ? 'HAS-EMAIL' : 'no-email', /https?:\/\//.test(user) || /\{\{|\{%/.test(user) ? 'HAS-LINK-OR-TAG' : 'no-link', req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY', b.model || '');
       if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
@@ -531,7 +601,7 @@ http.createServer(async (req, res) => {
       return send(res, 404, {});
     }
     if (p.startsWith('/kit/')) {
-      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : /^(401|403|404|429)$/.test(ins.kit) ? send(res, Number(ins.kit), { error: 'mock refusal' }) : send(res, 200, { purchases: kitPurchases, pagination: { has_next_page: false } });
+      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : /^(401|403|404|429)$/.test(ins.kit) ? send(res, Number(ins.kit), { error: 'mock refusal' }) : send(res, 200, { purchases: salesOf(kitPurchases, extraSales.kit), pagination: { has_next_page: false } });
       if (req.method === 'GET' && p.endsWith('/products')) return send(res, 200, { products: buyProducts.map(([name], i) => ({ id: 40 + i, name })), pagination: {} });
       { const sm = p.match(/\/broadcasts\/(\d+)\/stats$/); if (req.method === 'GET' && sm) { const b = [...kitSent, { id: 12, r: 800, o: 40, c: 5 }].find(x => x.id === Number(sm[1])); return ins.kit === 'fail' || !b ? send(res, ins.kit === 'fail' ? 500 : 404, {}) : send(res, 200, { broadcast: { id: b.id, stats: { recipients: b.r, open_rate: b.o, click_rate: b.c, emails_opened: Math.round(b.r * b.o / 100), total_clicks: Math.round(b.r * b.c / 100) } } }); }
       }

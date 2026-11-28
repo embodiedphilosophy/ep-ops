@@ -111,7 +111,7 @@ say('-- (e) the store: every kind of thing, on an in-process Postgres');
 process.env.ADS_TEST_DB = 'pglite';
 await S.ensureAdsTables();
 const count = async () => Object.fromEntries(await Promise.all(S.ENTITY_NAMES.map(async e => [e, (await S.listRows(e)).length])));
-ck('the fourteen tables are made (the eleven in the design, plus daily results for the rules, a small settings table, and the alert log of the safety net)', S.ENTITY_NAMES.length === 14);
+ck('the fifteen tables are made (the eleven in the design, plus daily results for the rules, a small settings table, the alert log of the safety net, and the outside-research notes)', S.ENTITY_NAMES.length === 15);
 const camp = await S.createRow('campaigns', { name: 'Pilgrimage · test', launch_id: 'L1', program_id: 'E050', goal: 'Purchase', structure: 'test', landing_url: 'https://example.test/lp', utm: { utm_source: 'meta' }, start_date: '2026-12-01', end_date: '2026-12-15', daily_budget_cents: 2000, meta_settings: { pixel: 'PIX1' } });
 ck('a campaign round-trips (dates as dates, objects as objects, defaults: draft, rules off and dry)', camp.id.startsWith('cmp_') && camp.status === 'draft' && camp.start_date === '2026-12-01' && camp.utm.utm_source === 'meta' && camp.rules_on === false && camp.rules_dry_run === true && camp.end_date === '2026-12-15');
 const aset = await S.createRow('adsets', { campaign_id: camp.id, position: 1, label: 'Proven', audience_name: 'Yoga', targeting: { interests: [1] }, daily_budget_cents: 2000, budget_ceiling_cents: 10000 });

@@ -4,7 +4,7 @@ import Safety from './Safety';
 import '../social/social.css';
 import './ads.css';
 
-// Ads › Safety net: is money at risk right now? The six checks, what needs a look, who was told, and (for directors) the ceilings and the phone numbers. Directors and the Ads role.
+// Ads › Safety net: is money at risk right now? The seven checks, what needs a look, who was told, and (for directors) the ceilings and the phone numbers. Directors and the Ads role.
 export default async function SafetyView() {
   const user = await opsUser(canAds);
   return (
