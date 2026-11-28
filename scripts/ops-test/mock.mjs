@@ -486,6 +486,25 @@ http.createServer(async (req, res) => {
         if (ins.bad && ms.length) ideas.push({ title: 'Quantum Crystal Healing', summary: 'A thing.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Fine words.', format: 'webinar-bootcamp', audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: `Only ${ms[0].text} of 99999 people.`, format: asked.formats[0]?.key, audience: 'An Imaginary Audience', metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Numbers that are not there: 7777.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: ['m9999'] });
         return say({ ideas });
       }
+      if (asked.kind === 'history_findings') {   // Ads › What we've learned: phrase each finding from its numbers (bad = a deliberately wrong answer too)
+        const fs_ = asked.findings || [];
+        log('ANTHROPIC', 'history_findings', 'findings=' + fs_.length, ins.bad ? 'bad-answer' : 'good-answer');
+        if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
+        const say = o => send(res, 200, { id: 'msg_mock', type: 'message', role: 'assistant', content: [{ type: 'text', text: JSON.stringify(o) }] });
+        const out = fs_.map(f => {
+          const by = k => f.metrics.find(m => m.label.endsWith(k)), sp = by('ad spend'), rt = by('return on ad spend'), cp = by('cost per sign-up'), ad = by(': ads'), cm = by(': campaigns');
+          const head = rt ? `returned ${rt.text}` : `cost ${cp?.text} a sign-up`, line = rt ? `, ${f.side === 'ahead' ? 'ahead of' : 'behind'} the ${asked.line} line` : '';
+          return { id: f.id, text: `${f.group} ${head} on ${sp?.text} spent, across ${ad?.text} ads in ${cm?.text} campaigns${line}.`, metric_ids: f.metrics.filter(m => [sp, rt, cp, ad, cm].includes(m) || /aimed for/.test(m.label)).map(m => m.id) };
+        });
+        if (ins.bad && fs_[0]) {
+          const f0 = fs_[0], m0 = f0.metrics[1];
+          out.push({ id: f0.id, text: `${f0.group} returned 9.9× because of the pictures.`, metric_ids: f0.metrics.map(m => m.id) }, { id: f0.id, text: `${f0.group} are the best, so spend more on them (${m0.text}).`, metric_ids: [m0.id] },
+            { id: 'f99', text: 'Something about a group that does not exist, 12 times.', metric_ids: ['m1'] }, { id: f0.id, text: `${f0.group} did well with ${m0.text}.`, metric_ids: ['m9999'] }, { id: f0.id, text: `${f0.group} had a number nobody gave: $987654 and 41×.`, metric_ids: [m0.id] },
+            { id: f0.id, text: `Quiet.`, metric_ids: [m0.id] });
+          out[0].text = out[0].text.replace(/(ahead of|behind)/, f0.side === 'ahead' ? 'behind' : 'ahead of');   // the first answer says the wrong side
+        }
+        return say({ findings: out });
+      }
       log('ANTHROPIC', `sources=${src.length}`, /[\w.+-]+@[\w-]+\.\w+/.test(user) ? 'HAS-EMAIL' : 'no-email', /https?:\/\//.test(user) || /\{\{|\{%/.test(user) ? 'HAS-LINK-OR-TAG' : 'no-link', req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY', b.model || '');
       if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
       const sets = src.map(s => { const first = String(s.text).split(/(?<=[.!?])\s/)[0].slice(0, 120); return { id: s.id, main_text: first, headline: String(s.text).split(/\s+/).slice(0, 4).join(' ').slice(0, 40) }; });

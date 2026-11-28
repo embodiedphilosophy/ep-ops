@@ -25,7 +25,7 @@ const SECRET = 'mock-ads-token-for-the-settings-test', PERSON = /Synthetic Perso
     console.log('-- the Audience library tab');
     await p.goto(U + '/ops/ads?view=library'); await p.waitForSelector('.ads-table');
     const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the library one current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience library', tabs.join());
+    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the library one current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience library', tabs.join());
     ck('opening the library posts nothing', p.posts.length === 0);
     const kpi = (await p.innerText('.ads-kpis')).replace(/\n+/g, ' ');
     ck('the four cards count Proven 2, Promising 0, Not tested 2, Retired 1 (the other weak one was brought back by the API flow)', /Proven\s*2/.test(kpi) && /Promising\s*0/.test(kpi) && /Not tested\s*2/.test(kpi) && /Retired\s*1/.test(kpi), kpi);
@@ -113,7 +113,7 @@ const SECRET = 'mock-ads-token-for-the-settings-test', PERSON = /Synthetic Perso
     await p.fill('[aria-label="Times below the floor to retire"]', '3'); await p.getByRole('button', { name: 'Save' }).click(); await p.waitForSelector('text=Saved.');
     ck('and put back', (await api('/api/ops/ads-library?settings=1')).values.retire_after === 3);
     await p.goto(U + '/ops/settings?view=connections'); await p.waitForSelector('.ops-conn');
-    ck('Systems and jobs lists the daily Audience library job, as read-only, with its time', /Audience library/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /Every day at 11:15 UTC/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /It only reads; it never changes anything in Meta/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /Jobs that run on their own\s*13/.test((await p.innerText('[aria-label="Scheduled jobs"]')).replace(/\n+/g, ' ')));
+    ck('Systems and jobs lists the daily Audience library job, as read-only, with its time', /Audience library/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /Every day at 11:15 UTC/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /It only reads; it never changes anything in Meta/.test(await p.innerText('[aria-label="Scheduled jobs"]')) && /Jobs that run on their own\s*14/.test((await p.innerText('[aria-label="Scheduled jobs"]')).replace(/\n+/g, ' ')));
 
     console.log('-- roles');
     const rb = await as(cookie('rebecka@example.com'));
