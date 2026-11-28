@@ -6,6 +6,8 @@ import { historyView, runHistory } from '@/lib/ops/adshistory';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 const bad = (error, status = 400) => NextResponse.json({ error }, { status });
+// Why a read failed, in words staff can pass on: the first part of what went wrong, with anything that looks like a key, token or address taken out.
+const reasonOf = e => String(e?.message || e || '').replace(/https?:\/\/\S+/g, '(address)').replace(/\b[A-Za-z0-9_\-]{24,}\b/g, '(code)').replace(/\s+/g, ' ').trim().slice(0, 140);
 let lastRun = 0;
 
 // Ads › What we've learned. Directors and the Ads role, like the rest of Ads; everyone else gets 403. READ ONLY: nothing here writes to Meta.
@@ -15,7 +17,7 @@ export async function GET() {
   const user = await currentUser();
   if (!canAds(user)) return bad('Ads is for directors and the Ads role', 403);
   try { return NextResponse.json(await historyView()); }
-  catch (e) { console.error('Ads history read failed', String(e.message).slice(0, 120)); return bad('Couldn’t read what has been learned just now. Try again in a moment.', 502); }
+  catch (e) { console.error('Ads history read failed', reasonOf(e)); return bad(`Couldn’t read what has been learned just now (${reasonOf(e) || 'no reason given'}). Try again in a moment.`, 502); }
 }
 
 export async function POST(req) {
@@ -27,5 +29,5 @@ export async function POST(req) {
   if (wait > 0) return NextResponse.json({ error: `The history was only just read. You can read it again in ${wait} seconds.`, wait }, { status: 429 });
   lastRun = Date.now();
   try { const r = await runHistory({}); return NextResponse.json({ ok: true, run: r, view: await historyView() }); }
-  catch (e) { console.error('Ads history run failed', String(e.message).slice(0, 120)); return bad('Couldn’t read the history just now. Try again in a minute.', 502); }
+  catch (e) { console.error('Ads history run failed', reasonOf(e)); return bad(`Couldn’t read the history just now (${reasonOf(e) || 'no reason given'}). Try again in a minute.`, 502); }
 }
