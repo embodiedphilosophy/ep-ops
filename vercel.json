@@ -51,6 +51,14 @@
     {
       "path": "/api/ops/ads-insights",
       "schedule": "45 11 * * 1"
+    },
+    {
+      "path": "/api/ops/ads-history",
+      "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/ops/ads-research",
+      "schedule": "35 11 * * 1"
     }
   ]
 }

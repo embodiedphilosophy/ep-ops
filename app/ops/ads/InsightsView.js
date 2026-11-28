@@ -1,6 +1,7 @@
 import Shell, { opsUser } from '../Shell';
 import { canAds } from '@/lib/ops/nav';
 import Insights from './Insights';
+import Research from './Research';
 import Funnel from './Funnel';
 import '../social/social.css';
 import './ads.css';
@@ -14,6 +15,7 @@ export default async function InsightsView({ searchParams }) {
     <Shell user={user} current="ads" eyebrow="Ads · directors and the Ads role" title="Ads"
       desc="What the week told us, from the quiz, the ads, Circle and Kit. It is for reading: nothing here is sent or posted.">
       <Insights />
+      <Research />
       <Funnel f={Array.isArray(sp?.f) ? sp.f[0] : sp?.f} />
     </Shell>
   );

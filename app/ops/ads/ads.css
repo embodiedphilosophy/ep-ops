@@ -233,7 +233,44 @@
 .ops-shell .acct-total th { color: var(--ink) }
 .ops-shell .acct-total .sub { font-weight: 400 }
 @media (max-width: 640px) { .ops-shell .acct-tools { width: 100% } .ops-shell .acct-tools .soc-btn { min-height: 44px } }
+.ops-shell .acct-act { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px }
+.ops-shell .acct-act .soc-btn { min-height: 44px }
+.ops-shell .acct-amount { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; width: 100%; font-size: 13px }
+.ops-shell .acct-amount label { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px }
+.ops-shell .acct-amount input { min-height: 44px; font-size: 16px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: #fff; color: var(--ink) }
+.ops-shell .acct-changes { margin-top: 16px }
+.ops-shell .acct-changes h3 { font-size: 15px; margin: 0 0 4px }
 .ops-shell .acct-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+
+/* What we've learned (the history of past ads) */
+.ops-shell .soc-btn.ls-btn { min-height: 44px }
+.ops-shell .ls-cover { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--card); border-radius: var(--r-ctl) }
+.ops-shell .ls-progress, .ops-shell .ls-cover p { margin: 0 }
+.ops-shell .ls-bar { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden }
+.ops-shell .ls-bar > span { display: block; height: 100%; background: var(--pine) }
+.ops-shell .ls-totals { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px }
+.ops-shell .ls-totals li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 14px; min-width: 0 }
+.ops-shell .ls-sec h3 { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 8px 0 2px }
+.ops-shell .ls-sec h3 .n { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-left: 6px }
+.ops-shell .ls-sec h4 { margin: 10px 0 2px; font-size: 13px; color: var(--ink-soft); font-weight: 500 }
+.ops-shell .ls-find { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.ops-shell .ls-find > li { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-ctl); min-width: 0 }
+.ops-shell .ls-find p { margin: 0 0 6px; line-height: 1.5; overflow-wrap: anywhere }
+.ops-shell .ls-pills { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center }
+.ops-shell .ls details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 13px; color: var(--pine) }
+.ops-shell .ls details ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13px }
+.ops-shell .ls .ls-ads { list-style: none; padding-left: 0 }
+.ops-shell .ls .ls-ads > li { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ls-few { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px }
+.ops-shell .ls-few li { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: var(--card); border-radius: var(--r-ctl); font-size: 13px; min-width: 0; overflow-wrap: anywhere }
+/* Outside research (Ads › Audience insights) */
+.ops-shell .ar-label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-weight: 500 }
+.ops-shell .ar-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.ops-shell .ar-note { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); min-width: 0 }
+.ops-shell .ar-note .ph { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: flex-start }
+.ops-shell .ar-note p { margin: 0; line-height: 1.5; overflow-wrap: anywhere }
+.ops-shell .ar-src a { display: inline-block; min-height: 44px; line-height: 44px; overflow-wrap: anywhere }
+.ops-shell .ar-note summary { min-height: 44px; display: flex; align-items: center; cursor: pointer }
 /* Creative results: pictures, words and pairings, with where each ran */
 .ops-shell .ads-cr-says { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; min-width: 160px }
 .ops-shell .ads-cr-says .sub { flex-basis: 100% }
