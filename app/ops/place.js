@@ -74,10 +74,11 @@ export async function renderPlace(place, { searchParams, params } = {}) {
     <nav className="ops-filters" aria-label={`${place} views`}>
       {views.map(v => <a key={v.key} href={`/ops/${place}${v === home ? '' : `?${qs({ view: v.key })}`}`} aria-current={v.key === view.key ? 'page' : undefined}>{v.label}</a>)}
     </nav>);
-  // Unwrap: the old page returned <Shell ...>content</Shell>. Keep its content, title and own header tabs inside the one shell.
+  // Unwrap: the old page returned <Shell ...>content</Shell>. Keep its content, title and own header actions; the place's tabs go in the
+  // header's fixed tab row, so they sit in the same spot on every view
   if (el?.type === Shell) {
     const p = el.props;
-    return <Shell {...p} current={place} head={<>{tabs}{p.head}</>}>{p.children}</Shell>;
+    return <Shell {...p} current={place} tabs={tabs || undefined}>{p.children}</Shell>;
   }
   return el;
 }

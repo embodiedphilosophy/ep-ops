@@ -1255,3 +1255,11 @@
   .ops-shell .td-night .when { grid-column: 1 / -1 }
   .ops-shell .td-night li a { min-height: 44px }
 }
+
+/* A place's views (Programs, Launches, Library…): always the header's first row, full width, above the title, so nothing above them
+   changes from view to view and switching views never moves them */
+.ops-shell .ops-head > .ops-placetabs { order: -1; flex: 1 1 100%; margin-bottom: 6px }
+/* A view whose title is in the page frame: just its Show Programming button (and a launch's own name) above the content */
+.soc .soc-bar { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 0 0 16px }
+.soc .soc-bar .soc-lead { font-family: var(--sans); font-size: 20px; font-weight: 600; margin: 0 }
+.soc .soc-bar .soc-lead-sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft) }

@@ -9,5 +9,8 @@ export const metadata = { title: 'Media — Embodied Philosophy', robots: { inde
 
 export default async function Page() {
   const user = await opsUser(isStaff);
-  return <Shell user={user} current="email-media"><Media /></Shell>;
+  return (
+    <Shell user={user} current="email-media" eyebrow="Programs" title="Recordings" desc="Recordings to post, the latest episodes, and what is coming for Tarka.">
+      <Media bare />
+    </Shell>);
 }
