@@ -104,8 +104,8 @@ const get = (u, ck_) => fetch(U + u, { redirect: 'manual', headers: { Cookie: `e
   const row = p.locator('.ads-table tbody tr').first(), rt = await row.innerText();
   ck('the list shows the draft: name, goal, type, a “Draft · review” pill, budget and dates', /Wizard On 2027/.test(rt) && /Purchase/.test(rt) && /Targeting test/.test(rt) && /Draft · review/.test(rt) && /\$75/.test(rt) && /7 Apr/.test(rt), rt);
   ck('it links to its launch and its draft', (await row.locator('a').count()) === 2);
-  await p.getByRole('button', { name: /^Paused/ }).click();
-  ck('the “Paused” filter has nothing in it (nothing has been sent to Meta)', (await p.locator('.ads-table').count()) === 0 && /Nothing in this list/.test(await p.innerText('.ads-panel')));
+  await p.locator('section[aria-label="Campaigns"]').getByRole('button', { name: /^Paused/ }).click();
+  ck('the “Paused” filter has nothing in it (nothing has been sent to Meta)', (await p.locator('section[aria-label="Campaigns"] .ads-table').count()) === 0 && /Nothing in this list/.test(await p.innerText('section[aria-label="Campaigns"]')));
   await p.getByRole('button', { name: /^Drafts/ }).click(); ck('the “Drafts” filter shows it', (await p.locator('.ads-table tbody tr').count()) === 1);
   await p.screenshot({ path: path.join(OUT, 'ads-list-desktop.png'), fullPage: true });
 
