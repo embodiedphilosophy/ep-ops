@@ -45,10 +45,10 @@ const KEY = /mock-anthropic-key-not-real/;
 
     console.log('-- nothing yet: no table, nothing asked');
     let d = await view();
-    ck('before anything is saved the page data is empty, the key is set, the questions are listed, and no table exists', d.exists === false && d.ai === true && d.week === null && d.notes.length === 0 && d.questions.length === 5 && d.weeks.length === 0);
+    ck('before anything is saved the page data is empty, the key is set, the four questions are listed, our own figures are empty, and no table exists', d.exists === false && d.ai === true && d.week === null && d.notes.length === 0 && d.questions.length === 4 && d.weeks.length === 0 && d.ours.days === 30 && d.ours.figures.length === 0);
     ck('the weekly job is refused without the key (401), with a wrong key too', (await cronGet('/api/ops/ads-research', {})).status === 401 && (await cronGet('/api/ops/ads-research?key=wrong', {})).status === 401);
     const pre = await cronGet('/api/ops/ads-research?dry=1');
-    ck('?dry=1 says what it would do (key set, five questions, up to five searches), asks nothing and makes no table', pre.status === 200 && pre.j.preview === true && pre.j.key === true && pre.j.questions === 5 && pre.j.searches_allowed === 5 && (await sent()).length === 0 && (await view()).exists === false, JSON.stringify(pre.j));
+    ck('?dry=1 says what it would do (key set, four questions, up to five searches), asks nothing and makes no table', pre.status === 200 && pre.j.preview === true && pre.j.key === true && pre.j.questions === 4 && pre.j.searches_allowed === 5 && (await sent()).length === 0 && (await view()).exists === false, JSON.stringify(pre.j));
     ck('?preview=1 does the same', (await cronGet('/api/ops/ads-research?preview=1')).j.preview === true && (await sent()).length === 0);
     const sw0 = sheetWrites();
 
@@ -56,17 +56,17 @@ const KEY = /mock-anthropic-key-not-real/;
     await cronGet('/api/ops/ads-insights');   // the account's own numbers are in the database now (Circle and Kit read from the mock): none of it may reach the model
     await mode('bad');
     const run = await cronGet('/api/ops/ads-research');
-    ck('it runs (jobs are live here): three statements kept, ten left out, one search', run.status === 200 && run.j.preview === false && run.j.state === 'ok' && run.j.kept === 3 && run.j.dropped === 10 && run.j.searches === 1, JSON.stringify(run.j));
+    ck('it runs (jobs are live here): three statements kept, fourteen left out, one search', run.status === 200 && run.j.preview === false && run.j.state === 'ok' && run.j.kept === 3 && run.j.dropped === 14 && run.j.searches === 1, JSON.stringify(run.j));
     d = await view(); everything.push(JSON.stringify(d));
     ck('the page data has the three, each with status New, the day read, and its source link, title and the words it rests on', d.exists && d.week.state === 'ok' && d.notes.length === 3 && d.notes.every(n => n.status === 'New' && n.read_at && n.sources.length >= 1 && n.sources.every(s => /^https:\/\//.test(s.url) && s.title && s.snippet)), JSON.stringify(d.notes));
-    ck('it says how many were left out (10), and how many searches were made (1)', d.week.dropped === 10 && d.week.searches === 1 && d.week.asked === 13);
+    ck('it says how many were left out (14), and how many searches were made (1)', d.week.dropped === 14 && d.week.searches === 1 && d.week.asked === 17);
     ck('every source address is a page on a site from the list', d.notes.every(n => n.sources.every(s => ALLOWED_DOMAINS.some(x => new URL(s.url).hostname === x || new URL(s.url).hostname.endsWith(`.${x}`)))));
-    ck('no statement in it carries advice or a reason, or a number its source lacks', d.notes.every(n => !/\b(should|must|because|so|likely|recommend)\b/i.test(n.statement)) && !/\$4\.80|20 March|brand new way/.test(JSON.stringify(d.notes)));
+    ck('no statement in it carries advice or a reason, or a number its source lacks', d.notes.every(n => !/\b(should|must|because|so|likely|recommend)\b/i.test(n.statement)) && !/\$4\.80|brand new way|schedule reels/.test(JSON.stringify(d.notes)));
     ck('the week is one set: running again the same week replaces it (three, not six)', (await cronGet('/api/ops/ads-research')).j.state === 'ok' && (await view()).notes.length === 3 && (await view()).weeks.length === 1);
 
     console.log('-- what the model was sent');
     const s = await sent();
-    ck('two requests so far, each with the search tool and nothing else but the questions and the one line about EP’s business', s.length === 2 && s.every(b => b.tools.length === 1 && b.tools[0].type === 'web_search_20250305' && b.tools[0].name === 'web_search' && b.tools[0].max_uses === 5 && b.messages.length === 1 && b.messages[0].content === `The business: ${BUSINESS}.\nThe questions:\n${QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join('\n')}`));
+    ck('two requests so far, each with the search tool and nothing else but today’s date, the questions and the one line about EP’s business', s.length === 2 && s.every(b => b.tools.length === 1 && b.tools[0].type === 'web_search_20250305' && b.tools[0].name === 'web_search' && b.tools[0].max_uses === 5 && b.messages.length === 1 && b.messages[0].content.replace(/^Today's date: \d{4}-\d{2}-\d{2}\.\n/, '') === `The business: ${BUSINESS}.\nThe questions:\n${QUESTIONS.map((q, i) => `(${String.fromCharCode(97 + i)}) ${q}`).join('\n')}` && /^Today's date: \d{4}-\d{2}-\d{2}\.\n/.test(b.messages[0].content)));
     ck('no marker name or address, no figure from the account, no campaign or topic name anywhere in what was sent', s.every(b => { const t = JSON.stringify(b); return !/Marker|example\.invalid|Synthetic|synthetic\.person|KITTXN|Kali|Winter|Meditation Pass|Spanda|@/i.test(t) && !/\$\d/.test(t) && !KEY.test(t); }));
 
     console.log('-- the page and the logs');

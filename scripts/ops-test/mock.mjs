@@ -263,30 +263,43 @@ const ins = { kit: 'ok', circle: 'ok', bad: false, broadcasts: false };
 // Ads outside research (lib/ops/adsresearch.js): a stand-in for Anthropic's web search tool, in the documented response shape (server_tool_use, web_search_tool_result, text blocks with citations).
 // research is changed by GET /__research?mode=good|bad|empty|fail|searcherror|pause (good: three sourced statements; bad: those plus one of every kind the code must drop;
 // empty: "NOTHING_FOUND"; fail: HTTP 500; searcherror: the search tool itself reports an error; pause: the first answer stops with pause_turn and the second finishes it). Every request is kept in anthropicLog.
-const research = { mode: 'good', calls: 0 };
+// The pages' dates are worked out from today (so the tests do not go stale): research.d14 is the day 14 days ago as a page writes it ("14 November 2026"), research.bad14 a different day of that month.
+const MONTHN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ago = n => new Date(Date.now() - n * 864e5);
+const dfmt = n => `${ago(n).getUTCDate()} ${MONTHN[ago(n).getUTCMonth()]} ${ago(n).getUTCFullYear()}`;
+const pageAge = n => `${MONTHN[ago(n).getUTCMonth()]} ${ago(n).getUTCDate()}, ${ago(n).getUTCFullYear()}`;   // the way the search tool writes page_age
+const research = { mode: 'good', calls: 0, d14: dfmt(14), d200: dfmt(200), bad14: `${(ago(14).getUTCDate() % 27) + 2} ${MONTHN[ago(14).getUTCMonth()]} ${ago(14).getUTCFullYear()}`, year: ago(0).getUTCFullYear() };
 const RS = [
-  { url: 'https://www.facebook.com/business/help/mock-policy', title: 'About ad policy updates for education advertisers', page_age: 'March 2026', cite: 'From 14 March 2026, ads for online courses will show the course provider’s name in the ad.' },
-  { url: 'https://www.wordstream.com/blog/mock-benchmarks', title: 'Facebook ad benchmarks by industry', page_age: 'January 2026', cite: 'Education advertisers on Meta paid an average cost per click of $1.72 in the period measured.' },
-  { url: 'https://transparency.meta.com/policies/ad-standards/mock-health', title: 'Ad standards: health and wellness', page_age: '', cite: 'Ads must not include before-and-after images that imply a result in health and wellness categories; ads with them are rejected.' },
+  { url: 'https://www.facebook.com/business/help/mock-policy', title: 'About ad policy updates for education advertisers', page_age: pageAge(14), cite: `From ${dfmt(14)}, ads for online courses will show the course provider’s name in the ad.` },   // new policy: recent
+  { url: 'https://www.wordstream.com/blog/mock-benchmarks', title: 'Facebook ad benchmarks by industry', page_age: pageAge(45), cite: `Education advertisers on Meta paid an average cost per click of $1.72 in ${ago(0).getUTCFullYear()}, the benchmark found.` },   // a benchmark (no recency needed)
+  { url: 'https://searchengineland.com/mock-black-friday-costs', title: 'Meta ad costs during Black Friday week', page_age: pageAge(9), cite: 'Meta CPMs rose 18% in the week of Black Friday compared with the week before.' },   // this season
   { url: 'https://example-blog.invalid/mock-post', title: 'A blog that is not on the list', page_age: '', cite: 'Meta raised its prices by 40% on 2 February.' },
+  { url: 'https://transparency.meta.com/policies/ad-standards/mock-health', title: 'Ad standards: before-and-after images', page_age: '', cite: 'Ads must not include before-and-after images that imply a result; ads with them are rejected.' },   // standing policy: no date at all
+  { url: 'https://developers.facebook.com/blog/post/mock-old', title: 'Attribution window update', page_age: pageAge(200), cite: `From ${dfmt(200)} the default attribution window for sign-up ads is seven days.` },   // an old page
 ];
 const researchAnswer = mode => {
   const C = (i, text) => ({ type: 'text', text, citations: [{ type: 'web_search_result_location', url: RS[i].url, title: RS[i].title, encrypted_index: 'x', cited_text: RS[i].cite }] });
   const search = [{ type: 'server_tool_use', id: 'srvtoolu_mock1', name: 'web_search', input: { query: 'meta ads policy education' } }, { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: RS.map(r => ({ type: 'web_search_result', url: r.url, title: r.title, page_age: r.page_age, encrypted_content: 'mock-encrypted' })) }];
-  const good = [C(0, 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.'), { type: 'text', text: '\n\n' }, C(1, 'WordStream reports an average cost per click of $1.72 for education advertisers on Meta.'), { type: 'text', text: '\n\n' }, C(2, 'Meta’s ad standards list before-and-after images as content that gets health and wellness ads rejected.')];
+  const good = [C(0, `(d) Meta says that from ${dfmt(14)} ads for online courses show the course provider’s name.`), { type: 'text', text: '\n\n' }, C(1, `(b) WordStream reports an average cost per click of $1.72 for education advertisers on Meta in ${ago(0).getUTCFullYear()}.`), { type: 'text', text: '\n\n' }, C(2, '(c) Search Engine Land reports that Meta CPMs rose 18% in the week of Black Friday compared with the week before.')];
   if (mode === 'empty') return [...search.slice(0, 1), { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: [] }, { type: 'text', text: 'NOTHING_FOUND' }];
   if (mode === 'searcherror') return [search[0], { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: { type: 'web_search_tool_result_error', error_code: 'unavailable' } }, { type: 'text', text: 'NOTHING_FOUND' }];
+  const cite = i => ({ type: 'web_search_result_location', url: RS[i].url, title: RS[i].title, cited_text: RS[i].cite });
+  const T = (text, i) => [{ type: 'text', text: '\n\n' }, { type: 'text', text, citations: [cite(i)] }];
   if (mode === 'bad') return [...search, ...good,
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a duplicate
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the Learning Hub page confirms a new fee.', citations: [{ type: 'web_search_result_location', url: 'https://www.facebook.com/business/never-returned', title: 'Never returned', cited_text: 'a new fee' }] },   // an address the search never returned
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'WordStream reports an average cost per lead of $4.80 for wellness advertisers.', citations: [RS[1]].map(r => ({ type: 'web_search_result_location', url: r.url, title: r.title, cited_text: r.cite })) },   // a number that is not in the source
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says from 20 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a date that is not in the source
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says advertisers should add the course provider’s name to every online course ad.', citations: [good[0].citations[0]] },   // advice
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the course provider’s name appears on online course ads because trust matters.', citations: [good[0].citations[0]] },   // a reason
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta announced a brand new way to schedule reels for creators.', citations: [good[2].citations[0]] },   // words that are not in the source
-    { type: 'text', text: '\n\n' }, { type: 'text', text: 'A blog says Meta raised its prices by 40% on 2 February.', citations: [{ type: 'web_search_result_location', url: RS[3].url, title: RS[3].title, cited_text: RS[3].cite }] },   // a site not on the list
+    ...T(`(d) Meta says that from ${dfmt(14)} ads for online courses show the course provider’s name.`, 0),   // a duplicate
+    { type: 'text', text: '\n\n' }, { type: 'text', text: '(d) Meta says the Learning Hub page confirms a new fee.', citations: [{ type: 'web_search_result_location', url: 'https://www.facebook.com/business/never-returned', title: 'Never returned', cited_text: 'a new fee' }] },   // an address the search never returned
+    ...T('(b) WordStream reports an average cost per lead of $4.80 for wellness advertisers.', 1),   // a number that is not in the source
+    ...T(`(d) Meta says from ${research.bad14} ads for online courses show the course provider’s name.`, 0),   // a date that is not in the source
+    ...T('(d) Meta says advertisers should add the course provider’s name to every online course ad.', 0),   // advice
+    ...T('(d) Meta says the course provider’s name appears on online course ads because trust matters.', 0),   // a reason
+    ...T('(a) Meta announced a brand new way to schedule reels for creators.', 0),   // words that are not in the source
+    ...T('(b) A blog says Meta raised its prices by 40% on 2 February.', 3),   // a site not on the list
     { type: 'text', text: '\n\nMeta will almost certainly change every rule in 2027, and nobody knows why.\n\n' },   // no source at all
-    { type: 'text', text: 'Meta says courses show a name.', citations: [{ type: 'web_search_result_location', url: RS[0].url, title: RS[0].title, cited_text: '' }] }];   // a source with no text
+    { type: 'text', text: '(d) Meta says courses show a name.', citations: [{ type: 'web_search_result_location', url: RS[0].url, title: RS[0].title, cited_text: '' }] },   // a source with no text
+    ...T('(d) Meta’s ad standards list before-and-after images as content that gets ads rejected.', 4),   // standing policy with no date: not recent
+    ...T(`(a) Meta says the default attribution window for sign-up ads is seven days from ${dfmt(200)}.`, 5),   // a page 200 days old
+    ...T(`(d) Meta says that from ${dfmt(14)} ads for online courses show the course provider’s name,`, 0),   // cut off mid-sentence (ends in a comma)
+    ...T(`Meta says that from ${dfmt(14)} ads for online courses will show the course provider’s name in the ad.`, 0)];   // does not say which question it answers
   return [...search, ...good];
 };
 const daysAgo = (n, h = 10) => new Date(Date.now() - n * 864e5 + (h - 12) * 36e5).toISOString();
