@@ -30,7 +30,7 @@ const AT = '/ops/ads?view=insights';
   ck('the Look now button is at least 44px tall', await big(p, '#outside button:has-text("Look now")', 44));
   ck('opening the page posts nothing and throws nothing', p.posts.length === 0 && p.errs.length === 0, p.errs.join(' | '));
   const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-  ck('the Ads tabs are unchanged (the panel is a section of Audience insights)', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights');
+  ck('the Ads tabs are unchanged (the panel is a section of Audience insights)', tabs.join() === 'Campaigns,Creative results,Audience library,Safety net,Audience insights,What we’ve learned');
 
   if (MODE === 'empty') {
     ck('it says nothing is here yet, and that the first look is on Monday morning', /Nothing here yet\. The first look is made on Monday morning/.test(t));
