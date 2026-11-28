@@ -234,3 +234,9 @@
 .ops-shell .acct-total .sub { font-weight: 400 }
 @media (max-width: 640px) { .ops-shell .acct-tools { width: 100% } .ops-shell .acct-tools .soc-btn { min-height: 44px } }
 .ops-shell .acct-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.ops-shell .ads-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(30, 28, 24, .45) }
+.ops-shell .ads-modal .box { width: 100%; max-width: 460px; max-height: 100%; overflow: auto; box-sizing: border-box; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); display: flex; flex-direction: column; gap: 10px }
+.ops-shell .ads-modal h2 { font-family: var(--serif); font-weight: 600; font-size: 22px; margin: 0; overflow-wrap: anywhere }
+.ops-shell .ads-modal p { margin: 0 }
+.ops-shell .ads-modal label { display: flex; flex-direction: column; gap: 4px; font-size: 13px }
+.ops-shell .ads-modal input { min-height: 44px; box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 0 10px; font: inherit; background: #FBF9F4 }

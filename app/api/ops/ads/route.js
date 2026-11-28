@@ -11,6 +11,7 @@ import { sendPaused, startCampaign, setRunning } from '@/lib/ops/adssend';
 import { liveView, listSummary } from '@/lib/ops/adsview';
 import { lockState, reverseAction } from '@/lib/ops/adsrules';
 import { launchRows } from '@/lib/ops/launches';
+import { relaunch } from '@/lib/ops/adsrelaunch';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -49,7 +50,7 @@ export async function GET(req) {
       const launch = t.campaign.launch_id ? await launchById(t.campaign.launch_id) : null;
       t = { ...t, campaign: await follow(t.campaign, launch) };
       const out = { ...meta, ...t, launch: launch && { id: launch.id, name: launch.name, event_id: launch.event_id }, total_cents: campaignTotal(t.campaign, t.adsets), link: adLink(t.campaign), cta_list: CTA_LIST, goals: GOAL_LIST, types: TYPE_LIST };
-      if (t.campaign.status !== 'draft') { out.live = await liveView(t); out.locks = await lockState({ fresh: true }); }   // a campaign in Meta: its results, rules and changes (Make's Ad Agent setting is read fresh here: one read when this page opens, so the page never shows an old answer)
+      if (t.campaign.status !== 'draft') { out.live = await liveView(t); out.locks = await lockState({ fresh: true }); out.relaunches = (await listRows('campaigns')).filter(x => x.meta_settings?.relaunched_from?.id === t.campaign.id).map(x => ({ id: x.id, name: x.name, status: x.status })); }   // a campaign in Meta: its results, rules and changes (Make's Ad Agent setting is read fresh here: one read when this page opens, so the page never shows an old answer)
       if (q.get('checks')) out.checks = await runChecks(t);
       if (q.get('art')) out.art = (await artChoices({ limit: 40 }).catch(() => [])).map(a => ({ id: a.id, name: a.name }));
       return NextResponse.json(out);
@@ -86,6 +87,11 @@ export async function POST(req) {
     }
     const c = b.id ? await getRow('campaigns', b.id).catch(() => null) : null;
     if (!c) return bad('No such campaign', 404);
+    if (b.action === 'relaunch') {   // a new unsent draft from a campaign that is already in Meta; the old one is only read (adsrelaunch.js)
+      if (!b.confirm) return bad('Please confirm first');
+      const r = await relaunch(c.id, { who: me, dailyCents: num(b.daily_cents, 0, 5_000_000) || 0 });
+      return NextResponse.json({ ok: true, existing: r.existing, id: r.campaign.id, name: r.campaign.name, notes: r.notes });
+    }
     if (b.action === 'sendToMeta' || b.action === 'start') {
       if (!b.confirm) return bad('Please confirm first');
       const r = b.action === 'start' ? await startCampaign(c.id, me) : await sendPaused(c.id, me);

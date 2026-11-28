@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AccountView from './AccountView';
+import Relaunch from './Relaunch';
 
 export const usd = c => '$' + ((c || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
 const day = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
@@ -45,7 +46,8 @@ export default function Campaigns() {
             <tbody>{shown.map(c => (
               <tr key={c.id}>
                 <td><a className="ads-name" href={`/ops/ads/${c.id}`}>{c.name}</a>
-                  {c.launch_id && <div className="sub"><a href={c.event_id ? `/ops/programs/${c.event_id}?tab=launch&id=${c.launch_id}` : `/ops/programs?view=launches&id=${c.launch_id}`}>{c.launch_name || 'Its launch'}</a></div>}</td>
+                  {c.launch_id && <div className="sub"><a href={c.event_id ? `/ops/programs/${c.event_id}?tab=launch&id=${c.launch_id}` : `/ops/programs?view=launches&id=${c.launch_id}`}>{c.launch_name || 'Its launch'}</a></div>}
+                  {c.status !== 'draft' && <div className="sub"><Relaunch campaign={{ id: c.id, name: c.name, daily_cents: c.daily_cents }} small /></div>}</td>
                 <td>{c.goal}</td><td>{TYPES[c.structure]}</td><td><Pill status={c.status} /></td>
                 <td className="num">{usd(c.daily_cents)}</td><td className="num">{c.spent_cents ? usd(c.spent_cents) : '—'}</td><td className="num">{c.spend72_cents ? `${fmt(c.metric, c.value72)} ${c.metric === 'cpl' ? 'a lead' : 'return'}` : '—'}</td><td>{c.start_date ? `${day(c.start_date)} – ${day(c.end_date)}` : 'No dates yet'}</td>
               </tr>))}</tbody></table></div>)}
