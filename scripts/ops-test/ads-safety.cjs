@@ -27,7 +27,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     console.log('-- the Safety net tab (director)');
     await p.goto(U + '/ops/ads?view=safety'); await p.waitForSelector('.ads-board');
     const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the last current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Safety net', tabs.join());
+    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the last current', tabs.join() === 'Campaigns,Creative results,Audience library,Safety net,Audience insights' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Safety net', tabs.join());
     ck('opening the page posts nothing', p.posts.length === 0);
     const cards = await p.locator('.ads-board li').allInnerTexts();
     ck('six cards, each with a green, amber or red pill', cards.length === 6 && cards.every(c => /All clear|Worth a look|Needs you now|Not checked/.test(c)), cards.join(' | ').slice(0, 300));

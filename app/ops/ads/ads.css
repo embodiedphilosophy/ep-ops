@@ -234,3 +234,20 @@
 .ops-shell .acct-total .sub { font-weight: 400 }
 @media (max-width: 640px) { .ops-shell .acct-tools { width: 100% } .ops-shell .acct-tools .soc-btn { min-height: 44px } }
 .ops-shell .acct-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+/* Creative results: pictures, words and pairings, with where each ran */
+.ops-shell .ads-cr-says { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; min-width: 160px }
+.ops-shell .ads-cr-says .sub { flex-basis: 100% }
+.ops-shell .ads-cr-pic { display: flex; gap: 10px; align-items: center; min-width: 150px }
+.ops-shell .ads-cr-thumb { width: 56px; height: 56px; flex: none; object-fit: cover; border-radius: 6px; background: var(--card) }
+.ops-shell .ads-cr-thumb.blank { display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-soft); border: 1px solid var(--line) }
+.ops-shell .ads-cr-where { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 190px }
+.ops-shell .ads-cr-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; font-size: 13px }
+.ops-shell .ads-cr-list li { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ads-cr-links { display: flex; flex-wrap: wrap; gap: 4px 12px }
+.ops-shell .ads-cr-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; font-size: 13px }
+.ops-shell .ads-cr-nums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px }
+.ops-shell .ads-cr-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.ops-shell .ads-cr-card { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: #FBF9F4; min-width: 0 }
+.ops-shell .ads-cr-texts { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px }
+.ops-shell .ads-cr-texts li { display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere }
+.ops-shell .ads-scroll:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px }
