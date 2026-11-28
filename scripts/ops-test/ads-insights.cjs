@@ -60,7 +60,7 @@ const EMPTY = process.argv[2] === 'empty';
   await fresh.locator('button', { hasText: 'Dismiss' }).click(); await p.waitForSelector('[role=status]:has-text("won’t be suggested again")');
   ck('Dismiss says it won’t be suggested again and the idea moves to Dismissed', (await p.locator('.ai-idea[data-status=new] b', { hasText: title }).count()) === 0 && /Dismissed ideas/.test(await text()));
   await p.locator('.ai-all summary', { hasText: 'Dismissed ideas' }).click();
-  await p.locator('.ai-idea[data-status=dismissed]', { hasText: title }).locator('button', { hasText: 'Bring back' }).click(); await p.waitForSelector(`.ai-idea[data-status=new] b:has-text("${title}")`);
+  await p.locator('.ai-idea[data-status=dismissed]').filter({ has: p.locator('b', { hasText: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).locator('button', { hasText: 'Bring back' }).click();   // by the idea's own title (another idea's format can carry the same words) await p.waitForSelector(`.ai-idea[data-status=new] b:has-text("${title}")`);
   ck('Bring back puts it back as new', true);
   console.log('-- the funnel');
   ck('the quiz funnel section is on the page, with period chips', (await p.locator('#funnel').count()) === 1 && (await p.locator('nav[aria-label="Funnel period"] a').count()) === 3);
