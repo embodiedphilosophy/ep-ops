@@ -50,7 +50,7 @@ export default async function Shell({ user, current, title, titleEl, eyebrow, de
           <span><b>{user.name}</b><small>{roleOf(user)} · <a href="/api/ops/logout">Sign out</a></small></span>
         </div>
       </aside>
-      <main className="ops">
+      <main className="ops"><div className="ops-page">
         {(title || titleEl || head) && (
           <div className="ops-head">
             {(title || titleEl) && <div className="ttl">{eyebrow && <span className="ops-eyebrow">{eyebrow}</span>}{titleEl || <h1>{title}</h1>}{desc && <p className="ops-desc">{desc}</p>}</div>}
@@ -58,7 +58,7 @@ export default async function Shell({ user, current, title, titleEl, eyebrow, de
           </div>
         )}
         {children}
-      </main>
+      </div></main>
     </div>
   );
 }
