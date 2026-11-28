@@ -15,8 +15,8 @@ const meta = async (q = '') => (await fetch(`http://localhost:4556/__log${q}`)).
 await meta('?reset=1');
 
 console.log('-- the Practice Report link: not connected');
-const off = [await R.archetypeCounts(), await R.answerCounts('stuck'), await R.archetypesByAd(), R.reportStatus(), R.answerCategories()];
-ck('with no REPORT_DATABASE_URL every function answers {connected:false} and nothing throws', off.every(o => o.connected === false) && /isn’t connected yet/.test(off[0].reason) && /REPORT_DATABASE_URL/.test(off[0].todo), JSON.stringify(off[0]));
+const off = [await R.archetypeCounts(), await R.answerCounts('edge'), await R.archetypesByAd(), R.reportStatus(), R.answerCategories()];
+ck('with no REPORT_DATABASE_URL every function answers {connected:false} and nothing throws', off.every(o => o.connected === false) && /isn’t connected yet/.test(off[0].reason) && /REPORT_DATABASE_URL/.test(off[0].todo) && /report_stats/.test(off[0].todo) && /ops-handoff\.md/.test(off[0].todo), JSON.stringify(off[0]));
 ck('and there is no database call: the "connected" check is false', R.reportConfigured() === false);
 for (const v of ['DELETE FROM t', 'UPDATE t SET a = 1', 'SELECT 1; DROP TABLE t', 'INSERT INTO t VALUES (1)', 'drop table t', 'WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x', 'select pg_sleep(1); select 2'])
   ck(`the read-only door refuses: ${v.slice(0, 40)}`, (() => { try { R.assertReadOnly(v); return false; } catch { return true; } })());
@@ -24,20 +24,42 @@ ck('and lets a plain SELECT through', R.assertReadOnly('SELECT a, COUNT(*) FROM 
 
 console.log('-- the Practice Report link: a synthetic quiz (made-up people)');
 process.env.REPORT_TEST_DB = 'pglite';
-const arch = await R.archetypeCounts(), ans = await R.answerCounts('stuck'), ad = await R.archetypesByAd(), cats = R.answerCategories();
+const arch = await R.archetypeCounts(), ans = await R.answerCounts('edge'), ad = await R.archetypesByAd(), cats = R.answerCategories();
 ck('connected, with the archetype counts biggest first (60 results)', arch.connected && arch.ok && arch.total === 60 && arch.archetypes[0].archetype === 'The Contemplative' && arch.archetypes[0].count === 30 && arch.archetypes.length === 3, JSON.stringify(arch));
-ck('counts per answer category, from the quiz’s own questions', ans.ok && ans.label === 'What they get stuck on' && ans.total === 60 && ans.answers.every(a => ['time', 'doubt', 'isolation'].includes(a.answer)) && cats.categories.length === 5);   // five since Ads PR 5 (the handback's five quiz questions; placeholder column names)
+ck('counts per answer category, from the quiz’s own questions (real answer keys, shown in plain English)', ans.ok && ans.label === 'Where they get stuck' && ans.multi === true && ans.total === 60 && ans.answers.every(a => ['boredom', 'doubt', 'skeptic', 'consistency'].includes(a.key) && a.answer === R.answerLabel('edge', a.key)) && ans.answers.some(a => a.answer === 'Doubting it is working'));
+ck('exactly five breakdowns, with the quiz’s own names: stage, draw, edge, fam, roles (the two invented placeholders are gone)', cats.categories.length === 5 && cats.categories.map(c => c.key).join() === 'stage,draw,edge,fam,roles' && cats.categories.map(c => c.label).join() === 'Where they are in practice,What draws them,Where they get stuck,How well they know the tradition,Their role', JSON.stringify(cats));
+const byCat = {}; for (const c of cats.categories) byCat[c.key] = await R.answerCounts(c.key);
+ck('one person counts once per value: 60 people in every breakdown, a single-choice question adds up to 60, a several-choice one to more', Object.values(byCat).every(a => a.ok && a.total === 60) && ['stage', 'fam'].every(k => byCat[k].answers.reduce((n, a) => n + a.count, 0) === 60 && !byCat[k].multi) && ['draw', 'edge', 'roles'].every(k => byCat[k].multi && byCat[k].answers.reduce((n, a) => n + a.count, 0) > 60 && byCat[k].answers.every(a => a.count <= 60)), JSON.stringify(Object.entries(byCat).map(([k, a]) => [k, a.total, a.answers.map(x => x.count)])));
+ck('mixed single and several values both count: draw has 12 people with two values (stillness-or-other plus study) and roles 15 with two', byCat.draw.answers.find(a => a.key === 'study').count === 12 && byCat.roles.answers.find(a => a.key === 'seeker').count === 15 && byCat.draw.answers.reduce((n, a) => n + a.count, 0) === 72, JSON.stringify(byCat.draw.answers));
+ck('a repeated value in one person’s list counts once (edge: 9 people with a list, each “consistency” once)', byCat.edge.answers.find(a => a.key === 'consistency').count === 9, JSON.stringify(byCat.edge.answers));
+ck('plain labels for the real keys, and an unknown key is shown as it is, title-cased', R.answerLabel('stage', 'daily_long') === 'Once a day, 20 minutes or more' && R.answerLabel('roles', 'yoga_teacher') === 'Yoga teacher' && R.answerLabel('archetype', 'shringara') === 'The Longing Seeker' && R.answerLabel('fam', 'brand_new_key') === 'Brand New Key' && R.answerLabel('nope', 'x') === 'X');
 ck('an unknown question is said plainly, not guessed', (await R.answerCounts('nope')).ok === false);
 ck('arrivals from an ad, by the campaign tag and archetype (20 of the 60 came from kali-winter-2027)', ad.ok && ad.rows.length > 0 && ad.rows.every(r => r.campaign === 'kali-winter-2027') && ad.rows.reduce((n, r) => n + r.count, 0) === 20 && ad.hasContent === true, JSON.stringify(ad.rows));
 const since = new Date(Date.now() - 5 * 86400e3).toISOString().slice(0, 10), recent = await R.archetypeCounts({ since });
 ck('a period narrows the counts', recent.ok && recent.total > 0 && recent.total < 60);
-const everything = JSON.stringify([arch, ans, ad, cats, recent, R.reportStatus()]), queries = R.reportQueryLog();
-ck('no personal value appears in any answer (no name, no email)', !/Synthetic Person|synthetic\.person|example\.invalid|@/.test(everything));
-ck('every query is a plain SELECT of one column and a count, grouped, and none names a personal column', queries.length >= 4 && queries.every(q => /^SELECT /.test(q) && /COUNT\(\*\)/.test(q) && /GROUP BY/.test(q) && !/full_name|email|name\b|\*/i.test(q.replace(/COUNT\(\*\)/g, ''))), queries[0]);
+const everything = JSON.stringify([arch, ans, ad, cats, byCat, recent, R.reportStatus()]), queries = R.reportQueryLog();
+ck('no personal value appears in any answer (no name, no email, no visitor id)', !/Synthetic Person|synthetic\.person|synthetic-sid|example\.invalid|@/.test(everything));
+ck('every query is a plain SELECT, grouped, counting people, and none selects a star', queries.length >= 10 && queries.every(q => /^SELECT /.test(q) && /COUNT\(/.test(q) && /GROUP BY|COUNT\(DISTINCT/.test(q) && !/\*/.test(q.replace(/COUNT\(\*\)/g, ''))), queries[0]);
+ck('every SQL string the module produced names only the safe view (public.report_stats) and none of reports, data, email, first name, visitor id or country', queries.length >= 10 && queries.every(q => (q.match(/public\.("?\w+"?)/g) || []).every(t => t === 'public."report_stats"') && /public\."report_stats"/.test(q) && !/\breports\b|\bdata\b|email|first_?name|\bsid\b|country|\bevents\b/i.test(q)), queries.find(q => /\breports\b|\bdata\b|email|first_?name|\bsid\b|country|\bevents\b/i.test(q)));
+ck('and the module’s own text never names the raw table', !/\breports\b|public\.reports/.test((await import('node:fs')).readFileSync(new URL('../../lib/ops/reportdata.js', import.meta.url), 'utf8').replace(/\/\/.*$/gm, '')));
 ck('every column a query uses is in REPORT_SCHEMA (nothing else is ever selected)', queries.every(q => (q.match(/"[a-z_]+"/g) || []).every(c => [R.REPORT_SCHEMA.table, R.REPORT_SCHEMA.archetype, R.REPORT_SCHEMA.takenAt, R.REPORT_SCHEMA.utmSource, R.REPORT_SCHEMA.utmCampaign, R.REPORT_SCHEMA.utmContent, ...Object.values(R.REPORT_SCHEMA.categories).map(x => x.column)].includes(c.replace(/"/g, '')))));
-const keep = R.REPORT_SCHEMA.archetype; R.REPORT_SCHEMA.archetype = 'email';
-const refused = await R.archetypeCounts(); R.REPORT_SCHEMA.archetype = keep;
-ck('a mapping that points at a personal column is refused, and nothing is read', refused.ok === false && !/@/.test(JSON.stringify(refused)));
+const keep = R.REPORT_SCHEMA.archetype, refusals = [];
+for (const bad of ['email', 'data', 'firstName', 'first_name', 'full_name', 'phone']) { R.REPORT_SCHEMA.archetype = bad; const r = await R.archetypeCounts(); refusals.push([bad, r.ok === false && !/@/.test(JSON.stringify(r))]); }
+R.REPORT_SCHEMA.archetype = keep;
+ck('a mapping that points at a personal column (email, data, firstName, first_name, full_name, phone) is refused, and nothing is read', refusals.every(r => r[1]), JSON.stringify(refusals));
+console.log('-- the read-only login: the raw table is closed to it');
+const who = await R.reportTestSelect('SELECT current_user AS u');
+ck('the synthetic quiz runs as the read-only login (ops_reader), as production does', who[0].u === 'ops_reader');
+const denied = async q => { try { await R.reportTestSelect(q); return false; } catch (e) { return /permission denied/i.test(String(e.message)); } };
+ck('reading the raw table is denied (the email, the stored data, and a count)', await denied('SELECT email FROM public.reports') && await denied('SELECT data FROM public.reports') && await denied('SELECT COUNT(*) FROM public.reports'));
+const priv = (await R.reportTestSelect(`SELECT has_table_privilege(current_user, 'public.report_stats', 'SELECT') AS view_read, has_table_privilege(current_user, 'public.events', 'SELECT') AS events_read, has_table_privilege(current_user, 'public.report_stats', 'INSERT,UPDATE,DELETE') AS view_write, has_table_privilege(current_user, 'public.events', 'INSERT,UPDATE,DELETE') AS events_write, has_table_privilege(current_user, 'public.reports', 'SELECT') AS raw_read`))[0];
+ck('it can read the view and the events, cannot write either, and cannot read the raw table (what /api/ops/report-check asks)', priv.view_read && priv.events_read && !priv.view_write && !priv.events_write && !priv.raw_read, JSON.stringify(priv));
+ck('the view holds no name or email, only the answers: its columns are the safe list', (await R.reportTestSelect(`SELECT string_agg(column_name::text, ',' ORDER BY ordinal_position) AS cols FROM information_schema.columns WHERE table_name = 'report_stats' AND table_schema = 'public'`))[0].cols === 'created_at,archetype,archetype2,stage,draw,edge,fam,roles,heard_from,sid,country,utm_source,utm_medium,utm_campaign,utm_content');
+const keepT = R.REPORT_SCHEMA.table; R.REPORT_SCHEMA.table = 'a_view_that_is_not_there';
+const noView = await R.archetypeCounts(); R.REPORT_SCHEMA.table = 'reports'; R.REPORT_SCHEMA.archetype = 'created_at';
+const closed = await R.archetypeCounts(); R.REPORT_SCHEMA.table = keepT; R.REPORT_SCHEMA.archetype = keep;
+ck('a missing view is said in plain words, with where the SQL is (no connection string)', noView.ok === false && /safe summary view doesn’t exist/.test(noView.error) && /report_stats/.test(noView.todo) && /ops-handoff\.md/.test(noView.todo) && !/postgres/i.test(JSON.stringify(noView)), JSON.stringify(noView));
+ck('a login that is not allowed to read it says so, also in plain words', closed.ok === false && /isn’t allowed to read/.test(closed.error) && /GRANT SELECT/.test(closed.todo), JSON.stringify(closed));
 const ideas = L.audienceIdeas(arch);
 ck('new audience ideas are plain sentences with the count behind them, and say when the group is too small for a lookalike', ideas.length === 3 && /^A lookalike of people who got “The Contemplative” \(30 people\)/.test(ideas[0].text) && /small group/.test(ideas[0].text) && ideas[0].enough === false && L.audienceIdeas({ ok: true, archetypes: [{ archetype: 'X', count: 250 }] })[0].enough === true && L.audienceIdeas(off[0]).length === 0);
 
