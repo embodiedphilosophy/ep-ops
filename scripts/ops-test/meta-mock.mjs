@@ -13,6 +13,9 @@
 // Ad history (Ads › What we've learned): GET /__world?name=history is a synthetic account with 20 weeks of history: 7 campaigns (sales, sign-ups, visits), ad sets aimed at interests, lookalikes, a warm list or everyone,
 // 40 ads with varied creatives (image, video, carousel, and Ops-style asset feeds; every ad's words carry a marker that must never be kept or shown), mixed performance, a few ads with very little spend.
 // level=ad insights are answered for any time_range (one row per ad, added up). Modes: ?histFlip=1 (video and warm-list ads turn out badly from then on), ?rateLimitInsightsOnce=1: the next ad-level insights request answers with Meta's rate-limit code 17, then it goes back to normal.
+// Hands-on buttons (Ads account view): in world 'account' (and the others) a POST of status ACTIVE|PAUSED or daily_budget (cents) to a campaign id or to one of its ad sets (as_<campaign>[_n]) is
+// ACCEPTED and kept (so the next read shows it, and /__log records it); GET /__touch?id=W_OPEN&status=PAUSED&daily=4000 changes it as if someone did it in Meta's own tool (not logged as a write);
+// /__mode?failWriteId=as_W_SETS_2 makes a write to that id answer with a Meta error. A campaign read by id also answers account_id (MOCK1) and objective, as Meta does.
 // The log records the method, the path, the body (hashes shortened) and whether a Bearer token was present, never the token itself.
 // The mock refuses a campaign, ad set or ad that is not PAUSED, as a check on the client.
 import http from 'node:http';
@@ -20,8 +23,9 @@ import http from 'node:http';
 const PORT = Number(process.env.META_MOCK_PORT || 4556);
 const V = '/v21.0';
 const log = [];
-const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, rateLimitInsightsOnce: false, histFlip: false };
+const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false };
 let worldName = '';
+const over = {};   // what the buttons (or /__touch) changed in the world's campaigns and ad sets: id → { status?, daily? }
 const objects = { campaigns: [], adsets: [], adcreatives: [], ads: [], adimages: [], customaudiences: [], users: {} };
 let counter = 0;
 
@@ -76,7 +80,7 @@ function worldCampaigns(name) {
     c('W_LOW', 'Weak return test', { stopDays: 5, hist: 5000, today: 400, roas: 0.6, daily: 6000, startDays: -20 }),
     c('W_PAUSED', 'Paused autumn test', { status: 'PAUSED', effective_status: 'PAUSED', stopDays: 8, hist: 0, today: 0, roas: 0, daily: 2000, startDays: -30 }),
     c('W_ARCH', 'Old 2025 sale', { status: 'ARCHIVED', effective_status: 'ARCHIVED', stopDays: -200, hist: 0, today: 0, roas: 0, startDays: -300 }),
-    c('W_SETS', 'Quiet evergreen (budget on its ad sets)', { stopDays: 12, hist: 1000, today: 100, roas: 2.5, setBudget: 1500, startDays: -15 }),
+    c('W_SETS', 'Quiet evergreen (budget on its ad sets)', { stopDays: 12, hist: 1000, today: 100, roas: 2.5, sets: [1000, 500], startDays: -15 }),
     c('W_ENDED', 'Finished retreat push', { status: 'PAUSED', effective_status: 'PAUSED', stopDays: -9, hist: 1500, today: 0, roas: 2, daily: 4000, startDays: -40 }),
   ];
   return [...base,
@@ -87,9 +91,10 @@ function worldCampaigns(name) {
     c('W_LOW', 'Weak return test', { stopDays: 5, hist: 5000, today: 400, roas: 0.6 }),
   ];
 }
-const asMeta = c => ({ id: c.id, name: c.name, objective: c.objective, status: c.status, effective_status: c.effective_status, created_time: c.created_time, ...(c.stopDays != null ? { stop_time: new Date(Date.now() + c.stopDays * DAYS).toISOString() } : {}),
-  ...(c.daily ? { daily_budget: String(c.daily) } : {}), ...(c.lifetime ? { lifetime_budget: String(c.lifetime) } : {}), ...(c.startDays != null ? { start_time: new Date(Date.now() + c.startDays * DAYS).toISOString() } : {}) });
-const setsOf = list => list.map(c => ({ id: `as_${c.id}`, name: `Ad set of ${c.name}`, campaign_id: c.id, status: 'ACTIVE', effective_status: 'ACTIVE', ...(c.setBudget ? { daily_budget: String(c.setBudget) } : {}), ...(c.stopDays != null ? { end_time: new Date(Date.now() + c.stopDays * DAYS).toISOString() } : {}) }));
+const asMeta = c0 => { const c = { ...c0, ...(over[c0.id] || {}) }; return { id: c.id, name: c.name, objective: c.objective, status: c.status, effective_status: over[c.id]?.status || c.effective_status, created_time: c.created_time, ...(c.stopDays != null ? { stop_time: new Date(Date.now() + c.stopDays * DAYS).toISOString() } : {}),
+  ...(c.daily ? { daily_budget: String(c.daily) } : {}), ...(c.lifetime ? { lifetime_budget: String(c.lifetime) } : {}), ...(c.startDays != null ? { start_time: new Date(Date.now() + c.startDays * DAYS).toISOString() } : {}) }; };
+const setsOf = list => list.flatMap(c => (c.sets || [c.setBudget || 0]).map((b, i, all) => { const id = all.length > 1 || c.sets ? `as_${c.id}_${i + 1}` : `as_${c.id}`, o = over[id] || {}, daily = o.daily ?? b;
+  return { id, name: `Ad set of ${c.name}${all.length > 1 ? ` ${i + 1}` : ''}`, campaign_id: c.id, status: o.status || 'ACTIVE', effective_status: o.status || 'ACTIVE', ...(daily ? { daily_budget: String(daily) } : {}), ...(c.stopDays != null ? { end_time: new Date(Date.now() + c.stopDays * DAYS).toISOString() } : {}) }; }));
 const WORLD_ISSUES = [{ id: 'ad_bad1', name: 'Retreat video ad', campaign_id: 'W_PAST', effective_status: 'DISAPPROVED' }];
 const dayDiff = (a, b) => Math.round((Date.parse(a + 'T12:00:00Z') - Date.parse(b + 'T12:00:00Z')) / DAYS);
 function worldInsights(list, level, since, until) {
@@ -179,10 +184,11 @@ function histInsights(since, until) {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   if (p === '/__log') { const out = { total: log.length, requests: log.slice() }; if (url.searchParams.get('reset')) log.length = 0; return send(res, 200, out); }
-  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
+  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
+  if (p === '/__touch') { const id = url.searchParams.get('id'), st = url.searchParams.get('status'), dl = url.searchParams.get('daily'); over[id] = { ...(over[id] || {}), ...(st ? { status: st } : {}), ...(dl ? { daily: Number(dl) } : {}) }; return send(res, 200, { id, ...over[id] }); }
   if (p === '/__world') { worldName = url.searchParams.get('name') || ''; return send(res, 200, { world: worldName || 'off', campaigns: (worldCampaigns(worldName) || []).length }); }
   if (p === '/__mode') {
-    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize'].includes(k) ? Number(v) : v === '1';
+    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize'].includes(k) ? Number(v) : k === 'failWriteId' ? v : v === '1';
     return send(res, 200, mode);
   }
   if (p === '/__state') return send(res, 200, Object.fromEntries(Object.entries(objects).map(([k, v]) => [k, Array.isArray(v) ? v : Object.fromEntries(Object.entries(v).map(([a, b]) => [a, b.length]))])));
@@ -217,8 +223,9 @@ http.createServer(async (req, res) => {
     }
     const W = worldCampaigns(worldName);
     if (W && second === 'campaigns') return page(res, url, W.map(asMeta));
-    if (W && second === 'adsets') return mode.failAdsets ? fail(res, '(mock) ad sets are down', 2, 500) : page(res, url, setsOf(W));
+    if (W && second === 'adsets') return mode.failAdsets ? fail(res, '(mock) ad sets are down', 2, 500) : page(res, url, setsOf(W).filter(x => /^act_/.test(first) || x.campaign_id === first));
     if (W && second === 'ads') return page(res, url, worldName === 'trouble' ? WORLD_ISSUES : []);
+    if (W && !second) { const c = W.find(x => x.id === first), a = setsOf(W).find(x => x.id === first); if (c) return send(res, 200, { ...asMeta(c), account_id: 'MOCK1' }); if (a) return send(res, 200, a); }
     if (second === 'campaigns') return send(res, 200, { data: objects.campaigns });
     if (second === 'customaudiences') return send(res, 200, { data: objects.customaudiences });
     if (second === 'insights') {
@@ -228,7 +235,7 @@ http.createServer(async (req, res) => {
       let only = ''; try { only = (JSON.parse(url.searchParams.get('filtering') || '[]').find(f => f.field === 'campaign.id') || {}).value || ''; } catch {}
       return send(res, 200, { data: insights(url.searchParams.get('level'), only) });
     }
-    if (!second) { const o = Object.values(objects).flat().find(x => x?.id === first); if (o) return send(res, 200, { id: o.id, name: o.name, status: o.status, effective_status: o.status, ...(o.daily_budget ? { daily_budget: o.daily_budget } : {}) }); }
+    if (!second) { const o = Object.values(objects).flat().find(x => x?.id === first); if (o) return send(res, 200, { id: o.id, name: o.name, status: o.status, effective_status: o.status, ...(o.objective ? { objective: o.objective, account_id: 'MOCK1' } : {}), ...(o.daily_budget ? { daily_budget: o.daily_budget } : {}), ...(o.lifetime_budget ? { lifetime_budget: o.lifetime_budget } : {}) }); }
     return fail(res, 'Unsupported get request', 100, 400);
   }
 
@@ -247,7 +254,14 @@ http.createServer(async (req, res) => {
     objects.users[first] = [...(objects.users[first] || []), ...valid.map(r => r[0].slice(0, 8))];
     return send(res, 200, { audience_id: first, num_received: data.length, num_invalid_entries: data.length - valid.length });
   }
+  if (!second && mode.failWriteId && first === mode.failWriteId) return fail(res, '(mock) Meta refused this change.', 100);
   if (!second) {
+    const W = worldCampaigns(worldName), wc = W && W.find(x => x.id === first), wa = W && setsOf(W).find(x => x.id === first);
+    if (wc || wa) {   // a campaign or ad set of the world: a status and a daily budget may change, and are kept
+      const o = {}; if (b.status !== undefined) { if (!['ACTIVE', 'PAUSED'].includes(b.status)) return fail(res, 'Invalid status (mock).'); o.status = b.status; }
+      if (b.daily_budget !== undefined) { const n = Number(b.daily_budget); if (!Number.isInteger(n) || n < 100) return fail(res, 'Invalid daily budget (mock).'); o.daily = n; }
+      over[first] = { ...(over[first] || {}), ...o }; return send(res, 200, { success: true });
+    }
     const o = Object.values(objects).flat().find(x => x?.id === first);
     if (!o) return fail(res, 'Unsupported post request: object does not exist', 100);
     Object.assign(o, b); return send(res, 200, { success: true });

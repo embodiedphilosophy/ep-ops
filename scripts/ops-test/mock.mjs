@@ -266,6 +266,10 @@ const buyProducts = [['Kali: the dark mother', 150], ['Meditation Pass', 20], ['
 const circlePurchases = Array.from({ length: 22 }, (_, i) => { const [name, price] = buyProducts[i % 4], n = i < 13 ? 1 + (i % 6) : 8 + (i % 6); return { id: 7000 + i, status: 'paid', created_at: daysAgo(n), amount_cents: price * 100, currency: 'usd', paywall: { id: 300 + (i % 4), name }, utm_campaign: i % 3 === 0 ? 'kali-winter-2027' : '', member: { id: 800 + i, name: `Circle ${MARK} Buyer ${i}`, email: `circle.marker.buyer.${i}@example.invalid` } }; });
 const kitPurchases = Array.from({ length: 16 }, (_, i) => { const [name, price] = buyProducts[(i + 1) % 4], n = i < 9 ? 1 + (i % 6) : 8 + (i % 6); return { id: 6000 + i, status: 'paid', transaction_id: `KITTXN-MARKER-${i}`, transaction_time: daysAgo(n), total: price, currency: 'USD', email_address: `kit.marker.buyer.${i}@example.invalid`, subscriber: { id: 900 + i, first_name: `Kit ${MARK} Buyer ${i}`, email_address: `kit.marker.buyer.${i}@example.invalid` }, utm_campaign: i % 4 === 0 ? 'kali-winter-2027' : '', products: [{ pid: 40 + ((i + 1) % 4), name, quantity: 1, unit_price: price, sku: '' }] }; });
 const kitSent = [{ id: 31, subject: '[E002] Promo #3', published_at: daysAgo(2), r: 1000, o: 42, c: 6.5 }, { id: 32, subject: '[E002] Promo #4', published_at: daysAgo(4), r: 900, o: 38, c: 5 }, { id: 33, subject: 'A note from the week before', published_at: daysAgo(9), r: 1000, o: 30, c: 3 }];
+// Real sales for the ads rules (GET /__sales?reset=1 | ?add=kit|circle&utm=tag&count=3&cents=10000&day=2026-11-20 | ?untagged=1): extra purchases tagged for a test campaign, each with a MARKER
+// buyer address that must never leave; untagged=1 strips the campaign tag from the built-in purchases (tagging "not working").
+const extraSales = { kit: [], circle: [], untagged: false };
+const salesOf = (list, extra) => [...list.map(p => (extraSales.untagged ? { ...p, utm_campaign: '' } : p)), ...extra];
 const circleData = {
   spaces: [
     { id: 2001, name: 'Meditation Mondays: November', slug: 'mm-nov', space_type: 'course', status: 'published', cover_image_url: 'http://localhost:4555/img/cover.png' },
@@ -330,6 +334,15 @@ http.createServer(async (req, res) => {
   try {
     if (p === '/token' && req.method === 'POST') return send(res, 200, { access_token: 'mock', expires_in: 3600 });
     // Sheet-read counter for the tests (EP Ops 2 step 9): GET /__reads lists every sheet read since the last GET /__reads?reset=1
+    if (p === '/__sales') {
+      if (url.searchParams.get('reset')) { extraSales.kit = []; extraSales.circle = []; extraSales.untagged = false; }
+      if (url.searchParams.get('untagged')) extraSales.untagged = url.searchParams.get('untagged') === '1';
+      const src = url.searchParams.get('add');
+      if (src) for (let i = 0; i < (Number(url.searchParams.get('count')) || 1); i++) { const n = 100 + extraSales.kit.length + extraSales.circle.length, at = url.searchParams.get('day') ? `${url.searchParams.get('day')}T17:00:00Z` : daysAgo(1), usd = (Number(url.searchParams.get('cents')) || 10000) / 100, utm = url.searchParams.get('utm') || '';
+        extraSales[src].push(src === 'kit' ? { id: 9000 + n, status: 'paid', transaction_time: at, total: usd, currency: 'USD', email_address: `kit.sales.marker.${n}@example.invalid`, utm_campaign: utm, products: [{ pid: 41, name: 'Meditation Pass', quantity: 1, unit_price: usd }] }
+          : { id: 9500 + n, status: 'paid', created_at: at, amount_cents: usd * 100, paywall: { id: 301, name: 'Meditation Pass' }, utm_campaign: utm, member: { id: 7000 + n, name: `Circle ${MARK} Sales ${n}`, email: `circle.sales.marker.${n}@example.invalid` } }); }
+      return send(res, 200, { kit: extraSales.kit.length, circle: extraSales.circle.length, untagged: extraSales.untagged });
+    }
     if (p === '/__insights') { for (const [k, v] of url.searchParams) ins[k] = k === 'bad' || k === 'broadcasts' ? v === '1' : v; return send(res, 200, ins); }
     if (p === '/__anthropic-log') { const out = anthropicLog.slice(); if (url.searchParams.get('reset')) anthropicLog.length = 0; return send(res, 200, out); }
     if (p === '/__reads') { const out = { total: readLog.length, reads: readLog.slice() }; if (url.searchParams.get('reset')) readLog.length = 0; return send(res, 200, out); }
@@ -396,7 +409,7 @@ http.createServer(async (req, res) => {
       if (p === '/circle/events') return list(circleData.events);
       if (p === '/circle/course_sections') return list(circleData.sections.filter(x => String(x.space_id) === url.searchParams.get('space_id')));
       const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
-      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : /^(401|403|429)$/.test(ins.circle) ? send(res, Number(ins.circle), { message: 'mock refusal' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(circlePurchases);
+      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : /^(401|403|429)$/.test(ins.circle) ? send(res, Number(ins.circle), { message: 'mock refusal' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(salesOf(circlePurchases, extraSales.circle));
       if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
       return send(res, 404, { message: 'not found' });
@@ -550,7 +563,7 @@ http.createServer(async (req, res) => {
       return send(res, 404, {});
     }
     if (p.startsWith('/kit/')) {
-      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : /^(401|403|404|429)$/.test(ins.kit) ? send(res, Number(ins.kit), { error: 'mock refusal' }) : send(res, 200, { purchases: kitPurchases, pagination: { has_next_page: false } });
+      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : /^(401|403|404|429)$/.test(ins.kit) ? send(res, Number(ins.kit), { error: 'mock refusal' }) : send(res, 200, { purchases: salesOf(kitPurchases, extraSales.kit), pagination: { has_next_page: false } });
       if (req.method === 'GET' && p.endsWith('/products')) return send(res, 200, { products: buyProducts.map(([name], i) => ({ id: 40 + i, name })), pagination: {} });
       { const sm = p.match(/\/broadcasts\/(\d+)\/stats$/); if (req.method === 'GET' && sm) { const b = [...kitSent, { id: 12, r: 800, o: 40, c: 5 }].find(x => x.id === Number(sm[1])); return ins.kit === 'fail' || !b ? send(res, ins.kit === 'fail' ? 500 : 404, {}) : send(res, 200, { broadcast: { id: b.id, stats: { recipients: b.r, open_rate: b.o, click_rate: b.c, emails_opened: Math.round(b.r * b.o / 100), total_clicks: Math.round(b.r * b.c / 100) } } }); }
       }

@@ -72,9 +72,9 @@ await A.saveConfig({ daily_ceiling_cents: '100', monthly_ceiling_cents: '5000' }
 await A.saveRecipient('director@example.test', { phone: P1 }, 'Jacob Test', team); await A.saveRecipient('ads@example.test', { phone: P2 }, 'Jacob Test', team);
 const h1 = await run(NOON);
 ck('no alert, no message, and every card green', h1.alerts.length === 0 && mails.length === 0 && (await tw()).total === 0 && h1.board.every(c => c.status === 'green'), JSON.stringify(h1.board.map(c => [c.id, c.status])));
-ck('the six cards are there', h1.board.map(c => c.id).sort().join() === 'account,forgotten,heartbeat,spend,spike,tracking');
+ck('the seven cards are there', h1.board.map(c => c.id).sort().join() === 'account,forgotten,heartbeat,sales,spend,spike,tracking');
 const st = await W.getWatchState();
-ck('the run is remembered: when it last read Meta, the numbers, the board', st.last_ok_at === NOON.toISOString() && st.numbers.spent_today_cents === 1000 && st.numbers.daily_ceiling_cents === 10000 && st.numbers.open_ended === 0 && st.board.length === 6);
+ck('the run is remembered: when it last read Meta, the numbers, the board', st.last_ok_at === NOON.toISOString() && st.numbers.spent_today_cents === 1000 && st.numbers.daily_ceiling_cents === 10000 && st.numbers.open_ended === 0 && st.board.length === 7);
 ck('the alert log table was made only now (the first real run), and holds no alert', (await tables()).log && (await S.peekRows('alerts', {})).length === 0);
 
 console.log('-- ceilings');
