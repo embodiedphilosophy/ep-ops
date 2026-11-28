@@ -98,7 +98,7 @@ const NEW_PLACES = /^\/ops(\/(programs|tasks|people|publish|ads|students|busines
       if (!g) continue; n++;
       t(`${u} goes to a new place`, NEW_PLACES.test(decodeURIComponent(g.pathname)), g.pathname);
       t(`${u} keeps its query string`, g.searchParams.get('zz') === '1', loc);
-      for (const [k, v] of q) t(`${u} keeps ?${k}=`, g.searchParams.get(k) === v || k === 'tab' || k === 'event', loc);
+      for (const [k, v] of q) t(`${u} keeps ?${k}=`, g.searchParams.get(k) === v || k === 'tab' || k === 'event' || (k === 'view' && /[?&]view=/.test(r.destination)), loc);   // the view name may change when the destination names its own (Business ?view=audience → Ads ?view=insights)
       if (!r.source.includes(':id')) { const fin = await get(g.pathname + g.search); t(`${u} lands on a page that loads (no second redirect)`, fin.status === 200, `${fin.status} ${fin.headers.get('location') || ''}`); }
     }
     t('every old address was exercised', n >= REDIRECTS.length, `${n} of ${REDIRECTS.length}`);

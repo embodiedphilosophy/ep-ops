@@ -3,7 +3,9 @@ import { dedupe, visibleTo } from '@/lib/ops/tasks';
 import { loadCalendar } from '@/lib/calendar';
 import { todayET } from '@/lib/events';
 import { readinessRows } from '@/lib/ops/readiness';
-import { isTeacher, canEditEvents, isStaff } from '@/lib/ops/nav';
+import { isTeacher, canEditEvents, isStaff, canAds } from '@/lib/ops/nav';
+import { sentIdeas } from '@/lib/ops/adsinsights';
+import IdeasStrip from './IdeasStrip';
 import { sheetChecks } from '@/lib/ops/sheetchecks';
 import { readRange, toObjects } from '@/lib/google';
 import { readPlain } from '@/lib/ops/store';
@@ -84,13 +86,16 @@ export default async function ProgramsIndex({ searchParams }) {
         {staff && <td>{r.circle ? <span className={`pg-circle ${r.circle.state}`}>{r.circle.text}</span> : <span className="none">—</span>}</td>}
       </tr>);
   };
+  // Ideas from Ads (Ads PR 5): read from the dashboard's own database, only for directors and the Ads role, and only if the Ads tables exist (reading makes none)
+  const ideas = staff && canAds(user) ? await sentIdeas().catch(() => []) : [];
+  const pick = ideas.find(i => i.id === first(sp.idea));
   const cols = staff ? 6 : 4;
   const head = (<>
     <nav className="ops-filters" aria-label="How to show the programs">
       <a href={href(sp, { layout: '' })} aria-current={!calendar ? 'page' : undefined}>List</a>
       <a href={href(sp, { layout: 'calendar' })} aria-current={calendar ? 'page' : undefined}>Calendar</a>
     </nav>
-    {editor && <div className="pg-add"><AddEvent tracks={tracks} /><AddProgram tracks={tracks} past={pastPrograms} /></div>}
+    {editor && <div className="pg-add"><AddEvent tracks={tracks} /><AddProgram key={pick?.id || 'blank'} tracks={tracks} past={pastPrograms} initial={pick ? { name: pick.title, parent: pick.parent, track: pick.track } : null} /></div>}
   </>);
   const issues = editor ? sheetChecks(fullCal) : [];
 
@@ -101,6 +106,7 @@ export default async function ProgramsIndex({ searchParams }) {
         <nav className="pg-chips" aria-label="Which programs">
           {GROUPS.map(([k, label]) => <a key={k} href={href(sp, { program: k === 'all' ? '' : k })} aria-current={chip === k ? 'page' : undefined}>{label}{k !== 'all' && count(k) > 0 && <span className="n">{count(k)}</span>}</a>)}
         </nav>)}
+      <IdeasStrip ideas={ideas} user={user} />
       {issues.length > 0 && (
         <details className="ops-sheetchecks">
           <summary>{issues.length} thing{issues.length === 1 ? '' : 's'} on the Master Schedule look{issues.length === 1 ? 's' : ''} off</summary>

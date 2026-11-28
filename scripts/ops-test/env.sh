@@ -59,3 +59,8 @@ if [ "$MOCK_TWILIO" = both ] || [ "$MOCK_TWILIO" = template ]; then export TWILI
 [ "$MOCK_TWILIO" = template ] && export TWILIO_WHATSAPP_TEMPLATE_SID=HXmocktemplate00000000000000000000
 # MOCK_META=ready (alert flows only): the Meta key, ad account and pixel set (the safety switch stays OFF: reads need only the key) so the watchdog has an account to read at the mock.
 if [ "$MOCK_META" = ready ]; then export META_ADS_TOKEN=mock-ads-token-for-the-safety-test META_AD_ACCOUNT_ID=act_MOCK1 META_PIXEL_ID=PIX1 META_PAGE_ID=PAGE1; fi
+# Ads PR 5 (Audience insights, ads-insights.sh only): switch a source off by taking its key away (the Circle and Kit keys are throwaway words that only the mock accepts).
+# MOCK_NOCIRCLE=1: no Circle key. MOCK_NOKIT=1: no Kit key. (MOCK_NOKEY=1 above: no Anthropic key; MOCK_REPORT=1 above: the synthetic quiz.)
+[ "$MOCK_NOCIRCLE" = 1 ] && unset CIRCLE_API_TOKEN
+[ "$MOCK_NOKIT" = 1 ] && unset KIT_API_KEY
+true

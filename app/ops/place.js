@@ -24,8 +24,8 @@ const LOADERS = {
     overview: () => import('./students/Overview'), support: () => import('./students/SupportView'), mentee: () => import('./students/MenteeView'),
     pods: () => import('./students/PodsView'), 'one-to-ones': () => import('./students/OneToOnesView'), ce: () => import('./students/CeView'),
   },
-  ads: { campaigns: () => import('./ads/CampaignsView'), library: () => import('./ads/LibraryView'), safety: () => import('./ads/SafetyView') },
-  business: { finance: () => import('./business/FinanceView'), payroll: () => import('./business/PayrollView'), audience: () => import('./business/AudienceView') },
+  ads: { campaigns: () => import('./ads/CampaignsView'), library: () => import('./ads/LibraryView'), safety: () => import('./ads/SafetyView'), insights: () => import('./ads/InsightsView') },
+  business: { finance: () => import('./business/FinanceView'), payroll: () => import('./business/PayrollView') },
   settings: { team: group('team'), templates: group('templates'), website: group('website'), connections: group('connections') },
 };
 const first = v => (Array.isArray(v) ? v[0] : v) || '';
@@ -43,8 +43,6 @@ function wanted(place, sp) {
     if (v === 'email-calendar') return { view: 'calendar', sp: { ...sp, view: 'calendar', show: 'email' } };
     if (v === 'compose-email') return { view: 'compose', sp: { ...sp, view: 'compose', kind: 'email' } };
   }
-  // Business: the older Insights address carried the funnel's period (?f=); that block is now the Audience view
-  if (place === 'business' && !v && first(sp.f)) return { view: 'audience', sp: { ...sp, view: 'audience' } };
   // Settings: the older ?t=<table> and ?view=tables | team | social-rules | reminders addresses open the right group and section
   if (place === 'settings') { const o = oldSettingsAddress(sp); if (o) return { view: o.view || '', sp: { ...sp, ...o } }; }
   // Students: the older Surveys and Partners views are tabs of the Mentee year (the old Settings pages)
