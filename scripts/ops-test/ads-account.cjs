@@ -123,7 +123,7 @@ const num = t => Number(String(t).replace(/[^0-9.]/g, '') || 0);
     ck('every row opens Meta Ads Manager in a new tab, with the campaign in the link and no key', links.length === n && links.every(([h, tg, rel, tx]) => /^https:\/\/adsmanager\.facebook\.com\/adsmanager\/manage\/campaigns\?act=MOCK1&selected_campaign_ids=/.test(h) && tg === '_blank' && /noopener/.test(rel) && tx === 'Open in Meta Ads Manager' && !KEYS.test(h)));
     ck('the "as of" time is shown', /As of \d{1,2}:\d{2} (AM|PM)/.test(t), t.slice(0, 200));
     ck('the Ops campaigns list, the Ad Agent panel and the who-sees-this note are still on the page', await p.locator('section[aria-label="Campaigns"]').count() === 1 && await p.locator('section[aria-label="What the Ad Agent did today"]').count() === 1 && await p.locator('.ads-kpis').count() === 1);
-    ck('the Ads place still has its four tabs, Campaigns current', (await p.locator('nav[aria-label="ads views"] a').allInnerTexts()).join() === 'Campaigns,Audience library,Safety net,Audience insights');
+    ck('the Ads place still has its four tabs, Campaigns current', (await p.locator('nav[aria-label="ads views"] a').allInnerTexts()).join() === 'Campaigns,Audience library,Safety net,Audience insights,What we’ve learned');
     console.log('-- Refresh, once a minute');
     const before = (await meta()).total, btn = sec.getByRole('button', { name: 'Refresh from Meta' });
     await btn.click(); await sec.getByText('Asked Meta again.').waitFor();

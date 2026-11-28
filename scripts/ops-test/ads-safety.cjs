@@ -6,6 +6,7 @@
 //    the board and can acknowledge but gets no settings and no number; Floss gets no tab; phone width (390px) on every page; opening a page posts nothing.
 // b: the Settings section says "Not set up", a test alert says so, the log says "WhatsApp not set up".  c: the red "No Meta token set" and the "Set your ceilings" prompt. Mock only.
 const { chromium } = require('./pw.cjs');
+const hourNY = +new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date()), FLAGGED = hourNY >= 4 ? 5 : 4;
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const PHASE = process.argv[2] || 'a';
 const U = 'http://localhost:3100', OUT = path.join(__dirname, 'out');
@@ -27,7 +28,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     console.log('-- the Safety net tab (director)');
     await p.goto(U + '/ops/ads?view=safety'); await p.waitForSelector('.ads-board');
     const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the last current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Safety net', tabs.join());
+    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the last current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Safety net', tabs.join());
     ck('opening the page posts nothing', p.posts.length === 0);
     const cards = await p.locator('.ads-board li').allInnerTexts();
     ck('seven cards, each with a green, amber or red pill', cards.length === 7 && cards.every(c => /All clear|Worth a look|Needs you now|Not checked/.test(c)), cards.join(' | ').slice(0, 300));
@@ -37,7 +38,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const kpi = (await p.innerText('.ads-kpis')).replace(/\n+/g, ' ');
     ck('the numbers: spent today of the $100 ceiling, this month of $5,000, the pixel, the account, the open-ended count', /Spent today\s*\$[\d,.]+\s*of your \$100 daily ceiling/.test(kpi) && /of \$5,000/.test(kpi) && /Pixel last fired\s*\d/.test(kpi) && /Account\s*Active/.test(kpi) && /Running with no end or cap\s*1/.test(kpi), kpi);
     const open = p.locator('[aria-label="Open alerts"] tbody tr');
-    ck('the open alerts are listed, urgent ones with the red pill, each with Acknowledge', await open.count() >= 7 && await open.locator('.ads-pill.bad').count() >= 4 && await open.locator('button', { hasText: 'Acknowledge' }).count() >= 7);
+    ck('the open alerts are listed, urgent ones with the red pill, each with Acknowledge', await open.count() >= 7 && await open.locator('.ads-pill.bad').count() >= 4 && await open.locator('button', { hasText: 'Acknowledge' }).count() >= (hourNY >= 4 ? 7 : 6));
     await open.first().locator('summary').click();
     ck('an alert opens to say what it says, in plain words, with the advice and a link', /What to do/.test(await open.first().innerText()));
     // Acknowledge one: the one for the low return
@@ -46,7 +47,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     await p.waitForSelector('text=Acknowledged. It won’t repeat for 72 hours');
     ck('Acknowledge says what it did and the row then shows who, when and until when', /Acknowledged by Jacob Kyle/.test(await p.locator('[aria-label="Open alerts"] tbody tr', { hasText: 'bringing back less than' }).innerText()), await p.locator('[aria-label="Open alerts"] tbody tr', { hasText: 'bringing back less than' }).innerText());
     const flagged = p.locator('[aria-label="Campaigns that need a look"] tbody tr');
-    ck('campaigns that need a look: five, each with an "Open in Meta Ads Manager" button that opens Meta’s tool with the account (no key)', await flagged.count() === 5 && await p.locator('a', { hasText: 'Open in Meta Ads Manager' }).count() === 5 && /^https:\/\/adsmanager\.facebook\.com\/adsmanager\/manage\/campaigns\?act=MOCK1/.test(await p.locator('a', { hasText: 'Open in Meta Ads Manager' }).first().getAttribute('href')) && !(await p.content()).includes('mock-ads-token'));
+    ck('campaigns that need a look: five (four before 04:00 in New York, when the spike check waits), each with an "Open in Meta Ads Manager" button that opens Meta’s tool with the account (no key)', await flagged.count() === FLAGGED && await p.locator('a', { hasText: 'Open in Meta Ads Manager' }).count() === FLAGGED && /^https:\/\/adsmanager\.facebook\.com\/adsmanager\/manage\/campaigns\?act=MOCK1/.test(await p.locator('a', { hasText: 'Open in Meta Ads Manager' }).first().getAttribute('href')) && !(await p.content()).includes('mock-ads-token'));
     ck('they say they were not built in Ops, and offer no Ops pause link', (await flagged.first().innerText()).includes('Not built in Ops') && await p.locator('a', { hasText: 'Open it here to pause' }).count() === 0);
     const log = (await p.innerText('[aria-label="Recent alerts"]')).replace(/\s+/g, ' ');
     ck('the recent alerts say who was told on which channel, and what was skipped and why', /Jacob Kyle: text sent, WhatsApp sent, email skipped \(Email isn’t set up/.test(log) && /Rebecka Oberg: text sent/.test(log), log.slice(0, 400));

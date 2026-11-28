@@ -241,3 +241,25 @@
 .ops-shell .acct-changes { margin-top: 16px }
 .ops-shell .acct-changes h3 { font-size: 15px; margin: 0 0 4px }
 .ops-shell .acct-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+
+/* What we've learned (the history of past ads) */
+.ops-shell .soc-btn.ls-btn { min-height: 44px }
+.ops-shell .ls-cover { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--card); border-radius: var(--r-ctl) }
+.ops-shell .ls-progress, .ops-shell .ls-cover p { margin: 0 }
+.ops-shell .ls-bar { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden }
+.ops-shell .ls-bar > span { display: block; height: 100%; background: var(--pine) }
+.ops-shell .ls-totals { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px }
+.ops-shell .ls-totals li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 14px; min-width: 0 }
+.ops-shell .ls-sec h3 { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 8px 0 2px }
+.ops-shell .ls-sec h3 .n { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-left: 6px }
+.ops-shell .ls-sec h4 { margin: 10px 0 2px; font-size: 13px; color: var(--ink-soft); font-weight: 500 }
+.ops-shell .ls-find { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.ops-shell .ls-find > li { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-ctl); min-width: 0 }
+.ops-shell .ls-find p { margin: 0 0 6px; line-height: 1.5; overflow-wrap: anywhere }
+.ops-shell .ls-pills { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center }
+.ops-shell .ls details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 13px; color: var(--pine) }
+.ops-shell .ls details ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13px }
+.ops-shell .ls .ls-ads { list-style: none; padding-left: 0 }
+.ops-shell .ls .ls-ads > li { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line-in) }
+.ops-shell .ls-few { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px }
+.ops-shell .ls-few li { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: var(--card); border-radius: var(--r-ctl); font-size: 13px; min-width: 0; overflow-wrap: anywhere }

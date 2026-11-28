@@ -10,6 +10,9 @@
 // Ads safety net: GET /__world?name=healthy|trouble|off makes the WHOLE ad account (not only what Ops built) answer from a crafted state: campaigns, ad sets, ads with issues and per-day results,
 // all relative to now. 'healthy' raises nothing; 'trouble' has one of every problem (past end, open-ended, no purchases, spike, low return, a rejected ad). Also /__mode?accountStatus=N (Meta's
 // account_status), ?failReads=1 (every read answers with a Meta error: for the heartbeat), ?pageSize=N (long lists come back in pages of N, with Meta's cursors).
+// Ad history (Ads › What we've learned): GET /__world?name=history is a synthetic account with 20 weeks of history: 7 campaigns (sales, sign-ups, visits), ad sets aimed at interests, lookalikes, a warm list or everyone,
+// 40 ads with varied creatives (image, video, carousel, and Ops-style asset feeds; every ad's words carry a marker that must never be kept or shown), mixed performance, a few ads with very little spend.
+// level=ad insights are answered for any time_range (one row per ad, added up). Modes: ?histFlip=1 (video and warm-list ads turn out badly from then on), ?rateLimitInsightsOnce=1: the next ad-level insights request answers with Meta's rate-limit code 17, then it goes back to normal.
 // Hands-on buttons (Ads account view): in world 'account' (and the others) a POST of status ACTIVE|PAUSED or daily_budget (cents) to a campaign id or to one of its ad sets (as_<campaign>[_n]) is
 // ACCEPTED and kept (so the next read shows it, and /__log records it); GET /__touch?id=W_OPEN&status=PAUSED&daily=4000 changes it as if someone did it in Meta's own tool (not logged as a write);
 // /__mode?failWriteId=as_W_SETS_2 makes a write to that id answer with a Meta error. A campaign read by id also answers account_id (MOCK1) and objective, as Meta does.
@@ -20,7 +23,7 @@ import http from 'node:http';
 const PORT = Number(process.env.META_MOCK_PORT || 4556);
 const V = '/v21.0';
 const log = [];
-const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '' };
+const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false };
 let worldName = '';
 const over = {};   // what the buttons (or /__touch) changed in the world's campaigns and ad sets: id → { status?, daily? }
 const objects = { campaigns: [], adsets: [], adcreatives: [], ads: [], adimages: [], customaudiences: [], users: {} };
@@ -112,10 +115,76 @@ function worldInsights(list, level, since, until) {
 }
 const page = (res, url, all) => { const n = mode.pageSize, after = Number(url.searchParams.get('after') || 0); if (!n) return send(res, 200, { data: all }); const slice = all.slice(after, after + n), more = after + n < all.length; return send(res, 200, { data: slice, paging: { cursors: { after: String(after + n) }, ...(more ? { next: 'https://not-followed.invalid/next' } : {}) } }); };
 
+
+// ---- The ad history world: 7 campaigns, ad sets of each audience kind, 40 ads, 20 weeks. Everything is derived from fixed numbers, so every run sees the same history.
+const COPY_MARKER = 'MARKER-COPY-7731 write to marker.buyer@example.invalid';
+const hash = str => { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
+const HIST_CAMPAIGNS = [
+  ['H_C1', 'Kali: winter enrollment [E034]', 'OUTCOME_SALES', 20, 12], ['H_C2', 'Kali: spring enrollment', 'OUTCOME_SALES', 14, 6], ['H_C3', 'Tantra: summer intensive', 'OUTCOME_SALES', 17, 9],
+  ['H_C4', 'Yoga Sutras: autumn course', 'OUTCOME_SALES', 9, 1], ['H_C5', 'Newsletter sign-ups', 'OUTCOME_LEADS', 19, 1], ['H_C6', 'Free guide sign-ups', 'OUTCOME_LEADS', 10, 1], ['H_C7', 'Blog traffic', 'OUTCOME_TRAFFIC', 12, 1],
+];
+const AUD = [
+  ['interest', { flexible_spec: [{ interests: [{ id: '1', name: 'Meditation' }] }] }], ['lookalike', { custom_audiences: [{ id: 'a1', name: 'Lookalike (1%) of buyers' }] }],
+  ['warm', { custom_audiences: [{ id: 'a2', name: 'Email list' }] }], ['broad', { age_min: 25 }], ['advantage', { targeting_automation: { advantage_audience: 1 } }],
+];
+const AUD_ROAS = { interest: 0.9, lookalike: 1.3, warm: 1.55, broad: 0.55, advantage: 1.0 }, FMT_ROAS = { image: 0.95, video: 1.3, carousel: 0.7 }, H_CPL = { interest: 4, lookalike: 2.5, warm: 1.5, broad: 6, advantage: 3 };
+const TITLES = ['Join us for eight Wednesdays', 'Is this the practice you have been missing?', '7 weeks with the goddess', 'How to sit with the dark mother', 'Begin the course'];
+const CTAS = ['LEARN_MORE', 'SIGN_UP', 'LEARN_MORE', 'SHOP_NOW', 'LEARN_MORE'];
+const bodyOf = len => (COPY_MARKER + ' ' + 'Words about the practice. '.repeat(40)).slice(0, len);
+const HIST = { campaigns: [], adsets: [], ads: [] };
+function buildHistory() {
+  if (HIST.ads.length) return;
+  const now = Date.now();
+  for (const [id, name, objective, weeksAgo, nSets] of HIST_CAMPAIGNS) {
+    const created = new Date(now - weeksAgo * 7 * DAYS - 2 * DAYS), end = id === 'H_C1' ? 8 : id === 'H_C3' ? 4 : 0;   // some ended: days since the end, in weeks
+    HIST.campaigns.push({ id, name, objective, created, endsWeeksAgo: end, daily_budget: ['H_C2', 'H_C6'].includes(id) ? '1500' : undefined });
+    const sets = id === 'H_C4' || id === 'H_C6' || id === 'H_C7' ? 2 : 3;
+    for (let k = 0; k < sets; k++) {
+      const [akind, targeting] = AUD[(HIST_CAMPAIGNS.findIndex(c => c[0] === id) + k) % AUD.length], sid = `${id}_S${k + 1}`;
+      HIST.adsets.push({ id: sid, campaign_id: id, name: `${name.split(':')[0]} · ${akind} ${k + 1}`, akind, targeting, daily_budget: [1000, 3000, 6000][k % 3] });
+    }
+  }
+  let n = 0;
+  const PER_SET = { H_C1: 3, H_C2: 3, H_C3: 3, H_C4: 1, H_C5: 2, H_C6: 2, H_C7: 1 };   // 27 + 2 + 6 + 4 + 2 = 41 ads, the first 40 are kept
+  for (const s of HIST.adsets) {
+    const c = HIST.campaigns.find(x => x.id === s.campaign_id);
+    for (let k = 0; k < PER_SET[c.id] && n < 40; k++, n++) {
+      const fmt = ['image', 'video', 'carousel'][(n + k) % 3], title = TITLES[n % 5], len = [90, 200, 420][n % 3], cta = CTAS[n % 5], style = n % 4;
+      const creative = style === 0 ? { object_type: 'SHARE', title, body: bodyOf(len), call_to_action_type: cta, ...(fmt === 'video' ? { video_id: `v${n}` } : fmt === 'image' ? { image_hash: `h${n}` } : { object_story_spec: { link_data: { message: bodyOf(len), child_attachments: [{ name: 'a' }, { name: 'b' }] } } }) }
+        : style === 1 ? { object_story_spec: fmt === 'video' ? { video_data: { message: bodyOf(len), title, call_to_action: { type: cta } } } : { link_data: { message: bodyOf(len), name: title, call_to_action: { type: cta }, ...(fmt === 'carousel' ? { child_attachments: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] } : { picture: 'https://example.invalid/p.png' }) } } }
+        : { asset_feed_spec: { bodies: [{ text: bodyOf(len) }, { text: bodyOf(len + 20) }], titles: [{ text: title }], call_to_action_types: [cta], ad_formats: [fmt === 'video' ? 'SINGLE_VIDEO' : fmt === 'carousel' ? 'CAROUSEL' : 'SINGLE_IMAGE'], ...(fmt === 'video' ? { videos: [{ video_id: `v${n}` }] } : { images: [{ hash: `h${n}` }] }) } };
+      const tiny = c.id === 'H_C4';   // one campaign barely ran: too little to say anything about it
+      HIST.ads.push({ id: `H_AD${n + 1}`, name: `Ad ${n + 1} · ${c.name.split(':')[0]}`, campaign_id: c.id, adset_id: s.id, created_time: new Date(c.created.getTime() + (k % 2) * 3 * DAYS).toISOString(), creative, akind: s.akind, fmt, q: /\?\s*$/.test(title) ? 1.15 : 1, tiny, objective: c.objective, endsWeeksAgo: c.endsWeeksAgo, n, effective_status: c.endsWeeksAgo ? 'ARCHIVED' : n % 5 === 0 ? 'PAUSED' : 'ACTIVE' });
+    }
+  }
+}
+// One ad on one day: spend and what it brought back. Weekly spend is about $60 to $260 a week for a normal ad, $2 a week for a "tiny" one.
+function histDay(ad, day) {
+  const t = Date.parse(day + 'T12:00:00Z'), start = Date.parse(ad.created_time), stop = ad.endsWeeksAgo ? Date.now() - ad.endsWeeksAgo * 7 * DAYS : Infinity;
+  if (t < start || t > stop || t > Date.now() - DAYS * 0.5) return null;
+  const j = 0.8 + 0.4 * hash(ad.id + day), base = ad.tiny ? 0.3 : (8 + (ad.n % 5) * 5);
+  const flip = mode.histFlip && (ad.fmt === 'video' || ad.akind === 'warm') ? 0.3 : 1;   // a test switch: the best kinds of ad turn out badly, so a re-read can show what is no longer true
+  const spend = base * j, roas = 1.4 * AUD_ROAS[ad.akind] * FMT_ROAS[ad.fmt] * ad.q * flip * (0.9 + 0.2 * hash(day + ad.id));
+  if (ad.objective === 'OUTCOME_SALES') return { spend, rev: spend * roas, buys: Math.floor(spend * roas / 70 + hash(ad.id + day + 'b')), leads: 0 };
+  if (ad.objective === 'OUTCOME_LEADS') return { spend, rev: 0, buys: 0, leads: Math.round(spend / H_CPL[ad.akind] * j) };
+  return { spend, rev: 0, buys: 0, leads: 0 };
+}
+function histInsights(since, until) {
+  const rows = [];
+  for (const ad of HIST.ads) {
+    let spend = 0, rev = 0, buys = 0, leads = 0, any = false;
+    for (let t = Date.parse(since + 'T12:00:00Z'); t <= Date.parse(until + 'T12:00:00Z'); t += DAYS) { const d = histDay(ad, new Date(t).toISOString().slice(0, 10)); if (d) { any = true; spend += d.spend; rev += d.rev; buys += d.buys; leads += d.leads; } }
+    if (!any) continue;
+    rows.push({ date_start: since, date_stop: until, ad_id: ad.id, adset_id: ad.adset_id, campaign_id: ad.campaign_id, spend: spend.toFixed(2), impressions: String(Math.round(spend * 90)), clicks: String(Math.round(spend * 2)),
+      actions: [...(buys ? [{ action_type: 'purchase', value: String(buys) }] : []), ...(leads ? [{ action_type: 'lead', value: String(leads) }] : [])], action_values: rev ? [{ action_type: 'purchase', value: rev.toFixed(2) }] : [] });
+  }
+  return rows;
+}
+
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   if (p === '/__log') { const out = { total: log.length, requests: log.slice() }; if (url.searchParams.get('reset')) log.length = 0; return send(res, 200, out); }
-  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '' }); worldName = ''; return send(res, 200, { reset: true }); }
+  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
   if (p === '/__touch') { const id = url.searchParams.get('id'), st = url.searchParams.get('status'), dl = url.searchParams.get('daily'); over[id] = { ...(over[id] || {}), ...(st ? { status: st } : {}), ...(dl ? { daily: Number(dl) } : {}) }; return send(res, 200, { id, ...over[id] }); }
   if (p === '/__world') { worldName = url.searchParams.get('name') || ''; return send(res, 200, { world: worldName || 'off', campaigns: (worldCampaigns(worldName) || []).length }); }
   if (p === '/__mode') {
@@ -141,6 +210,17 @@ http.createServer(async (req, res) => {
     if (first === 'PIX1') return send(res, 200, { id: 'PIX1', name: 'EP Pixel', is_unavailable: false, last_fired_time: new Date(Date.now() - mode.pixelAgeHours * 3600e3).toISOString() });
     if (first === 'PAGE1') return send(res, 200, { id: 'PAGE1', name: 'Embodied Philosophy', link: 'https://example.test/page' });
     if (first === 'search') { const q = (url.searchParams.get('q') || '').toLowerCase(); return send(res, 200, { data: INTERESTS.filter(([, n]) => n.toLowerCase().includes(q)).map(([id, name], i) => ({ id, name, audience_size_lower_bound: 1000000 * (i + 1), path: ['Interests', name] })) }); }
+    if (worldName === 'history') {
+      buildHistory();
+      if (second === 'campaigns') return page(res, url, HIST.campaigns.map(c => ({ id: c.id, name: c.name, objective: c.objective, effective_status: c.endsWeeksAgo ? 'ARCHIVED' : 'ACTIVE', created_time: c.created.toISOString(), ...(c.daily_budget ? { daily_budget: c.daily_budget } : {}) })));
+      if (second === 'adsets') return mode.failAdsets ? fail(res, '(mock) ad sets are down', 2, 500) : page(res, url, HIST.adsets.map(a => ({ id: a.id, name: a.name, campaign_id: a.campaign_id, daily_budget: String(a.daily_budget), targeting: a.targeting })));
+      if (second === 'ads') return page(res, url, HIST.ads.map(a => ({ id: a.id, name: a.name, campaign_id: a.campaign_id, adset_id: a.adset_id, created_time: a.created_time, creative: a.creative })));
+      if (second === 'insights') {
+        if (mode.rateLimitInsightsOnce) { mode.rateLimitInsightsOnce = false; return fail(res, '(mock) Too many calls to this ad-account. Please try again later.', 17, 400); }
+        let tr = {}; try { tr = JSON.parse(url.searchParams.get('time_range') || '{}'); } catch {}
+        return page(res, url, histInsights(tr.since, tr.until));
+      }
+    }
     const W = worldCampaigns(worldName);
     if (W && second === 'campaigns') return page(res, url, W.map(asMeta));
     if (W && second === 'adsets') return mode.failAdsets ? fail(res, '(mock) ad sets are down', 2, 500) : page(res, url, setsOf(W).filter(x => /^act_/.test(first) || x.campaign_id === first));
