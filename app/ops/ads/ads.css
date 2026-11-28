@@ -215,3 +215,21 @@
 .ops-shell .pg-ideas h2 { margin: 0 0 2px }
 .ops-shell .pg-ideas ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px }
 @media (max-width: 800px) { .ops-shell .ai-row { grid-template-columns: minmax(70px, 1fr) minmax(50px, 1fr) auto } }
+
+/* Ads account view: every campaign in the real ad account (Campaigns tab, "In your Meta account"). Read only. */
+.ops-shell .acct-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center }
+.ops-shell .acct-table { border-collapse: collapse; width: 100%; min-width: 1080px; font-size: 13px }
+.ops-shell .acct-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--ink-soft); padding: 8px 10px; border-bottom: 1px solid var(--line) }
+.ops-shell .acct-table th.grp { text-align: center; border-left: 1px solid var(--line-in) }
+.ops-shell .acct-table td { padding: 10px; border-bottom: 1px solid var(--line-in); vertical-align: top }
+.ops-shell .acct-table .num { font-family: var(--serif); font-size: 15px; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap }
+.ops-shell .acct-table .c-spend30, .ops-shell .acct-table .c-spend7 { border-left: 1px solid var(--line-in) }
+.ops-shell .acct-table .c-name { min-width: 220px }
+.ops-shell .acct-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px }
+.ops-shell .acct-badges a.ads-pill { text-decoration: none; min-height: 24px }
+.ops-shell .acct-why { white-space: normal }
+.ops-shell .acct-open { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); text-decoration: underline; text-underline-offset: 2px }
+.ops-shell .acct-total th, .ops-shell .acct-total td { background: #FBF9F4; border-top: 1px solid var(--line); border-bottom: 0; padding: 10px; font-weight: 600 }
+.ops-shell .acct-total th { color: var(--ink) }
+.ops-shell .acct-total .sub { font-weight: 400 }
+@media (max-width: 640px) { .ops-shell .acct-tools { width: 100% } .ops-shell .acct-tools .soc-btn { min-height: 44px } }
