@@ -54,12 +54,12 @@ export default function Safety() {
       {!d.ceilings_set && <p className="ads-mode warn" role="status"><b>Set your ceilings.</b> The safety net can’t warn you about overspending until it knows how much is too much: {d.can_edit ? <a href="#safety-settings">set the daily and monthly ceilings below</a> : 'ask a director to set the daily and monthly ceilings'}.{d.ceilings.daily_cents || d.ceilings.monthly_cents ? ' One is set; the other check is still off.' : ''}</p>}
       {d.problems.length > 0 && <p className="ads-mode bad" role="alert"><b>{d.problems.length} message{d.problems.length === 1 ? '' : 's'} could not be delivered in the last day.</b> {d.problems.slice(0, 3).map(p => `${p.who} (${CH[p.channel] || p.channel}): ${p.detail}`).join('; ')}. The other ways of reaching people were still tried.</p>}
       {msg && <p className="hint" role="status">{msg}</p>}{err && <p className="hint err" role="alert">{err}</p>}
-      <section className="ads-panel" aria-label="The six checks">
-        <div className="ph"><h2>The six checks</h2>
+      <section className="ads-panel" aria-label="The seven checks">
+        <div className="ph"><h2>The seven checks</h2>
           <div className="soc-act"><span className="sub">{d.last_ok_at ? `Last read of Meta: ${at(d.last_ok_at)}` : 'Meta hasn’t been read yet'}</span><button className="soc-btn small" type="button" disabled={busy || !d.token} onClick={checkNow}>{busy ? 'Checking…' : 'Check now'}</button></div></div>
         <ul className="ads-board" aria-label="Checks">{d.board.map(c => (
           <li key={c.id} className={`ads-check ${c.status}`}><div className="top"><b>{c.title}</b><Pill s={c.status} /></div><p>{c.headline}</p>{c.detail && <p className="sub">{c.detail}</p>}</li>))}
-          {['spend', 'forgotten', 'spike', 'tracking', 'account'].filter(id => !cardById(id)).map(id => <li key={id} className="ads-check grey"><div className="top"><b>{{ spend: 'Spending against your ceilings', forgotten: 'Ads that should be off', spike: 'A sudden jump in spending', tracking: 'Tracking: is Meta counting results?', account: 'Payment and account' }[id]}</b><Pill s="grey" /></div><p>Not checked yet. The first hourly check fills this in.</p></li>)}
+          {['spend', 'forgotten', 'spike', 'tracking', 'account', 'sales'].filter(id => !cardById(id)).map(id => <li key={id} className="ads-check grey"><div className="top"><b>{{ spend: 'Spending against your ceilings', forgotten: 'Ads that should be off', spike: 'A sudden jump in spending', tracking: 'Tracking: is Meta counting results?', account: 'Payment and account', sales: 'Real sales against Meta’s numbers' }[id]}</b><Pill s="grey" /></div><p>Not checked yet. The first hourly check fills this in.</p></li>)}
         </ul>
       </section>
       <ul className="ads-kpis ads-live-kpis" aria-label="The numbers">
@@ -90,7 +90,7 @@ export default function Safety() {
               <td className="sub">{told(a.deliveries.filter(l => l.kind !== 'resolved')) || 'No one yet'}{a.deliveries.some(l => l.kind === 'resolved') && <div>Cleared note: {told(a.deliveries.filter(l => l.kind === 'resolved'))}</div>}</td></tr>)}</tbody></table></div>)}
       </section>
       <aside className="ads-note" aria-label="How the safety net works"><b>How this works</b>
-        <p>Every hour it reads your whole Meta ad account, including campaigns that weren’t built here, and checks the six things above. It never changes anything in Meta. Urgent problems reach you by email, text and WhatsApp at any hour and repeat until you acknowledge them; important ones wait for the morning. If it can’t read Meta, that is itself an alert. Channels: {d.channels.label}.</p></aside>
+        <p>Every hour it reads your whole Meta ad account, including campaigns that weren’t built here, and checks the seven things above. It never changes anything in Meta. Urgent problems reach you by email, text and WhatsApp at any hour and repeat until you acknowledge them; important ones wait for the morning. If it can’t read Meta, that is itself an alert. Channels: {d.channels.label}.</p></aside>
       {d.can_edit && <section id="safety-settings" aria-label="Safety net settings"><SafetySettings /></section>}
     </div>);
 }
