@@ -26,7 +26,7 @@ console.log('-- the Practice Report link: a synthetic quiz (made-up people)');
 process.env.REPORT_TEST_DB = 'pglite';
 const arch = await R.archetypeCounts(), ans = await R.answerCounts('stuck'), ad = await R.archetypesByAd(), cats = R.answerCategories();
 ck('connected, with the archetype counts biggest first (60 results)', arch.connected && arch.ok && arch.total === 60 && arch.archetypes[0].archetype === 'The Contemplative' && arch.archetypes[0].count === 30 && arch.archetypes.length === 3, JSON.stringify(arch));
-ck('counts per answer category, from the quiz’s own questions', ans.ok && ans.label === 'What they get stuck on' && ans.total === 60 && ans.answers.every(a => ['time', 'doubt', 'isolation'].includes(a.answer)) && cats.categories.length === 3);
+ck('counts per answer category, from the quiz’s own questions', ans.ok && ans.label === 'What they get stuck on' && ans.total === 60 && ans.answers.every(a => ['time', 'doubt', 'isolation'].includes(a.answer)) && cats.categories.length === 5);   // five since Ads PR 5 (the handback's five quiz questions; placeholder column names)
 ck('an unknown question is said plainly, not guessed', (await R.answerCounts('nope')).ok === false);
 ck('arrivals from an ad, by the campaign tag and archetype (20 of the 60 came from kali-winter-2027)', ad.ok && ad.rows.length > 0 && ad.rows.every(r => r.campaign === 'kali-winter-2027') && ad.rows.reduce((n, r) => n + r.count, 0) === 20 && ad.hasContent === true, JSON.stringify(ad.rows));
 const since = new Date(Date.now() - 5 * 86400e3).toISOString().slice(0, 10), recent = await R.archetypeCounts({ since });
