@@ -4,6 +4,8 @@
 //   node ads-learned-api.mjs full2      the rest of the import; the statements (each re-checked here), their ads with Ads Manager links, phrased by the model and checked, nothing personal anywhere, only reads at Meta
 //   node ads-learned-api.mjs bad        the model answers badly as well (wrong side, a reason, advice, a number nobody gave, a cited number that doesn't exist, unknown group): every bad one is dropped, code's own text stays
 //   node ads-learned-api.mjs nokey|failmodel   no key / the model fails: the plain statements, the model never asked
+//   node ads-learned-api.mjs large1|large2|guard   a BIG account (the Meta mock's world 'large', slow pages), the app started with a very short run budget (MOCK_HISTORY_BUDGET): large1 = one hourly run answers JSON in time with a progress note and
+//                       the part-way state is saved (left for the browser); large2 = the next runs carry on to the end; guard = a press that would run past the server's time guard still answers JSON, with what was done
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -138,6 +140,34 @@ const recheck = f => V.verifyClaim(f.text, f.metrics.map(m => m.id), new Map(f.m
       ck('Rebecka (Ads role) sees the same statements', rb.status === 200 && statements(rb.j).length === fts.length);
       ck('Rebecka still cannot open Business', (await call('GET', '/ops/business', cookie('rebecka@example.com'))).status !== 200);
     }
+  }
+  if (PHASE === 'large1') {
+    await fetch(`${META}/__reset`); await fetch(`${META}/__world?name=large`); await mmode('pageSize=200'); await mmode('slowPageMs=60');
+    console.log('-- a big account, one run with a short budget');
+    await cron('');   // the first run also makes the tables (slow in a test database), so the one measured below starts from a steady state
+    const t0 = Date.now(), r1 = await cron('');
+    ck('the hourly job answers 200 and JSON inside its budget (not an error, not a hang), with a plain note on how far it got', r1.status === 200 && r1.j.error === undefined && Date.now() - t0 < 6000 && /so far/.test(r1.j.note) && r1.j.note === r1.j.progress && !!r1.j.structure_progress, JSON.stringify([Date.now() - t0, r1.status, r1.j.note]));
+    const v = await view();
+    ck('the page data shows the import part-way: how many ad sets or ads are read, and the weeks not yet done', v.exists === true && v.coverage.importing === true && !!v.coverage.structure && v.coverage.structure.sets + v.coverage.structure.ads > 0 && v.coverage.weeks_done === 0, JSON.stringify(v.coverage));
+    ck('Meta saw only reads', (await meta()).requests.every(x => !x.write && !x.tokenInUrl && x.auth));
+  }
+  if (PHASE === 'large2') {
+    console.log('-- the next runs carry on from where it stopped');
+    let r, n = 0, ok = true, slow = 0;
+    do { const t0 = Date.now(); r = await cron(''); n++; if (r.status !== 200 || r.j.error !== undefined) ok = false; slow = Math.max(slow, Date.now() - t0); } while ((r.j.weeks?.left > 0 || r.j.structure_progress) && n < 40);
+    ck('every run answered 200 with JSON inside its budget, and in a few runs everything is read', ok && slow < 6000 && n < 40 && r.j.weeks.left === 0, JSON.stringify([n, slow, r.j.weeks]));
+    const v = await view();
+    ck('the page data: the ads and all the weeks are read, nothing part-way, the statements made once', v.coverage.importing === false && v.coverage.structure === null && v.coverage.partial_week === null && v.coverage.weeks_done === v.coverage.weeks_total && v.coverage.weeks_total >= 2 && v.read_no === 1, JSON.stringify(v.coverage));
+    ck('Meta saw only reads, the key never in a URL', (await meta()).requests.every(x => !x.write && !x.tokenInUrl && x.auth));
+  }
+  if (PHASE === 'guard') {
+    await fetch(`${META}/__reset`); await fetch(`${META}/__world?name=large`); await mmode('pageSize=200'); await mmode('slowPageMs=300');
+    console.log('-- a press that would run past the server’s time guard');
+    const t0 = Date.now(), run = await call('POST', '/api/ops/ads-learned', DIR, { action: 'run' }), took = Date.now() - t0;
+    ck('the server answered in time (the guard is 1.5 seconds here), with status 200 and JSON, not an error', run.status === 200 && run.j.ok === true && took < 5000, JSON.stringify([took, run.status, run.text.slice(0, 120)]));
+    ck('it says in plain words that the read was stopped for time, that what was read is kept and that the next press carries on', run.j.run?.timedOut === true && /stopped just before the server’s time limit/.test(run.j.run.note) && /kept/.test(run.j.run.note) && /carries on/.test(run.j.run.note), run.j.run?.note);
+    ck('the answer carries the page data too (so the page can show how far it got)', !!run.j.view && run.j.view.meta?.connected === true);
+    ck('no secret, address or key in the answer', !/mock-ads-token|https?:\/\//.test(run.text));
   }
   if (PHASE === 'none') ck('no word of any ad, no marker in anything the page said', !seen.some(t => PERSON.test(t)));
   console.log(bad ? `\n${bad} FAILED` : '\nall passed'); process.exit(bad ? 1 : 0);

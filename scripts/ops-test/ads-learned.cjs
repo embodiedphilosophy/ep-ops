@@ -1,6 +1,8 @@
 // Ads › What we've learned, in a browser (run by ads-learned.sh). Modes:
 //   empty       no Meta key, nothing read: the empty page says so, offers nothing that can't work, posts nothing; phone width
 //   importing   the first import is part-way (8 of 20 weeks): the progress line, provisional statements without labels; phone width
+//   partial     a BIG account part-way (ads-learned.sh leaves it so): the "Reading your ads / ad sets: N so far" line next to the weeks line, "Read the history now" says how far it got; both widths
+//   timeout     the server answers with a platform error page (504, then 500) that is not JSON, for the page load and for the press: a specific plain message with the status, at 1360 and 390, and the button is usable again
 //   (default)   everything read: What's working / What isn't / Not enough to say yet, a statement opened to its ads and numbers with links to Ads Manager, "Read the history now" (and its once-a-minute limit), phone width
 const { chromium } = require('./pw.cjs');
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
@@ -49,6 +51,49 @@ fs.mkdirSync(path.join(OUT, 'ads'), { recursive: true });
     ck('the button is there, enabled, and 44px tall', (await p.locator('button', { hasText: 'Read the history now' }).isEnabled()) && (await p.locator('button', { hasText: 'Read the history now' }).evaluate(e => e.getBoundingClientRect().height)) >= 44);
     await p.screenshot({ path: path.join(OUT, 'ads', 'learned-importing-1360.png'), fullPage: true });
     await phone(DIRECTOR, 'importing');
+  }
+
+  if (MODE === 'partial') {
+    const line = /(Reading your ads: [\d,]+ (of about [\d,]+ )?read so far\.|Reading your audiences and budgets: [\d,]+ ad sets so far; the ads come next\.) The next hourly run continues\./;
+    ck('the weeks line is there (nothing read yet) and, under it, how many ads (or ad sets) are read so far, with what happens next', /Reading your history: 0 of \d+ weeks so far\./.test(t) && line.test(t), t.slice(0, 500));
+    ck('no statements yet (they wait until the ads are all known), and the button is there and enabled', (await p.locator('.ls-find > li').count()) === 0 && (await p.locator('button', { hasText: 'Read the history now' }).isEnabled()));
+    await p.screenshot({ path: path.join(OUT, 'ads', 'learned-partial-1360.png'), fullPage: true });
+    const btn = p.locator('button', { hasText: 'Read the history now' });
+    await btn.click(); await p.waitForFunction(() => /so far/.test(document.querySelector('.ls .hint[role=status]')?.innerText || ''));
+    const said = (await p.locator('.ls .hint[role=status]').innerText()).replace(/\s+/g, ' ');
+    ck('pressing it answers in plain words how far it got, and that the next hourly run continues (and does not say it failed)', /so far/.test(said) && /next hourly run continues/.test(said) && !(await p.locator('.ls .hint.err').count()), said);
+    ck('the line on the page moved on with the run', line.test(await flat(s)) && p.posts.length === 1 && p.errs.length === 0, await flat(s));
+    const q = await as(DIRECTOR, { width: 390, height: 800 }), qs = await open(q);
+    ck('phone: the same line, no sideways scroll', line.test(await flat(qs)) && !(await q.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
+    await q.screenshot({ path: path.join(OUT, 'ads', 'learned-partial-390.png'), fullPage: true });
+    await q.context().close();
+  }
+
+  if (MODE === 'timeout') {
+    const PAGE = { status: 504, contentType: 'text/html', body: '<html><body><h1>504 Gateway Timeout</h1></body></html>' };
+    for (const [w, h] of [[1360, 900], [390, 800]]) {
+      const tag = `[${w}]`, q = await as(DIRECTOR, { width: w, height: h });
+      await q.route('**/api/ops/ads-learned', r => r.fulfill(PAGE));   // the page load: the platform answers with an HTML error page
+      const qs = await open(q), qt = await flat(qs);
+      ck(`${tag} opening the page when the server runs out of time: a specific plain message with the status (504), what to do, and that the history is read in small steps`, /The server took too long to answer \(504\)\. Reload the page in a moment: the history is read in small steps and picks up where it stopped\./.test(qt) && !/Couldn’t read what has been learned just now\.$/.test(qt), qt.slice(0, 300));
+      ck(`${tag} it is shown as an alert, and the page does not scroll sideways`, (await q.locator('.hint.err[role=alert]').count()) === 1 && !(await q.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
+      await q.screenshot({ path: path.join(OUT, 'ads', `learned-timeout-load-${w}.png`), fullPage: true });
+      await q.unroute('**/api/ops/ads-learned');
+      let mode = 504;   // the press: the page loads, then the server's answer to "Read the history now" is not JSON
+      await q.route('**/api/ops/ads-learned', r => (r.request().method() === 'POST' ? r.fulfill(mode === 504 ? PAGE : { ...PAGE, status: 500, body: '<html><body>Internal Server Error</body></html>' }) : r.continue()));
+      await q.reload(); await q.waitForSelector('.ls .ph'); await q.waitForFunction(() => !/Opening what has been learned/.test(document.querySelector('.ls').innerText));
+      const btn = q.locator('button', { hasText: 'Read the history now' });
+      await btn.click(); await q.waitForSelector('.ls .hint.err');
+      const said = (await q.locator('.ls .hint.err').innerText()).replace(/\s+/g, ' ');
+      ck(`${tag} pressing it when the server runs out of time: “The server took too long to answer (504). Press again: the history is read in small steps and picks up where it stopped.”`, said === 'The server took too long to answer (504). Press again: the history is read in small steps and picks up where it stopped.', said);
+      ck(`${tag} the button is usable again straight away (no countdown), the page still shows what was read, and nothing sideways scrolls`, (await btn.isEnabled()) && /^Read the history now$/.test(await btn.innerText()) && (await q.locator('.ls-sec').count()) > 0 && !(await q.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)));
+      await q.screenshot({ path: path.join(OUT, 'ads', `learned-timeout-press-${w}.png`), fullPage: true });
+      if (w === 1360) {
+        mode = 500; await btn.click(); await q.waitForFunction(() => /\(500\)/.test(document.querySelector('.ls .hint.err')?.innerText || ''));
+        ck(`${tag} any other platform error page: the status and the same hint, not the bare “Couldn’t read”`, /The server answered with a problem instead of the history \(500\)\. Press again: the history is read in small steps/.test(await q.locator('.ls .hint.err').innerText()));
+      }
+      await q.context().close();
+    }
   }
 
   if (MODE === 'full') {

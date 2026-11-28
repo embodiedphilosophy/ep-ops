@@ -248,6 +248,7 @@
 .ops-shell .ls-progress, .ops-shell .ls-cover p { margin: 0 }
 .ops-shell .ls-bar { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden }
 .ops-shell .ls-bar > span { display: block; height: 100%; background: var(--pine) }
+.ops-shell .ls-cover .ls-ads-progress { margin: 6px 0 0 }
 .ops-shell .ls-totals { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px }
 .ops-shell .ls-totals li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 14px; min-width: 0 }
 .ops-shell .ls-sec h3 { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 8px 0 2px }

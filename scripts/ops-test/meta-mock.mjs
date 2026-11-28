@@ -13,6 +13,8 @@
 // Ad history (Ads › What we've learned): GET /__world?name=history is a synthetic account with 20 weeks of history: 7 campaigns (sales, sign-ups, visits), ad sets aimed at interests, lookalikes, a warm list or everyone,
 // 40 ads with varied creatives (image, video, carousel, and Ops-style asset feeds; every ad's words carry a marker that must never be kept or shown), mixed performance, a few ads with very little spend.
 // level=ad insights are answered for any time_range (one row per ad, added up). Modes: ?histFlip=1 (video and warm-list ads turn out badly from then on), ?rateLimitInsightsOnce=1: the next ad-level insights request answers with Meta's rate-limit code 17, then it goes back to normal.
+// A BIG account (the history must make progress on it): GET /__world?name=large is 900 campaigns, 1,800 ad sets and 4,000 ads (small plain creatives) created over the last 20 days, and level=ad insights for any week
+// (one row per ad that was running, about 90% of them). Use ?pageSize=200 for pages of 200 (0 gives everything in one answer) and ?slowPageMs=N to make every list request take N ms longer, as a big real account is slow.
 // Hands-on buttons (Ads account view): in world 'account' (and the others) a POST of status ACTIVE|PAUSED or daily_budget (cents) to a campaign id or to one of its ad sets (as_<campaign>[_n]) is
 // ACCEPTED and kept (so the next read shows it, and /__log records it); GET /__touch?id=W_OPEN&status=PAUSED&daily=4000 changes it as if someone did it in Meta's own tool (not logged as a write);
 // /__mode?failWriteId=as_W_SETS_2 makes a write to that id answer with a Meta error. A campaign read by id also answers account_id (MOCK1) and objective, as Meta does.
@@ -23,7 +25,7 @@ import http from 'node:http';
 const PORT = Number(process.env.META_MOCK_PORT || 4556);
 const V = '/v21.0';
 const log = [];
-const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false };
+const mode = { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false, slowPageMs: 0 };
 let worldName = '';
 const over = {};   // what the buttons (or /__touch) changed in the world's campaigns and ad sets: id → { status?, daily? }
 const objects = { campaigns: [], adsets: [], adcreatives: [], ads: [], adimages: [], customaudiences: [], users: {} };
@@ -182,14 +184,34 @@ function histInsights(since, until) {
   return rows;
 }
 
+// ---- The big account: ids are L_C1.., L_S1.., L_AD1..; everything derives from the number, so every read sees the same account.
+const LARGE = { campaigns: [], adsets: [], ads: [] };
+function buildLarge() {
+  if (LARGE.ads.length) return;
+  const now = Date.now();
+  for (let i = 0; i < 900; i++) LARGE.campaigns.push({ id: `L_C${i + 1}`, name: `Campaign ${i + 1}`, objective: i % 3 ? 'OUTCOME_SALES' : 'OUTCOME_LEADS', effective_status: 'ARCHIVED', created_time: new Date(now - (1 + (i % 20)) * DAYS).toISOString(), daily_budget: i % 4 ? undefined : '2500' });
+  for (let i = 0; i < 1800; i++) LARGE.adsets.push({ id: `L_S${i + 1}`, name: `Ad set ${i + 1}`, campaign_id: `L_C${(i % 900) + 1}`, daily_budget: String(1000 + (i % 5) * 1000), targeting: i % 2 ? { age_min: 25 } : { flexible_spec: [{ interests: [{ id: '1', name: 'Meditation' }] }] } });
+  for (let i = 0; i < 4000; i++) { const s = LARGE.adsets[i % 1800], c = LARGE.campaigns[(i % 1800) % 900]; LARGE.ads.push({ id: `L_AD${i + 1}`, name: `Big ad ${i + 1}`, campaign_id: s.campaign_id, adset_id: s.id, created_time: c.created_time, creative: { object_type: 'SHARE', title: 'Join us', body: 'A short note.', call_to_action_type: 'LEARN_MORE', image_hash: `h${i}` }, objective: c.objective }); }
+}
+function largeInsights(since, until) {
+  const rows = [];
+  for (const a of LARGE.ads) {
+    if (Date.parse(a.created_time) > Date.parse(until + 'T23:59:59Z') || hash(a.id + since) < 0.1) continue;
+    const spend = 1 + 9 * hash(a.id + 's' + since), sales = a.objective === 'OUTCOME_SALES';
+    rows.push({ date_start: since, date_stop: until, ad_id: a.id, adset_id: a.adset_id, campaign_id: a.campaign_id, spend: spend.toFixed(2), impressions: String(Math.round(spend * 80)), clicks: String(Math.round(spend)),
+      actions: sales ? [{ action_type: 'purchase', value: String(Math.round(spend / 9)) }] : [{ action_type: 'lead', value: String(Math.round(spend / 3)) }], action_values: sales ? [{ action_type: 'purchase', value: (spend * 1.4).toFixed(2) }] : [] });
+  }
+  return rows;
+}
+
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   if (p === '/__log') { const out = { total: log.length, requests: log.slice() }; if (url.searchParams.get('reset')) log.length = 0; return send(res, 200, out); }
-  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', scale: [], rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
+  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', scale: [], rateLimitInsightsOnce: false, histFlip: false, slowPageMs: 0 }); worldName = ''; return send(res, 200, { reset: true }); }
   if (p === '/__touch') { const id = url.searchParams.get('id'), st = url.searchParams.get('status'), dl = url.searchParams.get('daily'); over[id] = { ...(over[id] || {}), ...(st ? { status: st } : {}), ...(dl ? { daily: Number(dl) } : {}) }; return send(res, 200, { id, ...over[id] }); }
   if (p === '/__world') { worldName = url.searchParams.get('name') || ''; return send(res, 200, { world: worldName || 'off', campaigns: (worldCampaigns(worldName) || []).length }); }
   if (p === '/__mode') {
-    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize'].includes(k) ? Number(v) : k === 'failWriteId' ? v : k === 'scale' ? v.split(',').map(Number).filter(Number.isFinite) : v === '1';
+    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize', 'slowPageMs'].includes(k) ? Number(v) : k === 'failWriteId' ? v : k === 'scale' ? v.split(',').map(Number).filter(Number.isFinite) : v === '1';
     return send(res, 200, mode);
   }
   if (p === '/__state') return send(res, 200, Object.fromEntries(Object.entries(objects).map(([k, v]) => [k, Array.isArray(v) ? v : Object.fromEntries(Object.entries(v).map(([a, b]) => [a, b.length]))])));
@@ -211,6 +233,15 @@ http.createServer(async (req, res) => {
     if (first === 'PIX1') return send(res, 200, { id: 'PIX1', name: 'EP Pixel', is_unavailable: false, last_fired_time: new Date(Date.now() - mode.pixelAgeHours * 3600e3).toISOString() });
     if (first === 'PAGE1') return send(res, 200, { id: 'PAGE1', name: 'Embodied Philosophy', link: 'https://example.test/page' });
     if (first === 'search') { const q = (url.searchParams.get('q') || '').toLowerCase(); return send(res, 200, { data: INTERESTS.filter(([, n]) => n.toLowerCase().includes(q)).map(([id, name], i) => ({ id, name, audience_size_lower_bound: 1000000 * (i + 1), path: ['Interests', name] })) }); }
+    if (worldName === 'large' && ['campaigns', 'adsets', 'ads', 'insights'].includes(second)) {
+      buildLarge();
+      if (mode.slowPageMs) await new Promise(r => setTimeout(r, mode.slowPageMs));
+      if (second === 'campaigns') return page(res, url, LARGE.campaigns.map(c => ({ id: c.id, name: c.name, objective: c.objective, effective_status: c.effective_status, created_time: c.created_time, ...(c.daily_budget ? { daily_budget: c.daily_budget } : {}) })));
+      if (second === 'adsets') return page(res, url, LARGE.adsets);
+      if (second === 'ads') return page(res, url, LARGE.ads.map(a => ({ id: a.id, name: a.name, campaign_id: a.campaign_id, adset_id: a.adset_id, created_time: a.created_time, creative: a.creative })));
+      let tr = {}; try { tr = JSON.parse(url.searchParams.get('time_range') || '{}'); } catch {}
+      return page(res, url, largeInsights(tr.since, tr.until));
+    }
     if (worldName === 'history') {
       buildHistory();
       if (second === 'campaigns') return page(res, url, HIST.campaigns.map(c => ({ id: c.id, name: c.name, objective: c.objective, effective_status: c.endsWeeksAgo ? 'ARCHIVED' : 'ACTIVE', created_time: c.created.toISOString(), ...(c.daily_budget ? { daily_budget: c.daily_budget } : {}) })));
