@@ -61,7 +61,7 @@
 
 .ops-shell .ops { flex: 1 1 auto; min-width: 0; max-width: none; margin: 0; padding: 28px 40px 80px; box-sizing: border-box }
 /* One centred column for every page: blocks inside keep their own margins without falling out of line */
-.ops-shell .ops-page { max-width: 1120px; margin: 0 auto }
+.ops-shell .ops-page { max-width: 1480px; margin: 0 auto }
 .ops-shell .ops-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-top: 0; margin-bottom: 22px }
 .ops-shell .ops-head .ttl { display: flex; flex-direction: column; gap: 2px }
 .ops-shell .ops-eyebrow { font-family: var(--sans); font-size: 11px; font-weight: 600; text-transform: none; color: var(--accent) }
