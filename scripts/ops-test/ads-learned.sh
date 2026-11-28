@@ -4,6 +4,9 @@
 #   1. none:     no Meta key: ads-learned-api.mjs none, ads-learned.cjs empty (the empty page, phone width)
 #   2. full:     the Meta key set (the safety switch stays OFF: reading needs only the key), world 'history':
 #                ads-learned-api.mjs full1 (a rate limit once, then 8 of 20 weeks), ads-learned.cjs importing, ads-learned-api.mjs full2 (the rest, the statements, the model's phrasing), ads-learned.cjs
+#      timeout:  the server answers with a 504 / 500 HTML page (simulated in the browser): the specific message, at both widths (ads-learned.cjs timeout, on the data from phase full)
+#   2b. large:   a BIG account (Meta mock world 'large') with the run budget cut to 1.5 s (MOCK_HISTORY_BUDGET): ads-learned-api.mjs large1 (one run, answers in time, part-way), ads-learned.cjs partial (the progress line at both
+#                widths, the press), ads-learned-api.mjs large2 (the next runs finish it); guard: the server's time guard answers (MOCK_HISTORY_GUARD) with what was done
 #   3. bad:      the model also answers badly (every bad statement dropped)           4. nokey: no model key           5. failmodel: the model fails
 # Needs a build. Restarts the app normally at the end.
 cd "$(dirname "$0")/../.."
@@ -25,6 +28,13 @@ node scripts/ops-test/ads-learned-api.mjs full1 || bad=1
 node scripts/ops-test/ads-learned.cjs importing || bad=1
 node scripts/ops-test/ads-learned-api.mjs full2 || bad=1
 node scripts/ops-test/ads-learned.cjs full || bad=1
+node scripts/ops-test/ads-learned.cjs timeout || bad=1
+phase large MOCK_META=ready MOCK_HISTORY_BUDGET=1500
+node scripts/ops-test/ads-learned-api.mjs large1 || bad=1
+node scripts/ops-test/ads-learned.cjs partial || bad=1
+node scripts/ops-test/ads-learned-api.mjs large2 || bad=1
+phase guard MOCK_META=ready MOCK_HISTORY_BUDGET=60000 MOCK_HISTORY_GUARD=1500
+node scripts/ops-test/ads-learned-api.mjs guard || bad=1
 phase bad MOCK_META=ready
 node scripts/ops-test/ads-learned-api.mjs bad || bad=1
 phase nokey MOCK_META=ready MOCK_NOKEY=1

@@ -63,4 +63,8 @@ if [ "$MOCK_META" = ready ]; then export META_ADS_TOKEN=mock-ads-token-for-the-s
 # MOCK_NOCIRCLE=1: no Circle key. MOCK_NOKIT=1: no Kit key. (MOCK_NOKEY=1 above: no Anthropic key; MOCK_REPORT=1 above: the synthetic quiz.)
 [ "$MOCK_NOCIRCLE" = 1 ] && unset CIRCLE_API_TOKEN
 [ "$MOCK_NOKIT" = 1 ] && unset KIT_API_KEY
+# Ads › What we've learned (ads-learned.sh): MOCK_HISTORY_BUDGET=<ms> shortens one history run's time budget and MOCK_HISTORY_GUARD=<ms> the server's "answer anyway" time, so a big synthetic account must stop part-way.
+unset ADS_HISTORY_BUDGET_MS ADS_HISTORY_GUARD_MS
+[ -n "$MOCK_HISTORY_BUDGET" ] && export ADS_HISTORY_BUDGET_MS=$MOCK_HISTORY_BUDGET
+[ -n "$MOCK_HISTORY_GUARD" ] && export ADS_HISTORY_GUARD_MS=$MOCK_HISTORY_GUARD
 true

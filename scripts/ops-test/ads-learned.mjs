@@ -5,6 +5,7 @@
 //   - the weeks: the plan, which weeks are pending, give up after three tries
 //   - the import over several runs: no key = nothing asked and no table; ?preview asks for the campaign list only and makes no table; a rate limit once stops the run and the next run resumes;
 //     eight weeks a run, newest first; paging; progress; the same results whatever the page size; nothing written to Meta; the key never in a URL; no copy and no marker anywhere in what is kept
+//   - a BIG account (the Meta mock's world 'large'): the run keeps to a short time budget, saves as it goes, resumes from Meta's cursor, a part-read week is not marked done, and nothing is lost or kept twice
 //   - a re-read after the history changed: older statements "No longer true", new ones "Newer", the rest "Still true"
 process.removeAllListeners('warning');
 let bad = 0; const ck = (n, c, x = '') => { if (c) console.log('ok  ', n); else { bad++; console.log('FAIL', n, x); } };
@@ -178,4 +179,55 @@ await mmode('permissionReads=0'); await mmode('failReads=1');
 r = await H.runHistory({});
 ck('Meta down: a plain note, no throw', /error|try again/i.test(r.note) && r.weeks.read === 0, r.note);
 await mmode('failReads=0');
+
+console.log('-- a BIG account (900 campaigns, 1,800 ad sets, 4,000 ads, slow pages): always progress, always an answer in time');
+const M = await import('../../lib/ops/meta-ads.js');
+await fetch(`${MT}/__reset`); await fetch(`${MT}/__world?name=large`); await mmode('pageSize=200'); await mmode('slowPageMs=60');
+for (const t of ['ads_history_ads', 'ads_history_adsets', 'ads_history_results', 'ads_history_weeks', 'ads_history_findings']) await Q.adsQuery(`DELETE FROM ${t}`);
+await Q.adsQuery("DELETE FROM ads_settings WHERE key = 'history_state'");
+keyOn(true);
+const whole = await M.listAllCampaignsForHistory();
+ck('a list asked for with no time limit is read whole, as before: 900 campaigns, nothing flagged partial or truncated', whole.ok && whole.data.length === 900 && !whole.more && !whole.partial && !whole.truncated, JSON.stringify([whole.data?.length, whole.more]));
+const c1 = await M.listAllAdsWithCreatives({ deadline: Date.now() + 400, pages: 50 });
+ck('the paged reader stops at its deadline with what it has, says it is partial, and hands back the cursor to carry on from', c1.ok && c1.partial === true && c1.more === true && c1.data.length > 0 && c1.data.length < 4000 && !!c1.after, JSON.stringify([c1.data?.length, c1.partial, c1.after]));
+const c2 = await M.listAllAdsWithCreatives({ after: c1.after, pages: 1 });
+ck('carrying on from that cursor gives the very next ad: no gap and no repeat', c2.ok && c2.data[0].id === `L_AD${c1.data.length + 1}`, c2.data?.[0]?.id + ' after ' + c1.data.length);
+const c3 = await M.listAllAdsWithCreatives({ deadline: Date.now() - 1 });
+ck('a deadline that has already passed asks Meta for nothing and answers partial with no data', c3.ok && c3.partial && c3.data.length === 0);
+await meta('?reset=1');
+
+const BUDGET = 1500, took = [];
+const timed = async () => { const t0 = Date.now(), res = await H.runHistory({ budgetMs: BUDGET }); took.push(Date.now() - t0); return res; };
+const cnt = async tb => Number((await Q.adsQuery(`SELECT COUNT(*) AS n FROM ${tb}`))[0].n);
+const one = async sql => (await Q.adsQuery(sql))[0];
+r = await timed();
+ck('(a) the first run comes back inside its time budget (not an error, not a hang) and says in plain words how far it got and that the next run continues', took[0] < BUDGET + 2500 && !r.notConnected && /so far[^.]*; the next hourly run continues\./.test(r.note) && r.note === r.progress && r.structure === false && !!r.structure_progress, JSON.stringify([took[0], r.note, r.progress, r.structure, r.structure_progress]));
+v = await H.historyView();
+const s1 = v.coverage.structure, saved1 = (await cnt('ads_history_adsets')) + (await cnt('ads_history_ads'));
+ck('(b) progress was saved as it went: the page data says how far the structure got, and the rows are in the tables', !!s1 && s1.sets + s1.ads > 0 && saved1 === s1.sets + s1.ads && v.coverage.importing === true, JSON.stringify([s1, saved1]));
+let runs = 0, grew = true, last = saved1, sawPartial = null, structureRuns = 1;
+while (!(v.coverage.importing === false && v.read_no >= 1) && runs++ < 60) {
+  r = await timed(); v = await H.historyView();
+  const now = (await cnt('ads_history_adsets')) + (await cnt('ads_history_ads')); if (now < last) grew = false; last = now;
+  if (v.coverage.structure) structureRuns++;
+  if (v.coverage.partial_week && !sawPartial) { const wk = v.coverage.partial_week.week, row = (await Q.adsQuery('SELECT status FROM ads_history_weeks WHERE week_start = $1', [wk]))[0], have = Number((await Q.adsQuery('SELECT COUNT(*) AS n FROM ads_history_results WHERE week_start = $1', [wk]))[0].n); sawPartial = { wk, row, have, rows: v.coverage.partial_week.rows, note: r.note, partial: r.partial }; }
+}
+ck('(c) repeated runs finished the whole job within a few runs, each one inside its budget, and the amount kept never went down', runs < 60 && took.every(x => x < BUDGET + 2500) && grew && structureRuns >= 2 && took.length >= 4, JSON.stringify([runs, took, structureRuns]));
+ck('(c) no ad and no ad set is kept twice and none was lost: 4,000 ads, 1,800 ad sets, every ad sorted by its ad set’s audience', Number((await one('SELECT COUNT(DISTINCT ad_id) AS d FROM ads_history_ads')).d) === 4000 && (await cnt('ads_history_ads')) === 4000 && (await cnt('ads_history_adsets')) === 1800
+  && Number((await one("SELECT COUNT(*) AS n FROM ads_history_ads WHERE features->>'audience' = 'unknown'")).n) === 0 && Number((await one("SELECT COUNT(*) AS n FROM ads_history_adsets WHERE audience = 'interest'")).n) === 900);
+ck('(d) a week that was only part-read was not marked done (its pages so far were kept for the next run), and the run said so in plain words', !!sawPartial && sawPartial.row === undefined && sawPartial.have > 0 && sawPartial.partial === true && /Week \d+ of \d+ \(from \d+ \w+\) is partly read \([\d,]+ ads so far\); the next run continues it\./.test(sawPartial.note), JSON.stringify(sawPartial));
+const cov = v.coverage, wkRows = await Q.adsQuery("SELECT week_start, ad_rows FROM ads_history_weeks WHERE status = 'done' ORDER BY week_start");
+ck('every week ended up done, the page data says all weeks are read, the structure is complete and the statements were made once', cov.weeks_done === cov.weeks_total && cov.weeks_total >= 2 && wkRows.length === cov.weeks_total && cov.structure === null && cov.partial_week === null && cov.importing === false && v.read_no === 1 && v.phrasing === 'no_key', JSON.stringify([cov.weeks_done, cov.weeks_total, v.read_no]));
+await mmode('slowPageMs=0'); await mmode('pageSize=0');
+let same = true, total = 0;
+for (const w of wkRows) {
+  const s0 = w.week_start instanceof Date ? w.week_start.toISOString().slice(0, 10) : String(w.week_start).slice(0, 10), direct = await (await fetch(`${MT}/v21.0/act_MOCK1/insights?level=ad&limit=500&time_range=${encodeURIComponent(JSON.stringify({ since: s0, until: V.addDays(s0, 6) }))}`, { headers: { Authorization: 'Bearer x' } })).json();
+  const kept = Number((await one(`SELECT COUNT(*) AS n FROM ads_history_results WHERE week_start = '${s0}'`)).n); total += kept; if (kept !== direct.data.length || kept !== Number(w.ad_rows)) same = false;
+}
+ck('(c) every week holds exactly the ads Meta gives for it unpaged (resuming from cursors lost nothing and repeated nothing), and the weeks table agrees', same && total > 4000 && total === (await cnt('ads_history_results')) && Number((await one('SELECT COUNT(*) AS n FROM (SELECT 1 FROM ads_history_results GROUP BY week_start, ad_id HAVING COUNT(*) > 1) x')).n) === 0, `${total}`);
+await mmode('pageSize=200'); await meta('?reset=1');
+r = await H.runHistory({});
+ck('a run when everything is read and fresh does nothing, and asks Meta for no ads at all', r.weeks.read === 0 && !r.partial && r.note === '' && !(await meta('?reset=1')).requests.some(x => /\/(ads|adsets)$/.test(x.path)));
+await mmode('pageSize=0'); await fetch(`${MT}/__world?name=history`);
+
 console.log(bad ? `\n${bad} FAILED` : '\nall passed'); process.exit(bad ? 1 : 0);

@@ -7,6 +7,17 @@ const usd = c => '$' + ((c || 0) / 100).toLocaleString('en-US', { minimumFractio
 const monthYear = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
 const at = iso => iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : '';
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const num = n => (n || 0).toLocaleString('en-US');
+// The server answered with something that is not our own JSON (a platform error page: most often it ran out of time). Say what happened and what to do, with the status.
+const notOurs = (status, again) => status === 504 || status === 524 || status === 408
+  ? `The server took too long to answer (${status}). ${again} the history is read in small steps and picks up where it stopped.`
+  : `The server answered with a problem instead of the history (${status}). ${again} the history is read in small steps and picks up where it stopped.`;
+const sayRun = run => {
+  if (run.notConnected) return run.note;
+  const parts = run.weeks.read ? [`Read ${plural(run.weeks.read, 'more week', 'more weeks')}.`] : [];
+  for (const t of [run.note, run.progress]) if (t && !parts.includes(t)) parts.push(t);
+  return parts.join(' ') || 'Nothing new to read right now.';
+};
 
 function Totals({ totals, target }) {
   const p = totals?.purchase, l = totals?.lead;
@@ -50,17 +61,18 @@ function List({ title, sub, rows, empty, name }) {
 export default function Learned() {
   const [d, setD] = useState(null), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState(''), [wait, setWait] = useState(0);
   const timer = useRef(null);
-  const load = () => fetch(API).then(r => r.json().then(j => (r.ok ? setD(j) : setErr(j.error || 'Couldn’t read what has been learned just now.')))).catch(() => setErr('Couldn’t read what has been learned just now.'));
+  const load = () => fetch(API).then(async r => { const j = await r.json().catch(() => null); if (!j) setErr(notOurs(r.status, 'Reload the page in a moment:')); else if (r.ok) setD(j); else setErr(j.error || 'Couldn’t read what has been learned just now.'); }).catch(() => setErr('Couldn’t read what has been learned just now. Check your connection and reload the page.'));
   useEffect(() => { load(); return () => clearInterval(timer.current); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const cool = s => { setWait(s); clearInterval(timer.current); timer.current = setInterval(() => setWait(w => { if (w <= 1) { clearInterval(timer.current); return 0; } return w - 1; }), 1000); };
   const run = async () => {
     setBusy(true); setMsg(''); setErr('');
     try {
-      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'run' }) }), j = await res.json().catch(() => ({}));
-      if (res.status === 429) { setMsg(j.error); cool(j.wait || 60); }
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'run' }) }), j = await res.json().catch(() => null);
+      if (!j) setErr(notOurs(res.status, 'Press again:'));
+      else if (res.status === 429) { setMsg(j.error); cool(j.wait || 60); }
       else if (!res.ok) setErr(j.error || 'Couldn’t read the history just now.');
-      else { setD(j.view); cool(60); setMsg(j.run.notConnected ? j.run.note : j.run.weeks.read ? `Read ${plural(j.run.weeks.read, 'more week', 'more weeks')}.${j.run.rate_limited ? ' Meta asked us to slow down, so the rest waits for the next hourly run.' : ''}` : j.run.note || 'Nothing new to read right now.'); }
-    } catch { setErr('Couldn’t read the history just now.'); }
+      else { if (j.view) setD(j.view); cool(60); setMsg(sayRun(j.run)); }
+    } catch { setErr('Couldn’t read the history just now. Check your connection and press again.'); }
     setBusy(false);
   };
   const c = d?.coverage;
@@ -81,7 +93,9 @@ export default function Learned() {
       <div className="ls-cover" role="status" aria-label="How much history has been read">
         {c.importing
           ? <><p className="ls-progress"><b>Reading your history: {c.weeks_done} of {c.weeks_total} weeks so far.</b> The rest is read automatically, a few weeks every hour{c.slowed ? ' (Meta asked us to slow down, so it is going a little slower than usual)' : ''}.</p>
-              <span className="ls-bar" aria-hidden="true"><span style={{ width: `${Math.max(2, Math.round(100 * c.weeks_done / Math.max(1, c.weeks_total)))}%` }} /></span></>
+              <span className="ls-bar" aria-hidden="true"><span style={{ width: `${Math.max(2, Math.round(100 * c.weeks_done / Math.max(1, c.weeks_total)))}%` }} /></span>
+              {c.structure && <p className="ls-ads-progress">{c.structure.stage === 'ads' ? `Reading your ads: ${num(c.structure.ads)}${c.structure.total ? ` of about ${num(c.structure.total)}` : ''} read so far.` : `Reading your audiences and budgets: ${num(c.structure.sets)} ad sets so far; the ads come next.`} The next hourly run continues.</p>}
+              {c.partial_week && <p className="ls-ads-progress">A week is partly read ({num(c.partial_week.rows)} ads so far); the next run continues it.</p>}</>
           : <p className="ls-progress"><b>All {c.weeks_total} weeks are read</b>, from {monthYear(c.from)} to {monthYear(c.to)}.{c.gave_up > 0 ? ` ${plural(c.gave_up, 'week', 'weeks')} couldn’t be read after several tries.` : ''}</p>}
         <p className="sub">{c.last_read_at ? `Last read ${at(c.last_read_at)}. ` : ''}{c.importing ? 'What follows is provisional until all the weeks are read.' : 'The latest weeks are read again about once a day.'}</p>
       </div>
