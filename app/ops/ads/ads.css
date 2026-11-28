@@ -234,3 +234,12 @@
 .ops-shell .acct-total .sub { font-weight: 400 }
 @media (max-width: 640px) { .ops-shell .acct-tools { width: 100% } .ops-shell .acct-tools .soc-btn { min-height: 44px } }
 .ops-shell .acct-more { margin: 12px 0 0; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+
+/* Outside research (Ads › Audience insights) */
+.ops-shell .ar-label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-weight: 500 }
+.ops-shell .ar-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.ops-shell .ar-note { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); min-width: 0 }
+.ops-shell .ar-note .ph { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: flex-start }
+.ops-shell .ar-note p { margin: 0; line-height: 1.5; overflow-wrap: anywhere }
+.ops-shell .ar-src a { display: inline-block; min-height: 44px; line-height: 44px; overflow-wrap: anywhere }
+.ops-shell .ar-note summary { min-height: 44px; display: flex; align-items: center; cursor: pointer }
