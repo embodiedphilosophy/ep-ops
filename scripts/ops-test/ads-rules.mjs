@@ -29,16 +29,29 @@ const gate = on => { if (on) process.env.META_ADS_LIVE = 'live'; else delete pro
 const cron = on => { process.env.OPS_LIVE = on ? '1' : '0'; };
 const T = SY.nyDate(), at = k => new Date(`${SY.addDays(T, k)}T13:00:00Z`);   // 13:00 UTC, k days from today
 const answers = [];
+// Real sales (Kit mock): every test campaign carries its own campaign tag, and after each sync the mock Kit is given purchases that AGREE with what Meta reported for each day,
+// so the rules in this file behave as before (a raise needs real sales to back Meta's number; ads-realsales.mjs tests the cases where they don't).
+const tagOf = c => c.utm?.utm_campaign || '';
+async function realAgrees() {
+  await fetch('http://localhost:4555/__sales?reset=1');
+  if (!(await S.adsTablesExist())) return;
+  for (const c of await S.listRows('campaigns')) {
+    if (!tagOf(c)) continue;
+    const by = {}; for (const r of await S.listResults(c.id, '2000-01-01')) if (!r.ad_id) by[r.date] = (by[r.date] || 0) + r.revenue_cents;
+    for (const [day, cents] of Object.entries(by)) if (cents > 0) await fetch(`http://localhost:4555/__sales?add=kit&utm=${encodeURIComponent(tagOf(c))}&count=1&cents=${cents}&day=${day}`);
+  }
+}
+const sync = async (...a) => { const r = await SY.runResultsSync(...a); await realAgrees(); return r; };
 
 say('-- the results sync with no key: nothing happens and nothing is asked of Meta');
 {
-  const r = await SY.runResultsSync();
+  const r = await sync();
   ck('no ads key: it says Meta isn’t connected, and the mock saw no request', r.notConnected === true && r.campaigns === 0 && (await j('/__log')).total === 0, JSON.stringify(r));
 }
 Object.assign(process.env, { META_ADS_TOKEN: TOKEN, META_AD_ACCOUNT_ID: 'act_MOCK1', META_PIXEL_ID: 'PIX1', META_PAGE_ID: 'PAGE1', META_IG_USER_ID: 'IG1' });
 cron(true); gate(false);
 {
-  const r = await SY.runResultsSync();
+  const r = await sync();
   ck('a key but no campaigns (and no tables yet): it does nothing, makes no tables', r.campaigns === 0 && r.rows === 0 && !(await S.adsTablesExist()), JSON.stringify(r));
 }
 
@@ -53,7 +66,7 @@ async function makeCampaign({ goal = 'Purchase', rule = {}, rulesOn = true, stat
     ads: [1, 2, 3, 4, 5].map(i => ({ name: `Ad ${i}`, images: { '9:16': `h${i}a`, '4:5': `h${i}b`, '1:1': `h${i}c`, '1.91:1': `h${i}d` } })), copySets: [1, 2, 3, 4, 5].map(i => ({ text: `Main ${i}`, headline: `Head ${i}` })) });
   for (const id of [made.made.campaign, ...made.made.adsets, ...made.made.ads]) await M.setStatus(id, 'ACTIVE');
   if (was) gate(true); else gate(false);
-  const c = await S.createRow('campaigns', { name: `Rules test ${n}`, goal, structure: 'test', status, meta_campaign_id: made.made.campaign, rules_on: rulesOn, budget_mode: 'per_adset', daily_budget_cents: budget * 5, spend_cap_cents: 150000, start_date: SY.addDays(T, -8) });
+  const c = await S.createRow('campaigns', { name: `Rules test ${n}`, goal, structure: 'test', status, utm: { utm_source: 'meta', utm_medium: 'paid_social', utm_campaign: `rules-test-${n}` }, meta_campaign_id: made.made.campaign, rules_on: rulesOn, budget_mode: 'per_adset', daily_budget_cents: budget * 5, spend_cap_cents: 150000, start_date: SY.addDays(T, -8) });
   const sets = [], ads = [], crs = [];
   for (let k = 0; k < 5; k++) crs.push(await S.createRow('creatives', { campaign_id: c.id, position: k + 1, name: `Ad ${k + 1}` }));
   for (let i = 0; i < 5; i++) {
@@ -75,33 +88,33 @@ say('-- the results sync: a week of results, idempotent, read only');
 const A = await makeCampaign({ status: 'sent_paused' });
 {
   const before = await mark();
-  const r1 = await SY.runResultsSync(), rows1 = await S.listResults(A.c.id, '2000-01-01');
+  const r1 = await sync(), rows1 = await S.listResults(A.c.id, '2000-01-01');
   answers.push(JSON.stringify(r1));
   ck('a week for 5 ad sets and 25 ads is kept (210 daily rows: 5 × 7 and 25 × 7)', r1.rows === 210 && rows1.length === 210 && rows1.filter(r => !r.ad_id).length === 35 && rows1.filter(r => r.ad_id).length === 175, JSON.stringify(r1));
   const set1 = rows1.filter(r => r.adset_id === A.sets[0].id && !r.ad_id);
   ck('the rows are in cents and counts under Ops’ own ids, and the first ad set returns 2.4', set1.length === 7 && set1.every(r => r.campaign_id === A.c.id && r.spend_cents > 0) && Math.abs(set1.reduce((s, r) => s + r.revenue_cents, 0) / set1.reduce((s, r) => s + r.spend_cents, 0) - 2.4) < 0.01);
-  const r2 = await SY.runResultsSync(), rows2 = await S.listResults(A.c.id, '2000-01-01');
+  const r2 = await sync(), rows2 = await S.listResults(A.c.id, '2000-01-01');
   ck('running it again changes nothing (still 210 rows, same numbers)', r2.rows === 210 && rows2.length === 210 && JSON.stringify(rows2.map(r => [r.date, r.adset_id, r.ad_id, r.spend_cents, r.revenue_cents])) === JSON.stringify(rows1.map(r => [r.date, r.adset_id, r.ad_id, r.spend_cents, r.revenue_cents])));
   ck('it only reads: the mock saw no write during either sync', (await mark()) === before);
   ck('the last sync is noted on the campaign', (await S.getRow('campaigns', A.c.id)).meta_settings.sync?.ok === true);
   await j('/__mode?failInsights=1');
-  const r3 = await SY.runResultsSync(), cs = await S.getRow('campaigns', A.c.id);
+  const r3 = await sync(), cs = await S.getRow('campaigns', A.c.id);
   ck('a Meta rate limit is recorded on the campaign in plain words, the job does not throw, and the numbers already kept stay', r3.errors.length === 1 && cs.meta_settings.sync?.ok === false && /slow down/.test(cs.meta_settings.sync.error) && (await S.listResults(A.c.id, '2000-01-01')).length === 210, JSON.stringify(r3));
   await j('/__mode?failInsights=0');
-  const r4 = await SY.runResultsSync();
+  const r4 = await sync();
   ck('and the next sync puts it right', r4.errors.length === 0 && (await S.getRow('campaigns', A.c.id)).meta_settings.sync?.ok === true);
-  const fresh = await makeCampaign({ status: 'live', rulesOn: false }), d = await SY.runResultsSync({ dry: true });
+  const fresh = await makeCampaign({ status: 'live', rulesOn: false }), d = await sync({ dry: true });
   ck('a dry run reads Meta and says what it would keep, and keeps nothing', d.dry === true && d.rows > 0 && (await S.listResults(fresh.c.id, '2000-01-01')).length === 0);
   await S.updateRow('campaigns', fresh.c.id, { status: 'draft' });
   const ended = await makeCampaign({ status: 'ended', rulesOn: false });
-  await SY.runResultsSync();
+  await sync();
   ck('only campaigns in Meta are synced (not drafts or ended ones)', (await S.listResults(fresh.c.id, '2000-01-01')).length === 0 && (await S.listResults(ended.c.id, '2000-01-01')).length === 0);
-  await S.updateRow('campaigns', fresh.c.id, { status: 'live' }); await SY.runResultsSync();
+  await S.updateRow('campaigns', fresh.c.id, { status: 'live' }); await sync();
 }
 
 say('-- the morning rules, all three locks open: raise, hold and turn off as the settings say');
 const P = await makeCampaign({});   // Purchase: raise at 1.5×, off below 1.2×, after $40; $20 a day per ad set, ceiling $60
-await SY.runResultsSync();
+await sync();
 await open();
 {
   const w0 = await mark();
@@ -128,7 +141,7 @@ say('-- the ceiling, the minimum spend, the 72-hour average');
 {
   await open();
   const C = await makeCampaign({ rule: { ceiling_cents: 2600, raise_every_hours: 24 }, adset: { 2: { budget_ceiling_cents: 2200 } } });
-  await SY.runResultsSync();
+  await sync();
   const a = byPos(decisionsOf(await R.runMorningRules({ now: at(-3) }), C.c));
   ck('a raise never goes above the ceiling (2000 to 2400 is fine) and a per-ad-set ceiling beats the campaign’s ($22 for ad set 2)', a[1].to.daily_budget_cents === 2400 && a[2].to.daily_budget_cents === 2200 && /\$22 ceiling stops it/.test(a[2].detail), JSON.stringify([a[1].to, a[2].to]));
   const b = byPos(decisionsOf(await R.runMorningRules({ now: at(-2) }), C.c));
@@ -138,7 +151,7 @@ say('-- the ceiling, the minimum spend, the 72-hour average');
   ck('at the ceiling it holds, the step is not taken', c3[1].kind === 'hold' && /already at the \$26 a day ceiling/.test(c3[1].detail) && (await metaOf(C.sets[0].meta_adset_id)).daily_budget === '2600');
   // minimum spend: the 4th ad set has spent about $119 over the week, the 5th about $133
   const M2 = await makeCampaign({ rule: { off_min_spend_cents: 12000 } });
-  await SY.runResultsSync();
+  await sync();
   const m = byPos(decisionsOf(await R.runMorningRules({ now: at(-1) }), M2.c)), sp = Object.fromEntries((await S.resultTotals({ campaignId: M2.c.id })).map(x => [x.adset_id, x.spend_cents]));
   ck('with a $120 minimum, ad set 4 (spent just under it) is held on although it is below the line, and ad set 5 (spent more) is turned off', sp[M2.sets[3].id] < 12000 && sp[M2.sets[4].id] >= 12000 && m[4].kind === 'hold' && /only spent \$119/.test(m[4].detail) && /wait until \$120/.test(m[4].detail) && m[5].kind === 'turn_off', JSON.stringify([sp, m[4].detail]));
   // the 72-hour average: hand-made results for a campaign that never reaches Meta (a dry run)
@@ -151,6 +164,7 @@ say('-- the ceiling, the minimum spend, the 72-hour average');
     ...rowsFor(H.sets[2], [[-1, 1000, 3000], [-2, 1000, 3000], [0, 5000, 0]]),                           // today's partial day is not counted (only two full days here, still 3.0×)
     ...rowsFor(H.sets[3], [[-4, 5000, 100]]),                                                            // nothing in the last three days: nothing to judge
   ]);
+  await realAgrees();
   const h = byPos(decisionsOf(await R.runMorningRules({ now: at(0) }), H.c));
   ck('the judgement is the average of the last 72 hours: one bad day among three still raises (2.0× over $30)', h[1].kind === 'raise_budget' && /2× over the last 3 days \(\$30 spent\)/.test(h[1].detail), h[1].detail);
   ck('an older bad day is ignored, and an older great day does not save a bad three days (0.5× turns it off)', h[2].kind === 'turn_off' && /0\.5×/.test(h[2].detail));
@@ -163,7 +177,7 @@ say('-- Lead campaigns are judged on cost per lead');
 {
   await open();
   const L = await makeCampaign({ goal: 'Lead' });
-  await SY.runResultsSync();
+  await sync();
   const l = byPos(decisionsOf(await R.runMorningRules({ now: at(-3) }), L.c));
   ck('cost per lead $1.00 and $1.50 raise (at most $1.75), $2.00 holds, $3.00 and $5.00 turn off (above $2.50)', ['raise_budget', 'raise_budget', 'hold', 'turn_off', 'turn_off'].every((k, i) => l[i + 1]?.kind === k), JSON.stringify(Object.values(l).map(d => [d.adset, d.kind, d.detail.slice(0, 80)])));
   ck('and says so in cost per lead', /cost per lead \$1\.00 over the last 3 days/.test(l[1].detail) && /at or below the \$1\.75 line/.test(l[1].detail) && /above the \$2\.50 line/.test(l[4].detail), l[1].detail + ' | ' + l[4].detail);
@@ -173,7 +187,7 @@ say('-- Traffic gets no rules; rules that are off, a paused campaign, a draft: n
 {
   await open();
   const Tr = await makeCampaign({ goal: 'Traffic' }), Off = await makeCampaign({ rulesOn: false }), Pa = await makeCampaign({ status: 'paused' });
-  await SY.runResultsSync();
+  await sync();
   const run = await R.runMorningRules({ now: at(-3) });
   ck('a Traffic campaign with the switch on gets no decisions and no rows', !run.campaigns.some(x => x.id === Tr.c.id) && (await actionsOf(Tr.c)).length === 0 && Tr.rules === null);
   ck('a campaign whose rules are off, and a paused campaign, get none either', !run.campaigns.some(x => x.id === Off.c.id || x.id === Pa.c.id) && (await actionsOf(Off.c)).length === 0 && (await actionsOf(Pa.c)).length === 0);
@@ -183,14 +197,14 @@ say('-- the weakest ad in each set');
 {
   await open();
   const W = await makeCampaign({ rule: { pause_weakest_after_days: 5 } });
-  await SY.runResultsSync();
+  await sync();
   const w = byPos(decisionsOf(await R.runMorningRules({ now: at(0) }), W.c));
   const paused = Object.entries(w).filter(([k]) => k.endsWith('a'));
   ck('after 5 days the weakest ad (ad 5) is paused in each ad set that stays on: three sets (the two turned off are skipped)', paused.length === 3 && paused.every(([, d]) => d.ad === 'Ad 5' && d.kind === 'pause_ad' && d.applied), JSON.stringify(paused.map(([k, d]) => [k, d.ad])));
   ck('with the reason in numbers, and Meta has those ads paused', /weakest ad in Ad set 1/.test(w['1a'].detail) && /0\.\d+×|1\.\d+×/.test(w['1a'].detail) && (await j('/__state')).ads.filter(a => a.status === 'PAUSED').length >= 3);
   const again = await R.runMorningRules({ now: at(1) });
   ck('only once per ad set: the next morning pauses no more ads', !decisionsOf(again, W.c).some(d => d.kind === 'pause_ad'));
-  const young = await makeCampaign({ rule: { pause_weakest_after_days: 30 } }); await SY.runResultsSync();
+  const young = await makeCampaign({ rule: { pause_weakest_after_days: 30 } }); await sync();
   ck('before the days are up nothing is paused', !decisionsOf(await R.runMorningRules({ now: at(0) }), young.c).some(d => d.kind === 'pause_ad'));
 }
 
@@ -205,7 +219,7 @@ say('-- close any ONE lock and the same decisions become a dry run: the Meta moc
   ];
   const expect = ['raise_budget', 'raise_budget', 'hold', 'turn_off', 'turn_off'];
   for (const [name, close, why] of scenarios) {
-    const X = await makeCampaign({}); await SY.runResultsSync(); await close();
+    const X = await makeCampaign({}); await sync(); await close();
     const w0 = await mark(), run = await R.runMorningRules({ now: at(-3) }), ds = decisionsOf(run, X.c), b = byPos(ds), acts = await actionsOf(X.c);
     ck(`[${name}] the same five decisions are made`, expect.every((k, i) => b[i + 1]?.kind === k), JSON.stringify(ds.map(d => d.kind)));
     ck(`[${name}] every one is recorded as a dry run, none applied`, acts.length === 5 && acts.every(a => a.dry_run === true) && run.applied === 0 && run.would === 4 && ds.every(d => !d.applied), JSON.stringify(acts.map(a => a.dry_run)));
@@ -216,7 +230,7 @@ say('-- close any ONE lock and the same decisions become a dry run: the Meta moc
     ck(`[${name}] the dry run still wrote its rows with from, to and what Reverse would restore (raise 2000 to 2400), though none can be reversed`, acts.find(a => a.kind === 'raise_budget').before.daily_budget_cents === 2000 && acts.find(a => a.kind === 'raise_budget').after.daily_budget_cents === 2400 && acts.find(a => a.kind === 'raise_budget').reverse_to.daily_budget_cents === 2000 && !R.canReverse(acts.find(a => a.kind === 'raise_budget')));
   }
   await open();
-  const pv = await makeCampaign({}); await SY.runResultsSync();
+  const pv = await makeCampaign({}); await sync();
   const w0 = await mark(), run = await R.runMorningRules({ now: at(-3), preview: true });
   ck('a preview with every lock open decides and says, but records nothing and changes nothing', decisionsOf(run, pv.c).length === 5 && (await actionsOf(pv.c)).length === 0 && (await mark()) === w0 && decisionsOf(run, pv.c).every(d => !d.applied));
 }
@@ -224,7 +238,7 @@ say('-- close any ONE lock and the same decisions become a dry run: the Meta moc
 say('-- Reverse puts the earlier value back, once, and refuses after a later change');
 {
   await open();
-  const V1 = await makeCampaign({}); await SY.runResultsSync();
+  const V1 = await makeCampaign({}); await sync();
   await R.runMorningRules({ now: at(-3) });
   const acts = await actionsOf(V1.c), raise = acts.find(a => a.adset_id === V1.sets[0].id && a.kind === 'raise_budget'), off = acts.find(a => a.adset_id === V1.sets[3].id && a.kind === 'turn_off');
   ck('an applied raise and an applied turn-off can be reversed (the action says so)', R.canReverse(raise) && R.canReverse(off) && !R.canReverse(acts.find(a => a.kind === 'hold')));
@@ -239,7 +253,7 @@ say('-- Reverse puts the earlier value back, once, and refuses after a later cha
   const grace = byPos(decisionsOf(await R.runMorningRules({ now: at(-2) }), V1.c));
   ck('and the next morning the rules leave it alone for three days, saying so (not turning it straight off again)', grace[4]?.kind === 'hold' && /turned it back on/.test(grace[4].detail) && (await metaOf(V1.sets[3].meta_adset_id)).status === 'ACTIVE', JSON.stringify(grace[4]));
   // after a later change
-  const W2 = await makeCampaign({ rule: { raise_every_hours: 24 } }); await SY.runResultsSync();
+  const W2 = await makeCampaign({ rule: { raise_every_hours: 24 } }); await sync();
   await R.runMorningRules({ now: at(-3) }); await R.runMorningRules({ now: at(-2) });
   const raises = (await actionsOf(W2.c)).filter(a => a.adset_id === W2.sets[0].id && a.kind === 'raise_budget').sort((a, b) => a.at.localeCompare(b.at));
   const w1 = await mark(), late = await R.reverseAction(raises[0].id, 'Jake', W2.c.id);
@@ -259,7 +273,7 @@ say('-- Reverse puts the earlier value back, once, and refuses after a later cha
 say('-- a Meta that refuses the change: it is recorded as not done, and nothing is marked changed');
 {
   await open();
-  const F = await makeCampaign({}); await SY.runResultsSync();
+  const F = await makeCampaign({}); await sync();
   await j('/__mode?rejectWrites=1');
   const run = await R.runMorningRules({ now: at(-3) }), ds = decisionsOf(run, F.c), acts = await actionsOf(F.c);
   ck('each change that Meta refused is recorded as not done, with the reason, and is not reversible', ds.filter(d => d.kind !== 'hold').every(d => d.failed && !d.applied) && run.failed === 4 && acts.filter(a => a.after?.failed).length === 4 && acts.every(a => !R.canReverse(a)) && /did not go through/.test(acts.find(a => a.after?.failed).detail));

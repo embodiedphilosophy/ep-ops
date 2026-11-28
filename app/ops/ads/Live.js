@@ -55,6 +55,8 @@ export default function Live({ id, first }) {
         <li><span className="l">Results last read</span><span className="v" style={{ fontSize: 20 }}>{sync ? (sync.ok ? at(sync.at) : 'Not working') : 'Not yet'}</span><span className="d">{sync ? (sync.ok ? 'from Meta, every hour' : sync.error) : 'the first hourly read comes soon after it starts'}</span></li>
       </ul>
 
+      {v.real && <section className="ads-panel" aria-label="Real sales"><div className="ph"><h2>Real sales</h2><span className="sub">what Kit and Circle say actually sold</span></div>{v.real.map((t, i) => <p key={i} className="hint">{t}</p>)}</section>}
+
       <section className="ads-panel" aria-label="Results by ad set">
         <div className="ph"><h2>Results by ad set</h2><span className="sub">last 3 full days ({day(v.window.from)} to {day(v.window.to)}), the same numbers the rules judge on</span></div>
         <div className="ads-scroll"><table className="ads-table">

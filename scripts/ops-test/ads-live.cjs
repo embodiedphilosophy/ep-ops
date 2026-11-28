@@ -74,6 +74,13 @@ const SECRET = 'mock-ads-token-for-the-settings-test';
   const pr = await as(reb); await pr.goto(U + `/ops/ads/${cid}`); await pr.waitForSelector('.ads-live .ads-table');
   ck('Rebecka sees the results and the Pause button', (await pr.innerText('.ads-live')).includes('Results by ad set') && await pr.getByRole('button', { name: 'Pause' }).count() === 1);
 
+  console.log('-- real sales on the campaign page (what the hourly safety net last saw: Kit and Circle are the mocks)');
+  await fetch(META + '/__world?name=account');
+  const watched = await (await fetch(U + '/api/ops/ads-watch?key=mock-cron-secret')).json();
+  await p.goto(U + `/ops/ads/${cid}`); await p.waitForSelector('.ads-live .ads-table');
+  const realPanel = p.locator('[aria-label="Real sales"]');
+  ck('after the hourly check the page has a Real sales panel with both numbers in plain words (Meta says, real sales say) and the never-added-together note', await realPanel.count() === 1 && /Meta says .*real sales say/.test(await realPanel.innerText()) && /never added together/.test(await realPanel.innerText()), JSON.stringify(watched.board?.find(c => c.id === 'sales')) + ' ' + (await realPanel.count()));
+
   console.log('-- phone width (390px)');
   const m = await as(DIRECTOR, { width: 390, height: 800 });
   for (const [name, url, sel] of [['Ads list', '/ops/ads', '.ads-table'], ['campaign page', `/ops/ads/${cid}`, '.ads-live .ads-table']]) {
