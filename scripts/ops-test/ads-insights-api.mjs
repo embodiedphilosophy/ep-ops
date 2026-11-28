@@ -149,9 +149,9 @@ const everyone = [['Floss', 'floss@example.com'], ['Irene', 'irene@example.com']
     const before = { claims: d.week.claims.map(c => c.text), ideas: [...d.ideas.new, ...d.ideas.sent, ...d.ideas.dismissed].length };
     await mockSet('bad=1');
     const badRun = await cronGet('/api/ops/ads-insights'), after = await insights();
-    ck('the run reports what it dropped: 4 claims (a wrong number, a missing metric, no metric, an invented sum) and 4 ideas (an unknown word, an unknown format, an unknown audience, a missing metric)', badRun.j.read.dropped === 4 && badRun.j.ideas.dropped === 4, JSON.stringify(badRun.j.read) + JSON.stringify(badRun.j.ideas));
-    ck('the good claims are all still there and none of the bad ones is shown', JSON.stringify(after.week.claims.map(c => c.text)) === JSON.stringify(before.claims) && !after.week.claims.some(c => /987654|m9999|12 people|in all/.test(c.text)));
-    ck('the page says how many statements were left out', after.week.verification.dropped === 4 && after.week.verification.kept === before.claims.length);
+    ck('the run reports what it dropped: 7 claims (a wrong number, a missing metric, no metric, an invented sum, two that give a reason or advice (“so … should”, “because”), and one that repeats a figure already stated) and 4 ideas (an unknown word, an unknown format, an unknown audience, a missing metric)', badRun.j.read.dropped === 7 && badRun.j.ideas.dropped === 4, JSON.stringify(badRun.j.read) + JSON.stringify(badRun.j.ideas));
+    ck('the good claims are all still there and none of the bad ones is shown', JSON.stringify(after.week.claims.map(c => c.text)) === JSON.stringify(before.claims) && !after.week.claims.some(c => /987654|m9999|12 people|in all|so the team should|because of the ads|again/.test(c.text)));
+    ck('the page says how many statements were left out', after.week.verification.dropped === 7 && after.week.verification.kept === before.claims.length);
     ck('no bad idea was stored (no “Quantum Crystal Healing”, no unknown format or audience), and none doubled', [...after.ideas.new, ...after.ideas.sent, ...after.ideas.dismissed].length === before.ideas && ![...after.ideas.new].some(i => /quantum/i.test(i.title)));
     await mockSet('bad=0');
 
@@ -225,15 +225,24 @@ const everyone = [['Floss', 'floss@example.com'], ['Irene', 'irene@example.com']
     ck('to begin with Circle and Kit both answer', base.circle === 'ok' && base.kit_purchases === 'ok' && base.kit_email === 'ok');
     await mockSet('kit=fail&broadcasts=1');
     let r = await cronGet('/api/ops/ads-insights'), d = await insights(), st = STATES(d.sources);
-    ck('Kit failing: Kit purchases and Kit email say they couldn’t be read just now (connected, but not read)', st.kit_purchases === 'error' && st.kit_email === 'error' && /Kit couldn’t be read just now/.test(d.sources.find(s => s.key === 'kit_purchases').note) && /Kit couldn’t be read just now/.test(d.sources.find(s => s.key === 'kit_email').note));
+    ck('Kit answering 500: Kit purchases and Kit email say they couldn’t be read just now, with the status (connected, but not read)', st.kit_purchases === 'error' && st.kit_email === 'error' && /Kit couldn’t be read just now \(purchases\): it answered with error 500/.test(d.sources.find(s => s.key === 'kit_purchases').note) && /Kit couldn’t be read just now/.test(d.sources.find(s => s.key === 'kit_email').note));
     ck('…and Circle and the rest still work, with a read made from what there is', st.circle === 'ok' && d.week.metrics.some(m => m.source === 'circle') && !d.week.metrics.some(m => m.source === 'kit_purchases' || m.source === 'kit_email') && d.week.state === 'ok' && d.week.claims.length > 0);
     ck('the Kit failure leaves no error text, address or key in the app’s log', !/mock failure/.test(appLog()) && !appLog().includes('mock-anthropic-key'));
+    const kitNote = async mode => { await mockSet(`kit=${mode}&circle=ok`); await cronGet('/api/ops/ads-insights'); const x = await insights(); return { st: STATES(x.sources), note: x.sources.find(s => s.key === 'kit_purchases').note }; };
+    for (const [code, re] of [['401', /won’t let this key read purchases \(error 401\)\..*permission to read purchases/], ['403', /won’t let this key read purchases \(error 403\)/], ['404', /no purchases list at the address we use \(error 404/], ['429', /too many requests were made \(error 429\)\. Try again in a minute/]]) {
+      const k = await kitNote(code);
+      ck(`Kit purchases answering ${code}: a plain, specific reason (${code})`, k.st.kit_purchases === 'error' && re.test(k.note) && /The other sources still work/.test(k.note), k.note);
+    }
     await mockSet('kit=ok&circle=none');
     r = await cronGet('/api/ops/ads-insights'); d = await insights(); st = STATES(d.sources);
-    ck('Circle that cannot list purchases: not connected, in plain words; Kit carries on', st.circle === 'off' && /can’t list purchases/.test(d.sources.find(s => s.key === 'circle').note) && st.kit_purchases === 'ok' && d.week.metrics.some(m => m.source === 'kit_purchases'));
+    ck('Circle that cannot list purchases: not connected, says plainly what it tried and the status, and what may be wrong; Kit carries on', st.circle === 'off' && /doesn’t offer a purchases list to this key/.test(d.sources.find(s => s.key === 'circle').note) && /answered error 404/.test(d.sources.find(s => s.key === 'circle').note) && /Admin V2/.test(d.sources.find(s => s.key === 'circle').note) && st.kit_purchases === 'ok' && d.week.metrics.some(m => m.source === 'kit_purchases'));
     await mockSet('circle=fail');
     r = await cronGet('/api/ops/ads-insights'); d = await insights(); st = STATES(d.sources);
-    ck('Circle answering with an error: couldn’t be read just now; Kit carries on', st.circle === 'error' && /Circle couldn’t be read just now/.test(d.sources.find(s => s.key === 'circle').note) && st.kit_purchases === 'ok');
+    ck('Circle answering 500: couldn’t be read just now, with the status; Kit carries on', st.circle === 'error' && /Circle couldn’t be read just now \(purchases\): it answered with error 500/.test(d.sources.find(s => s.key === 'circle').note) && st.kit_purchases === 'ok');
+    for (const [code, re] of [['401', /won’t let this key read purchases \(error 401\)/], ['403', /won’t let this key read purchases \(error 403\)/], ['429', /too many requests were made \(error 429\)/]]) {
+      await mockSet(`circle=${code}`); await cronGet('/api/ops/ads-insights'); const x = await insights();
+      ck(`Circle purchases answering ${code}: a plain, specific reason`, STATES(x.sources).circle === 'error' && re.test(x.sources.find(s => s.key === 'circle').note), x.sources.find(s => s.key === 'circle').note);
+    }
     ck('and every source is still listed on the page', d.sources.length === 5);
     await mockSet('circle=ok');
   }

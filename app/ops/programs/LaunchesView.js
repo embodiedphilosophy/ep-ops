@@ -9,5 +9,9 @@ export const metadata = { title: 'Launches — Embodied Philosophy', robots: { i
 
 export default async function Page() {
   const user = await opsUser(isStaff);
-  return <Shell user={user} current="email-launches"><Launches /></Shell>;
+  return (
+    <Shell user={user} current="email-launches" eyebrow="Programs" title="Launches"
+      desc="Everything around one moment, together: its emails, social posts and countdowns, landing page and tasks, counted from key dates. Below: which upcoming events to promote.">
+      <Launches bare />
+    </Shell>);
 }

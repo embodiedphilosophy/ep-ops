@@ -51,10 +51,13 @@ export function useSide(panel) {
 // Emails is one menu item with three views: the list, the calendar, and the promo emails planned per event
 export const EMAIL_VIEWS = [['list', 'List', '/ops/publish?view=email'], ['calendar', 'Calendar', '/ops/publish?show=email'], ['promo', 'Promo emails by event', '/ops/publish?view=promo']];
 export const EmailViews = ({ on }) => <nav className="ops-filters em-views" aria-label="Emails view">{EMAIL_VIEWS.map(([k, l, h]) => <a key={k} href={h} aria-current={k === on ? 'page' : undefined}>{l}</a>)}</nav>;
-export function Layout({ children, panel, setPanel, d, title, intro, view, embedded = false }) {
+// bare: the page frame shows the title (a view inside Programs), so only the Show Programming button is drawn here, with `lead` (a
+// launch's own name) beside it
+export function Layout({ children, panel, setPanel, d, title, intro, view, embedded = false, bare = false, lead = null }) {
   return (
     <div className="soc">
-      {!embedded && <header className="soc-head">
+      {!embedded && bare && <div className="soc-bar"><div>{lead}</div><button className="soc-btn" aria-pressed={panel} onClick={() => setPanel(!panel)}>{panel ? 'Hide' : 'Show'} Programming</button></div>}
+      {!embedded && !bare && <header className="soc-head">
         <div><span className="eyebrow">Teachers · Email · Launches</span><h1>{title}</h1><p>{intro}</p></div>
         <div className="soc-act"><button className="soc-btn" aria-pressed={panel} onClick={() => setPanel(!panel)}>{panel ? 'Hide' : 'Show'} Programming</button></div>
       </header>}
