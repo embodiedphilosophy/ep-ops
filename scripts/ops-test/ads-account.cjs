@@ -73,6 +73,28 @@ const num = t => Number(String(t).replace(/[^0-9.]/g, '') || 0);
       ck('exactly one is "Made in Ops": the campaign built here, and it opens its Ops page', await mine.count() === 1 && /Made in Ops/.test(await mine.first().innerText()) && /^\/ops\/ads\/cmp_/.test(await mine.first().getAttribute('href')) && /^mock_campaign_/.test(await sec.locator('.acct-table tbody tr', { has: p.locator('a.ads-pill.good') }).getAttribute('data-id')) && await notMine.count() === 11);
       await mine.first().click(); await p.waitForURL(/\/ops\/ads\/cmp_/); await p.goBack(); await open(p);
     }
+    console.log('-- Paging (865 campaigns in the real account)');
+    {
+      const pg2 = await (await b.newContext({ viewport: { width: 1360, height: 900 } })).newPage();
+      await pg2.context().addCookies([{ name: 'ep_ops', value: DIRECTOR, url: U }]);
+      await pg2.route('**/api/ops/ads-account', async route => {
+        const r = await route.fetch(), j = await r.json(), base = j.rows[0];
+        j.rows = Array.from({ length: 60 }, (_, k) => ({ ...base, id: 'PG' + k, name: 'Paging test ' + k }));
+        await route.fulfill({ response: r, json: j });
+      });
+      const sec2 = await open(pg2), rows2 = sec2.locator('.acct-table tbody tr');
+      ck('a long list shows 25 rows first, and says how many there are', await rows2.count() === 25 && /Showing 25 of 60/.test(await sec2.innerText()));
+      await sec2.getByRole('button', { name: 'Show 25 more' }).click();
+      ck('"Show 25 more" adds 25', await rows2.count() === 50);
+      await sec2.getByRole('button', { name: 'Show 10 more' }).click();
+      ck('the last page adds only what is left, and the button goes away', await rows2.count() === 60 && await sec2.getByRole('button', { name: /more|Show all/ }).count() === 0);
+      ck('the total row still covers the whole list', /Total of all 60 in this list/.test(await sec2.locator('tfoot').innerText()));
+      await sec2.locator('.ads-seg button', { hasText: 'Active' }).click(); await sec2.locator('.ads-seg button', { hasText: /^All/ }).click();
+      ck('changing the filter starts again at 25', await rows2.count() === 25);
+      await sec2.getByRole('button', { name: 'Show all' }).click();
+      ck('"Show all" shows everything', await rows2.count() === 60);
+      await pg2.context().close();
+    }
     console.log('-- Needs a look');
     const why = async id => (await row(id).locator('.acct-why').allInnerTexts()).join(' | ');
     ck('running past its end time', /Still running after its end time/.test(await why('W_PAST')), await why('W_PAST'));
@@ -88,7 +110,7 @@ const num = t => Number(String(t).replace(/[^0-9.]/g, '') || 0);
     for (const [l, want] of [['All', n], ['Active', 8], ['Paused', PHASE === 'c' ? 2 : 1], ['Needs a look', 4], ['Not made in Ops', 11]]) {
       await chip(l).click();
       const tot = await sec.locator('tfoot').innerText();
-      ck(`${l}: ${want} rows, and the total row is the sum of exactly those rows (7 and 30 days)`, await shown() === want && new RegExp(`Total of the ${want} shown`).test(tot) && num(await sec.locator('tfoot td.c-spend7').innerText()) === await sumOf('c-spend7') && num(await sec.locator('tfoot td.c-spend30').innerText()) === await sumOf('c-spend30'), `${await shown()} ${tot.replace(/\n/g, ' ')}`);
+      ck(`${l}: ${want} rows, and the total row is the sum of exactly those rows (7 and 30 days)`, await shown() === want && new RegExp(`Total of all ${want} in this list`).test(tot) && num(await sec.locator('tfoot td.c-spend7').innerText()) === await sumOf('c-spend7') && num(await sec.locator('tfoot td.c-spend30').innerText()) === await sumOf('c-spend30'), `${await shown()} ${tot.replace(/\n/g, ' ')}`);
     }
     await chip('All').click();
     ck('with everything shown the total row has the 30-day spend and one blended return (n.nn×) across purchase campaigns only, as Meta counts it', /Return is across purchase campaigns only, as Meta counts it/.test(await sec.locator('tfoot').innerText()) && /^\d+\.\d\d×$/.test((await sec.locator('tfoot td.c-ret30').innerText()).trim()) && num(await sec.locator('tfoot td.c-spend30').innerText()) > 0);
