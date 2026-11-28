@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import AccountView from './AccountView';
 
 export const usd = c => '$' + ((c || 0) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
 const day = d => d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
@@ -29,6 +30,7 @@ export default function Campaigns() {
   return (
     <div className="ads">
       <ModeNote d={d} />
+      <AccountView />
       <ul className="ads-kpis" aria-label="Campaigns at a glance">
         <li><span className="l">Running now</span><span className="v">{running.length}</span><span className="d">live in Meta</span></li>
         <li><span className="l">Drafts to review</span><span className="v">{drafts}</span><span className="d">built from launches</span></li>
