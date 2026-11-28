@@ -12,8 +12,10 @@ const results = (r, w) => (!w || !(w.results || w.spend_cents) ? '—' : r.kind 
 const ret = w => (!w || !w.ret ? '—' : w.ret.type === 'roas' ? `${w.ret.value.toFixed(2)}×` : w.ret.value == null ? 'No leads' : `${money(w.ret.value)} a lead`);
 const budget = b => (!b ? '—' : `${money(b.cents)}${b.kind === 'daily' ? ' a day' : ' in all'}${b.on_ad_sets ? ' (on its ad sets)' : ''}`);
 
+const PAGE = 25;
+
 export default function AccountView() {
-  const [d, setD] = useState(null), [err, setErr] = useState(''), [f, setF] = useState('all'), [busy, setBusy] = useState(false), [msg, setMsg] = useState(''), [wait, setWait] = useState(0);
+  const [d, setD] = useState(null), [err, setErr] = useState(''), [f, setF] = useState('all'), [busy, setBusy] = useState(false), [msg, setMsg] = useState(''), [wait, setWait] = useState(0), [limit, setLimit] = useState(PAGE);
   const timer = useRef(null);
   useEffect(() => { fetch('/api/ops/ads-account').then(r => r.json().then(j => r.ok ? setD(j) : setErr(j.error || 'Couldn’t read your Meta account just now.'))).catch(() => setErr('Couldn’t read your Meta account just now.')); return () => clearInterval(timer.current); }, []);
   const cool = s => { setWait(s); clearInterval(timer.current); timer.current = setInterval(() => setWait(w => { if (w <= 1) { clearInterval(timer.current); return 0; } return w - 1; }), 1000); };
@@ -41,14 +43,14 @@ export default function AccountView() {
     <>
       {s.state === 'error' && <p className="ads-mode bad" role="alert"><b>Meta couldn’t be read just now.</b> {s.message} What you see is from {asOf(s.as_of, s.tz)}.</p>}
       {(s.notes || []).map(n => <p key={n} className="ads-mode warn" role="status">{n}</p>)}
-      <div className="ads-seg" role="group" aria-label="Show">{FILTERS.map(([k, l, fn]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>{l} <span className="n">{rows.filter(fn).length}</span></button>)}</div>
+      <div className="ads-seg" role="group" aria-label="Show">{FILTERS.map(([k, l, fn]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => { setF(k); setLimit(PAGE); }}>{l} <span className="n">{rows.filter(fn).length}</span></button>)}</div>
       {!shown.length ? <p className="ops-empty">Nothing in this list.</p> : (
         <div className="ads-scroll"><table className="acct-table" aria-label="Campaigns in your Meta account">
           <thead>
             <tr><th rowSpan={2}>Campaign</th><th rowSpan={2}>Status</th><th rowSpan={2}>Budget</th><th rowSpan={2}>Dates</th><th colSpan={3} className="grp">Last 7 days</th><th colSpan={3} className="grp">Last 30 days</th><th rowSpan={2}><span className="sr-only">Open in Meta</span></th></tr>
             <tr><th>Spend</th><th>Results</th><th>Return</th><th>Spend</th><th>Results</th><th>Return</th></tr>
           </thead>
-          <tbody>{shown.map(r => (
+          <tbody>{shown.slice(0, limit).map(r => (
             <tr key={r.id} data-id={r.id}>
               <td className="c-name"><b>{r.name}</b>
                 <div className="acct-badges">{r.made_in_ops ? <a className="ads-pill good" href={`/ops/ads/${r.ops_id}`}>Made in Ops</a> : <span className="ads-pill calm">Not made in Ops</span>}
@@ -61,11 +63,15 @@ export default function AccountView() {
               <td><a className="acct-open" href={r.manager_url} target="_blank" rel="noopener noreferrer">Open in Meta Ads Manager</a></td>
             </tr>))}</tbody>
           <tfoot><tr className="acct-total">
-            <th scope="row" colSpan={4}>Total of the {tot.campaigns} shown<div className="sub">Return is across purchase campaigns only, as Meta counts it</div></th>
+            <th scope="row" colSpan={4}>Total of all {tot.campaigns} in this list<div className="sub">Return is across purchase campaigns only, as Meta counts it</div></th>
             <td className="num c-spend7">{money(tot.d7.spend_cents)}</td><td className="num c-res7">{[tot.d7.purchases ? `${tot.d7.purchases} ${tot.d7.purchases === 1 ? 'purchase' : 'purchases'}` : '', tot.d7.leads ? `${tot.d7.leads} ${tot.d7.leads === 1 ? 'lead' : 'leads'}` : ''].filter(Boolean).join(', ') || '—'}</td><td className="num c-ret7">{tot.d7.roas == null ? '—' : `${tot.d7.roas.toFixed(2)}×`}</td>
             <td className="num c-spend30">{money(tot.d30.spend_cents)}</td><td className="num c-res30">{[tot.d30.purchases ? `${tot.d30.purchases} ${tot.d30.purchases === 1 ? 'purchase' : 'purchases'}` : '', tot.d30.leads ? `${tot.d30.leads} ${tot.d30.leads === 1 ? 'lead' : 'leads'}` : ''].filter(Boolean).join(', ') || '—'}</td><td className="num c-ret30">{tot.d30.roas == null ? '—' : `${tot.d30.roas.toFixed(2)}×`}</td>
             <td />
           </tr></tfoot></table></div>)}
+      {shown.length > limit && (
+        <p className="acct-more">Showing {limit} of {shown.length}.{' '}
+          <button type="button" className="soc-btn small" onClick={() => setLimit(l => l + PAGE)}>Show {Math.min(PAGE, shown.length - limit)} more</button>{' '}
+          <button type="button" className="soc-btn small" onClick={() => setLimit(shown.length)}>Show all</button></p>)}
       <p className="sub">Return and results are as Meta counts them. Real Circle and Kit sales come in a later update. “Last 7 days” and “Last 30 days” are whole days, not counting today. A return needs at least $5 spent to show.</p>
       <p className="sub">“Made in Ops” means the campaign was built here from a launch. “Not made in Ops” means it was made in Meta Ads Manager or by Make’s Ad Agent. Ops only reads these campaigns and never changes them.</p>
     </>);
