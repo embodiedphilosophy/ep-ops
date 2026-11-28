@@ -260,6 +260,35 @@ const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); 
 // ins is changed by GET /__insights?kit=ok|fail|401|403|404|429&circle=ok|fail|none|401|403|429&bad=0|1&broadcasts=0|1 (kit=fail: purchases and stats answer 500; circle=none: Circle can't list purchases (404)).
 const anthropicLog = [];
 const ins = { kit: 'ok', circle: 'ok', bad: false, broadcasts: false };
+// Ads outside research (lib/ops/adsresearch.js): a stand-in for Anthropic's web search tool, in the documented response shape (server_tool_use, web_search_tool_result, text blocks with citations).
+// research is changed by GET /__research?mode=good|bad|empty|fail|searcherror|pause (good: three sourced statements; bad: those plus one of every kind the code must drop;
+// empty: "NOTHING_FOUND"; fail: HTTP 500; searcherror: the search tool itself reports an error; pause: the first answer stops with pause_turn and the second finishes it). Every request is kept in anthropicLog.
+const research = { mode: 'good', calls: 0 };
+const RS = [
+  { url: 'https://www.facebook.com/business/help/mock-policy', title: 'About ad policy updates for education advertisers', page_age: 'March 2026', cite: 'From 14 March 2026, ads for online courses will show the course provider’s name in the ad.' },
+  { url: 'https://www.wordstream.com/blog/mock-benchmarks', title: 'Facebook ad benchmarks by industry', page_age: 'January 2026', cite: 'Education advertisers on Meta paid an average cost per click of $1.72 in the period measured.' },
+  { url: 'https://transparency.meta.com/policies/ad-standards/mock-health', title: 'Ad standards: health and wellness', page_age: '', cite: 'Ads must not include before-and-after images that imply a result in health and wellness categories; ads with them are rejected.' },
+  { url: 'https://example-blog.invalid/mock-post', title: 'A blog that is not on the list', page_age: '', cite: 'Meta raised its prices by 40% on 2 February.' },
+];
+const researchAnswer = mode => {
+  const C = (i, text) => ({ type: 'text', text, citations: [{ type: 'web_search_result_location', url: RS[i].url, title: RS[i].title, encrypted_index: 'x', cited_text: RS[i].cite }] });
+  const search = [{ type: 'server_tool_use', id: 'srvtoolu_mock1', name: 'web_search', input: { query: 'meta ads policy education' } }, { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: RS.map(r => ({ type: 'web_search_result', url: r.url, title: r.title, page_age: r.page_age, encrypted_content: 'mock-encrypted' })) }];
+  const good = [C(0, 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.'), { type: 'text', text: '\n\n' }, C(1, 'WordStream reports an average cost per click of $1.72 for education advertisers on Meta.'), { type: 'text', text: '\n\n' }, C(2, 'Meta’s ad standards list before-and-after images as content that gets health and wellness ads rejected.')];
+  if (mode === 'empty') return [...search.slice(0, 1), { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: [] }, { type: 'text', text: 'NOTHING_FOUND' }];
+  if (mode === 'searcherror') return [search[0], { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_mock1', content: { type: 'web_search_tool_result_error', error_code: 'unavailable' } }, { type: 'text', text: 'NOTHING_FOUND' }];
+  if (mode === 'bad') return [...search, ...good,
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says that from 14 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a duplicate
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the Learning Hub page confirms a new fee.', citations: [{ type: 'web_search_result_location', url: 'https://www.facebook.com/business/never-returned', title: 'Never returned', cited_text: 'a new fee' }] },   // an address the search never returned
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'WordStream reports an average cost per lead of $4.80 for wellness advertisers.', citations: [RS[1]].map(r => ({ type: 'web_search_result_location', url: r.url, title: r.title, cited_text: r.cite })) },   // a number that is not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says from 20 March 2026 ads for online courses show the course provider’s name.', citations: [good[0].citations[0]] },   // a date that is not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says advertisers should add the course provider’s name to every online course ad.', citations: [good[0].citations[0]] },   // advice
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta says the course provider’s name appears on online course ads because trust matters.', citations: [good[0].citations[0]] },   // a reason
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'Meta announced a brand new way to schedule reels for creators.', citations: [good[2].citations[0]] },   // words that are not in the source
+    { type: 'text', text: '\n\n' }, { type: 'text', text: 'A blog says Meta raised its prices by 40% on 2 February.', citations: [{ type: 'web_search_result_location', url: RS[3].url, title: RS[3].title, cited_text: RS[3].cite }] },   // a site not on the list
+    { type: 'text', text: '\n\nMeta will almost certainly change every rule in 2027, and nobody knows why.\n\n' },   // no source at all
+    { type: 'text', text: 'Meta says courses show a name.', citations: [{ type: 'web_search_result_location', url: RS[0].url, title: RS[0].title, cited_text: '' }] }];   // a source with no text
+  return [...search, ...good];
+};
 const daysAgo = (n, h = 10) => new Date(Date.now() - n * 864e5 + (h - 12) * 36e5).toISOString();
 const MARK = 'Marker';   // every made-up buyer is called "<Source> Marker Buyer N", with an address at example.invalid
 const buyProducts = [['Kali: the dark mother', 150], ['Meditation Pass', 20], ['Spanda Intensive', 45], ['Sādhana School: Fall 2026', 495]];
@@ -343,6 +372,7 @@ http.createServer(async (req, res) => {
           : { id: 9500 + n, status: 'paid', created_at: at, amount_cents: usd * 100, paywall: { id: 301, name: 'Meditation Pass' }, utm_campaign: utm, member: { id: 7000 + n, name: `Circle ${MARK} Sales ${n}`, email: `circle.sales.marker.${n}@example.invalid` } }); }
       return send(res, 200, { kit: extraSales.kit.length, circle: extraSales.circle.length, untagged: extraSales.untagged });
     }
+    if (p === '/__research') { for (const [k, v] of url.searchParams) research[k] = v; research.calls = 0; return send(res, 200, research); }
     if (p === '/__insights') { for (const [k, v] of url.searchParams) ins[k] = k === 'bad' || k === 'broadcasts' ? v === '1' : v; return send(res, 200, ins); }
     if (p === '/__anthropic-log') { const out = anthropicLog.slice(); if (url.searchParams.get('reset')) anthropicLog.length = 0; return send(res, 200, out); }
     if (p === '/__reads') { const out = { total: readLog.length, reads: readLog.slice() }; if (url.searchParams.get('reset')) readLog.length = 0; return send(res, 200, out); }
@@ -481,6 +511,14 @@ http.createServer(async (req, res) => {
       const src = (() => { try { return JSON.parse(b.messages?.[0]?.content || '{}').sources || []; } catch { return []; } })();
       const user = String(b.messages?.[0]?.content || '');
       anthropicLog.push(raw);   // the whole request, so a test can look for anything that must never be sent
+      if ((b.tools || []).some(t => t.type === 'web_search_20250305')) {   // the outside research: Anthropic's web search tool
+        research.calls++;
+        log('ANTHROPIC RESEARCH', research.mode, 'tool=' + (b.tools.find(t => t.type === 'web_search_20250305').name), 'turns=' + (b.messages || []).length, req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY');
+        if (research.mode === 'fail') return send(res, 500, { error: { message: 'mock failure' } });
+        const say = (content, stop_reason = 'end_turn') => send(res, 200, { id: 'msg_mock_r', type: 'message', role: 'assistant', stop_reason, content });
+        if (research.mode === 'pause') { const all = researchAnswer('good'); return (b.messages || []).length > 1 ? say(all.slice(2)) : say(all.slice(0, 2), 'pause_turn'); }
+        return say(researchAnswer(research.mode));
+      }
       const asked = (() => { try { return JSON.parse(user); } catch { return {}; } })();
       if (asked.kind === 'weekly_read' || asked.kind === 'topic_ideas') {
         log('ANTHROPIC', asked.kind, 'metrics=' + (asked.metrics || []).length, ins.bad ? 'bad-answer' : 'good-answer');
