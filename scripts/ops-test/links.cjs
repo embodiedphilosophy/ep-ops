@@ -65,13 +65,19 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   for (const v of ['', '?view=overview', '?view=support', '?view=support&tab=answers', '?view=mentee', '?view=mentee&tab=surveys', '?view=mentee&tab=partners', '?view=polls', '?view=partners', '?view=pods', '?view=one-to-ones', '?view=ce&tab=held']) { const r = await get('/ops/students' + v); t(`/ops/students${v} loads`, r.status === 200, String(r.status)); }
   t('a teacher is not shown Students', (await get('/ops/students', cookie('abha@example.com'))).status === 307);
   console.log('-- business and settings (EP Ops 2, step 8)');
-  for (const [u, to, q] of [['/ops/insights', '/ops/business', 'view=finance'], ['/ops/insights?m=2026-10', '/ops/business', 'view=finance'], ['/ops/insights?f=90', '/ops/business', 'view=audience'], ['/ops/payroll', '/ops/business', 'view=payroll'], ['/ops/payroll?month=2026-10', '/ops/business', 'view=payroll'],
+  for (const [u, to, q] of [['/ops/insights', '/ops/business', 'view=finance'], ['/ops/insights?m=2026-10', '/ops/business', 'view=finance'], ['/ops/insights?f=90', '/ops/ads', 'view=insights'], ['/ops/business?f=90', '/ops/ads', 'view=insights'], ['/ops/payroll', '/ops/business', 'view=payroll'], ['/ops/payroll?month=2026-10', '/ops/business', 'view=payroll'],
     ['/ops/social/team', '/ops/settings', 'view=team'], ['/ops/social/rules', '/ops/settings', 'view=templates'], ['/ops/email/reminders', '/ops/settings', 'view=templates']]) {
     const res = await get(u), loc = res.headers.get('location') || '', g = loc ? new URL(loc, B) : null;
     t(`${u} redirects once to ${to}`, res.status === 307 && g && g.pathname === to && loc.includes(q), `${res.status} ${loc}`);
     if (g) { for (const [k, v] of new URLSearchParams(u.split('?')[1] || '')) t(`${u} keeps ?${k}=`, g.searchParams.get(k) === v, loc); const fin = await get(g.pathname + g.search); t(`${u} lands on a page that loads`, fin.status === 200, String(fin.status)); }
   }
-  for (const v of ['', '?view=finance', '?view=finance&m=2026-10', '?view=payroll', '?view=payroll&month=2026-10', '?view=audience', '?view=audience&f=365']) { const r = await get('/ops/business' + v); t(`/ops/business${v} loads`, r.status === 200, String(r.status)); }
+  for (const v of ['', '?view=finance', '?view=finance&m=2026-10', '?view=payroll', '?view=payroll&month=2026-10']) { const r = await get('/ops/business' + v); t(`/ops/business${v} loads`, r.status === 200, String(r.status)); }
+  for (const [u, want] of [['/ops/business?view=audience', {}], ['/ops/business?view=audience&f=365', { f: '365' }]]) {   // the funnel's old Business address: the view name changes (audience → insights), everything else is kept
+    const res = await get(u), loc = res.headers.get('location') || '', g = loc ? new URL(loc, B) : null;
+    t(`${u} redirects once to Ads › Audience insights`, res.status === 307 && g && g.pathname === '/ops/ads' && g.searchParams.get('view') === 'insights' && Object.entries(want).every(([k, v]) => g.searchParams.get(k) === v), `${res.status} ${loc}`);
+    if (g) t(`${u} lands on a page that loads`, (await get(g.pathname + g.search)).status === 200);
+  }
+  for (const v of ['?view=insights', '?view=insights&f=90', '?view=insights&f=365']) { const r = await get('/ops/ads' + v); t(`/ops/ads${v} loads (the quiz funnel moved here from Business, Ads PR 5)`, r.status === 200, String(r.status)); }
   // /ops/settings stays: its older ?t=<table> and ?view= addresses open on the right group and section (no redirect, no second hop)
   for (const v of ['', '?t=templates', '?t=team', '?t=links', '?t=funnel', '?t=circlegroups', '?t=sreadings', '?t=mpolls', '?view=tables', '?view=tables&t=resources', '?view=team', '?view=social-rules', '?view=reminders', '?view=team&s=signoffs', '?view=templates&s=social-rules', '?view=templates&s=reminders', '?view=website&s=stats',
     '?view=connections', '?view=connections&s=funnel', '?view=connections&s=circlegroups', '?view=team&s=resources']) { const r = await get('/ops/settings' + v); t(`/ops/settings${v} loads`, r.status === 200, String(r.status)); }
@@ -87,7 +93,7 @@ const get = (u, ck = DIRECTOR) => fetch(B + u, { redirect: 'manual', headers: { 
   t('Payroll is for directors and the Payroll role: Stephanie (Payroll role) opens it', (await get('/ops/business?view=payroll', cookie('stephanie@example.com'))).status === 200);
   { const h = await (await get('/ops/business', cookie('stephanie@example.com'))).text();
     t('the Payroll role opens Business on Payroll with no Finance or Audience tab', /<h1>Payroll<\/h1>/.test(h) && !/aria-label="business views"/.test(h)); }
-  t('the Payroll role asking for Audience gets Payroll', /<h1>Payroll<\/h1>/.test(await (await get('/ops/business?view=audience', cookie('stephanie@example.com'))).text()));
+  t('the Payroll role asking for the old Audience address is not given the funnel (Ads is not hers) and does not land on Business', (await get('/ops/business?view=audience', cookie('stephanie@example.com'))).headers.get('location')?.includes('/ops/ads?view=insights') && (await get('/ops/ads?view=insights', cookie('stephanie@example.com'))).status !== 200);
   t('Business is not reachable for a teacher', (await get('/ops/business', cookie('abha@example.com'))).status === 307);
   t('Settings is not reachable for a teacher', (await get('/ops/settings', cookie('abha@example.com'))).status === 307);
   for (const v of ['', '?view=campaigns']) { const r = await get('/ops/ads' + v); t(`/ops/ads${v} loads`, r.status === 200, String(r.status)); }

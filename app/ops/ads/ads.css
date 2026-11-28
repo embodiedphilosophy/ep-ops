@@ -185,3 +185,33 @@
   .ops-shell .ads-facts label { max-width: none; width: 100% }
   .ops-shell .ads-facts input { width: 100% }
 }
+
+/* Audience insights (Ads PR 5) */
+.ops-shell .ai-sources { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px }
+.ops-shell .ai-sources li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; background: var(--card); border-radius: var(--r-ctl); min-width: 0; font-size: 13px }
+.ops-shell .ai-claims { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 15px }
+.ops-shell .ai-claims p { margin: 0 0 4px; line-height: 1.5 }
+.ops-shell .ai ul li, .ops-shell .ai details > summary { min-width: 0 }
+.ops-shell .ai details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 13px; color: var(--pine) }
+.ops-shell .ai details ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13px }
+.ops-shell .ai-all h4 { margin: 12px 0 4px; font-size: 13px; color: var(--ink-soft); font-weight: 500 }
+.ops-shell .ai-low { margin-left: 8px }
+.ops-shell .ai-weeks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.ops-shell .ai-wk { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); font: inherit; font-size: 13px; cursor: pointer }
+.ops-shell .ai-wk[aria-pressed=true] { background: var(--pine); border-color: var(--pine); color: #fff }
+.ops-shell .ai-break { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px }
+.ops-shell .ai-bk h3, .ops-shell .ai h3 { font-family: var(--serif); font-weight: 600; font-size: 18px; margin: 0 0 2px }
+.ops-shell .ai-row { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(60px, 1.2fr) auto; gap: 10px; align-items: center; min-height: 36px; font-size: 13px }
+.ops-shell .ai-row .v { font-variant-numeric: lining-nums tabular-nums; text-align: right }
+.ops-shell .ai-row .n { overflow-wrap: anywhere }
+.ops-shell .ai-topics tr.low td { color: var(--ink-soft) }
+.ops-shell .ai-ideas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px }
+.ops-shell .ai-idea { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); min-width: 0 }
+.ops-shell .ai-idea .ph { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center }
+.ops-shell .ai-idea b { font-family: var(--serif); font-size: 18px; font-weight: 600 }
+.ops-shell .ai-idea p { margin: 0 }
+/* Programs: Ideas from Ads */
+.ops-shell .pg-ideas { margin: 0 0 16px; padding: 14px 16px; background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r-panel) }
+.ops-shell .pg-ideas h2 { margin: 0 0 2px }
+.ops-shell .pg-ideas ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px }
+@media (max-width: 800px) { .ops-shell .ai-row { grid-template-columns: minmax(70px, 1fr) minmax(50px, 1fr) auto } }

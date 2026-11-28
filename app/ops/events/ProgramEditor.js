@@ -13,10 +13,11 @@ const short = d => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { 
 // Programming → "+ Add program": a course, certificate or season of several sessions in one go.
 // Every session becomes its own row on the Schedule (so reminders, tasks, Circle and the website work as
 // they do today), tied together by one series name.
-export function AddProgram({ tracks, past = [] }) {
+// initial: an idea from Ads › Audience insights opens the form already filled in with its title, school and track ({ name, parent, track }); a person still checks it and saves it as usual
+export function AddProgram({ tracks, past = [], initial = null }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ name: '', parent: '', track: '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '', copyFrom: '' });
+  const [open, setOpen] = useState(!!initial);
+  const [f, setF] = useState({ name: initial?.name || '', parent: initial?.parent || '', track: tracks.includes(initial?.track) ? initial.track : '', start: '', count: 8, every: 'weekly', time: '', teachers: '', emails: '', course_host: '', website: true, series: '', copyFrom: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = k => e => setF(s => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));

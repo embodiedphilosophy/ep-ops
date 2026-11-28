@@ -256,6 +256,16 @@ function setCells(range, values) {
 }
 const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => r(b ? JSON.parse(b) : {})); });
 
+// Ads PR 5 (Audience insights): synthetic purchases in Circle and Kit and a few sent emails, each carrying MARKER names and addresses so a test can prove none of them ever leaves.
+// ins is changed by GET /__insights?kit=ok|fail&circle=ok|fail|none&bad=0|1&broadcasts=0|1 (kit=fail: purchases and stats answer 500; circle=none: Circle can't list purchases (404)).
+const anthropicLog = [];
+const ins = { kit: 'ok', circle: 'ok', bad: false, broadcasts: false };
+const daysAgo = (n, h = 10) => new Date(Date.now() - n * 864e5 + (h - 12) * 36e5).toISOString();
+const MARK = 'Marker';   // every made-up buyer is called "<Source> Marker Buyer N", with an address at example.invalid
+const buyProducts = [['Kali: the dark mother', 150], ['Meditation Pass', 20], ['Spanda Intensive', 45], ['Sādhana School: Fall 2026', 495]];
+const circlePurchases = Array.from({ length: 22 }, (_, i) => { const [name, price] = buyProducts[i % 4], n = i < 13 ? 1 + (i % 6) : 8 + (i % 6); return { id: 7000 + i, status: 'paid', created_at: daysAgo(n), amount_cents: price * 100, currency: 'usd', paywall: { id: 300 + (i % 4), name }, utm_campaign: i % 3 === 0 ? 'kali-winter-2027' : '', member: { id: 800 + i, name: `Circle ${MARK} Buyer ${i}`, email: `circle.marker.buyer.${i}@example.invalid` } }; });
+const kitPurchases = Array.from({ length: 16 }, (_, i) => { const [name, price] = buyProducts[(i + 1) % 4], n = i < 9 ? 1 + (i % 6) : 8 + (i % 6); return { id: 6000 + i, status: 'paid', transaction_id: `KITTXN-MARKER-${i}`, transaction_time: daysAgo(n), total: price, currency: 'USD', email_address: `kit.marker.buyer.${i}@example.invalid`, subscriber: { id: 900 + i, first_name: `Kit ${MARK} Buyer ${i}`, email_address: `kit.marker.buyer.${i}@example.invalid` }, utm_campaign: i % 4 === 0 ? 'kali-winter-2027' : '', products: [{ pid: 40 + ((i + 1) % 4), name, quantity: 1, unit_price: price, sku: '' }] }; });
+const kitSent = [{ id: 31, subject: '[E002] Promo #3', published_at: daysAgo(2), r: 1000, o: 42, c: 6.5 }, { id: 32, subject: '[E002] Promo #4', published_at: daysAgo(4), r: 900, o: 38, c: 5 }, { id: 33, subject: 'A note from the week before', published_at: daysAgo(9), r: 1000, o: 30, c: 3 }];
 const circleData = {
   spaces: [
     { id: 2001, name: 'Meditation Mondays: November', slug: 'mm-nov', space_type: 'course', status: 'published', cover_image_url: 'http://localhost:4555/img/cover.png' },
@@ -320,6 +330,8 @@ http.createServer(async (req, res) => {
   try {
     if (p === '/token' && req.method === 'POST') return send(res, 200, { access_token: 'mock', expires_in: 3600 });
     // Sheet-read counter for the tests (EP Ops 2 step 9): GET /__reads lists every sheet read since the last GET /__reads?reset=1
+    if (p === '/__insights') { for (const [k, v] of url.searchParams) ins[k] = k === 'bad' || k === 'broadcasts' ? v === '1' : v; return send(res, 200, ins); }
+    if (p === '/__anthropic-log') { const out = anthropicLog.slice(); if (url.searchParams.get('reset')) anthropicLog.length = 0; return send(res, 200, out); }
     if (p === '/__reads') { const out = { total: readLog.length, reads: readLog.slice() }; if (url.searchParams.get('reset')) readLog.length = 0; return send(res, 200, out); }
     // Calendly (read only): the one-to-one bookings and what each invitee wrote (lib/mentee/calendly.js, CALENDLY_API_BASE=$M/calendly)
     if (p.startsWith('/calendly/')) {
@@ -384,6 +396,7 @@ http.createServer(async (req, res) => {
       if (p === '/circle/events') return list(circleData.events);
       if (p === '/circle/course_sections') return list(circleData.sections.filter(x => String(x.space_id) === url.searchParams.get('space_id')));
       const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
+      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(circlePurchases);
       if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
       return send(res, 404, { message: 'not found' });
@@ -454,6 +467,24 @@ http.createServer(async (req, res) => {
       const raw = await new Promise(r => { let x = ''; req.on('data', c => (x += c)); req.on('end', () => r(x)); }), b = (() => { try { return JSON.parse(raw); } catch { return {}; } })();
       const src = (() => { try { return JSON.parse(b.messages?.[0]?.content || '{}').sources || []; } catch { return []; } })();
       const user = String(b.messages?.[0]?.content || '');
+      anthropicLog.push(raw);   // the whole request, so a test can look for anything that must never be sent
+      const asked = (() => { try { return JSON.parse(user); } catch { return {}; } })();
+      if (asked.kind === 'weekly_read' || asked.kind === 'topic_ideas') {
+        log('ANTHROPIC', asked.kind, 'metrics=' + (asked.metrics || []).length, ins.bad ? 'bad-answer' : 'good-answer');
+        if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
+        const ms = asked.metrics || [], say = o => send(res, 200, { id: 'msg_mock', type: 'message', role: 'assistant', content: [{ type: 'text', text: JSON.stringify(o) }] });
+        if (asked.kind === 'weekly_read') {
+          const pick = []; for (const k of ['report', 'meta', 'circle', 'kit purchases', 'kit email'].map(x => x.toLowerCase())) { const m = ms.find(x => String(x.source).toLowerCase() === k && x.value > 0 && !x.topic); if (m) pick.push(m); }
+          const claims = pick.map(m => ({ text: `${m.label}: ${m.text}.`, metric_ids: [m.id] }));
+          if (pick.length > 1) claims.push({ text: `${pick[0].label} (${pick[0].text}) and ${pick[1].label} (${pick[1].text}) are shown side by side, not added together.`, metric_ids: [pick[0].id, pick[1].id] });
+          if (ins.bad) claims.push({ text: 'Ad spend rose to $987654 this week.', metric_ids: [ms[0]?.id] }, { text: 'This one cites a number that does not exist: 41.', metric_ids: ['m9999'] }, { text: 'This one cites nothing at all, with 12 people.', metric_ids: [] }, { text: `Together that is ${(pick[0]?.value || 0) + (pick[1]?.value || 0) + 0.37} in all.`, metric_ids: pick.slice(0, 2).map(m => m.id) });
+          return say({ claims });
+        }
+        const topics = [...new Set(ms.filter(m => m.topic).map(m => m.topic))].slice(0, 3);
+        const ideas = topics.map((t, i) => { const m = ms.find(x => x.topic === t); return { title: t, summary: `${m.label}: ${m.text}.`, format: (asked.formats[i % asked.formats.length] || {}).key, audience: asked.audiences[0], metric_ids: [m.id] }; });
+        if (ins.bad && ms.length) ideas.push({ title: 'Quantum Crystal Healing', summary: 'A thing.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Fine words.', format: 'webinar-bootcamp', audience: asked.audiences[0], metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: `Only ${ms[0].text} of 99999 people.`, format: asked.formats[0]?.key, audience: 'An Imaginary Audience', metric_ids: [ms[0].id] }, { title: topics[0] || 'Kali', summary: 'Numbers that are not there: 7777.', format: asked.formats[0]?.key, audience: asked.audiences[0], metric_ids: ['m9999'] });
+        return say({ ideas });
+      }
       log('ANTHROPIC', `sources=${src.length}`, /[\w.+-]+@[\w-]+\.\w+/.test(user) ? 'HAS-EMAIL' : 'no-email', /https?:\/\//.test(user) || /\{\{|\{%/.test(user) ? 'HAS-LINK-OR-TAG' : 'no-link', req.headers['x-api-key'] ? 'key-sent' : 'NO-KEY', b.model || '');
       if (process.env.MOCK_ANTHROPIC_FAIL) return send(res, 500, { error: { message: 'mock failure' } });
       const sets = src.map(s => { const first = String(s.text).split(/(?<=[.!?])\s/)[0].slice(0, 120); return { id: s.id, main_text: first, headline: String(s.text).split(/\s+/).slice(0, 4).join(' ').slice(0, 40) }; });
@@ -499,6 +530,10 @@ http.createServer(async (req, res) => {
       return send(res, 404, {});
     }
     if (p.startsWith('/kit/')) {
+      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : send(res, 200, { purchases: kitPurchases, pagination: { has_next_page: false } });
+      if (req.method === 'GET' && p.endsWith('/products')) return send(res, 200, { products: buyProducts.map(([name], i) => ({ id: 40 + i, name })), pagination: {} });
+      { const sm = p.match(/\/broadcasts\/(\d+)\/stats$/); if (req.method === 'GET' && sm) { const b = [...kitSent, { id: 12, r: 800, o: 40, c: 5 }].find(x => x.id === Number(sm[1])); return ins.kit === 'fail' || !b ? send(res, ins.kit === 'fail' ? 500 : 404, {}) : send(res, 200, { broadcast: { id: b.id, stats: { recipients: b.r, open_rate: b.o, click_rate: b.c, emails_opened: Math.round(b.r * b.o / 100), total_clicks: Math.round(b.r * b.c / 100) } } }); }
+      }
       // Promo-email drafts (Publish → Email): logged, never real. Anything else written to Kit is refused.
       if (req.method === 'POST' && p.endsWith('/broadcasts')) { const b = await body(req); if (b.content_tree && process.env.MOCK_KIT_NO_TREE) { log('KIT REFUSED content_tree'); return send(res, 422, { errors: ['content_tree is not supported'] }); } if (b.content_tree) log('KIT DRAFT BLOCKS', b.content_tree.length, 'top-level blocks', JSON.stringify(b.content_tree).length, 'chars'); const id = 900 + (kitDrafts.length); kitDrafts.push({ id, ...b }); log('KIT DRAFT CREATED', id, b.subject, '|', b.description, '| send_at', b.send_at); return send(res, 200, { broadcast: { id, ...b } }); }
       if (req.method === 'POST' && p.endsWith('/tags')) { const b = await body(req); const t = { id: 100 + kitTags.length, name: b.name }; kitTags.push(t); log('KIT TAG CREATED', t.name); return send(res, 200, { tag: t }); }
@@ -520,7 +555,7 @@ http.createServer(async (req, res) => {
         { id: 11, subject: '[E002] Promo #1: the Goddess', send_at: new Date(Date.now() + 2 * 864e5).toISOString() },
         { id: 12, subject: '[E002] Promo #2', published_at: new Date(Date.now() - 864e5).toISOString() },
         { id: 13, subject: 'Autumn sale', send_at: new Date(Date.now() + 5 * 864e5).toISOString() },
-        { id: 14, subject: '[E005] Draft promo' }, ...kitExtra, ...kitDrafts.map(d => ({ created_at: new Date().toISOString(), published_at: null, send_at: null, ...d }))], pagination: {} });
+        { id: 14, subject: '[E005] Draft promo' }, ...kitExtra, ...(ins.broadcasts ? kitSent.map(({ id, subject, published_at }) => ({ id, subject, published_at })) : []), ...kitDrafts.map(d => ({ created_at: new Date().toISOString(), published_at: null, send_at: null, ...d }))], pagination: {} });
       return send(res, 200, {});
     }
     if (p.startsWith('/calendar/v3/')) return send(res, 200, { items: meetings });
