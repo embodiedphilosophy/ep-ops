@@ -50,6 +50,7 @@ const EMPTY = process.argv[2] === 'empty';
   ck('Circle and Kit purchases are shown apart, and the page says they are not added together', /counted separately and not added together/.test(await text()) && (await p.locator('.ai-topics thead th', { hasText: 'Circle purchases' }).count()) === 1 && (await p.locator('.ai-topics thead th', { hasText: 'Kit purchases' }).count()) === 1);
   console.log('-- breakdowns and topics');
   ck('the quiz breakdowns: five questions as bars with counts and percentages', (await p.locator('.ai-bk').count()) === 5 && (await p.locator('.ai-row').count()) >= 6 && /\d+ · \d+%/.test(await p.locator('.ai-row .v').first().innerText()));
+  ck('each quiz question says how many people answered, not “answers”', (await p.locator('.ai-bk .sub').allInnerTexts()).every(x => /^[\d,]+ (people|person) · /.test(x)) && !/\d answers/.test(await p.locator('.ai-break').innerText()));
   ck('the topic table has the Kali row with its spend and return, and flags a small one as too few to trust', (await p.locator('.ai-topics tr', { hasText: 'Kali' }).count()) === 1 && /× return/.test(await p.locator('.ai-topics tr', { hasText: 'Kali' }).innerText()) && (await p.locator('.ai-topics .ads-pill', { hasText: 'Too few to trust' }).count()) >= 0 && /Too few to trust means fewer than 5 purchases/.test(await text()));
   console.log('-- ideas');
   const cards = await p.locator('.ai-ideas > .ai-idea').count();

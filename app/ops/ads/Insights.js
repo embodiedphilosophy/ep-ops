@@ -64,7 +64,7 @@ function Breakdowns({ rows, source }) {
   if (!rows.length) return <p className="ops-empty">No quiz answers have been read yet. They appear after the first weekly read.</p>;
   return (
     <div className="ai-break">{rows.map(b => (
-      <div key={b.key} className="ai-bk"><h3>{b.label}</h3><p className="sub">{b.total.toLocaleString('en-US')} answers · {b.period}</p>
+      <div key={b.key} className="ai-bk"><h3>{b.label}</h3><p className="sub">{b.total.toLocaleString('en-US')} {b.total === 1 ? 'person' : 'people'} · {b.period}</p>
         {b.answers.map(a => <div key={a.answer} className="ai-row"><span className="n">{a.answer}</span><span className="ads-bar" aria-hidden="true"><span style={{ width: `${Math.max(2, a.pct || 0)}%` }} /></span><span className="v">{a.count.toLocaleString('en-US')} · {Math.round(a.pct || 0)}%</span></div>)}
       </div>))}</div>);
 }

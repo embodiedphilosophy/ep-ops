@@ -257,7 +257,7 @@ function setCells(range, values) {
 const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => r(b ? JSON.parse(b) : {})); });
 
 // Ads PR 5 (Audience insights): synthetic purchases in Circle and Kit and a few sent emails, each carrying MARKER names and addresses so a test can prove none of them ever leaves.
-// ins is changed by GET /__insights?kit=ok|fail&circle=ok|fail|none&bad=0|1&broadcasts=0|1 (kit=fail: purchases and stats answer 500; circle=none: Circle can't list purchases (404)).
+// ins is changed by GET /__insights?kit=ok|fail|401|403|404|429&circle=ok|fail|none|401|403|429&bad=0|1&broadcasts=0|1 (kit=fail: purchases and stats answer 500; circle=none: Circle can't list purchases (404)).
 const anthropicLog = [];
 const ins = { kit: 'ok', circle: 'ok', bad: false, broadcasts: false };
 const daysAgo = (n, h = 10) => new Date(Date.now() - n * 864e5 + (h - 12) * 36e5).toISOString();
@@ -396,7 +396,7 @@ http.createServer(async (req, res) => {
       if (p === '/circle/events') return list(circleData.events);
       if (p === '/circle/course_sections') return list(circleData.sections.filter(x => String(x.space_id) === url.searchParams.get('space_id')));
       const sp = p.match(/^\/circle\/spaces\/([^/]+)$/); if (sp) { const x = circleData.spaces.find(s => String(s.id) === sp[1] || s.slug === sp[1]); return x ? send(res, 200, x) : send(res, 404, { message: 'not found' }); }
-      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(circlePurchases);
+      if (p === '/circle/paywall_purchases') return ins.circle === 'none' ? send(res, 404, { message: 'not found' }) : /^(401|403|429)$/.test(ins.circle) ? send(res, Number(ins.circle), { message: 'mock refusal' }) : ins.circle === 'fail' ? send(res, 500, { message: 'mock failure' }) : list(circlePurchases);
       if (p === '/circle/paywalls') return circleData.noPaywalls ? send(res, 404, { message: 'not found' }) : list(circleData.paywalls);
       if (p === '/circle/access_groups') return list([{ id: 7, name: 'SS 26-27 · Fall' }]);
       return send(res, 404, { message: 'not found' });
@@ -477,6 +477,7 @@ http.createServer(async (req, res) => {
           const pick = []; for (const k of ['report', 'meta', 'circle', 'kit purchases', 'kit email'].map(x => x.toLowerCase())) { const m = ms.find(x => String(x.source).toLowerCase() === k && x.value > 0 && !x.topic); if (m) pick.push(m); }
           const claims = pick.map(m => ({ text: `${m.label}: ${m.text}.`, metric_ids: [m.id] }));
           if (pick.length > 1) claims.push({ text: `${pick[0].label} (${pick[0].text}) and ${pick[1].label} (${pick[1].text}) are shown side by side, not added together.`, metric_ids: [pick[0].id, pick[1].id] });
+          if (ins.bad && pick[0]) claims.push({ text: `${pick[0].label} is ${pick[0].text}, so the team should spend more.`, metric_ids: [pick[0].id] }, { text: `${pick[0].label} was ${pick[0].text} because of the ads.`, metric_ids: [pick[0].id] }, { text: `The figure for ${pick[0].label} is ${pick[0].text} again.`, metric_ids: [pick[0].id] });
           if (ins.bad) claims.push({ text: 'Ad spend rose to $987654 this week.', metric_ids: [ms[0]?.id] }, { text: 'This one cites a number that does not exist: 41.', metric_ids: ['m9999'] }, { text: 'This one cites nothing at all, with 12 people.', metric_ids: [] }, { text: `Together that is ${(pick[0]?.value || 0) + (pick[1]?.value || 0) + 0.37} in all.`, metric_ids: pick.slice(0, 2).map(m => m.id) });
           return say({ claims });
         }
@@ -530,7 +531,7 @@ http.createServer(async (req, res) => {
       return send(res, 404, {});
     }
     if (p.startsWith('/kit/')) {
-      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : send(res, 200, { purchases: kitPurchases, pagination: { has_next_page: false } });
+      if (req.method === 'GET' && p.endsWith('/purchases')) return ins.kit === 'fail' ? send(res, 500, { error: 'mock failure' }) : /^(401|403|404|429)$/.test(ins.kit) ? send(res, Number(ins.kit), { error: 'mock refusal' }) : send(res, 200, { purchases: kitPurchases, pagination: { has_next_page: false } });
       if (req.method === 'GET' && p.endsWith('/products')) return send(res, 200, { products: buyProducts.map(([name], i) => ({ id: 40 + i, name })), pagination: {} });
       { const sm = p.match(/\/broadcasts\/(\d+)\/stats$/); if (req.method === 'GET' && sm) { const b = [...kitSent, { id: 12, r: 800, o: 40, c: 5 }].find(x => x.id === Number(sm[1])); return ins.kit === 'fail' || !b ? send(res, ins.kit === 'fail' ? 500 : 404, {}) : send(res, 200, { broadcast: { id: b.id, stats: { recipients: b.r, open_rate: b.o, click_rate: b.c, emails_opened: Math.round(b.r * b.o / 100), total_clicks: Math.round(b.r * b.c / 100) } } }); }
       }
