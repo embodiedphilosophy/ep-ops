@@ -44,4 +44,18 @@ const w = V.windowFor('2026-11-30');   // a Monday
 ck('a Monday run reads the Monday-to-Sunday that just ended, and compares with the week before', w.week_start === '2026-11-30' && w.from === '2026-11-23' && w.to === '2026-11-29' && w.prev.from === '2026-11-16' && w.prev.to === '2026-11-22', JSON.stringify(w));
 ck('a week starts and ends at midnight in New York (05:00 UTC in winter, 04:00 in summer)', V.bounds({ from: '2026-11-20', to: '2026-11-26' }).join() === '2026-11-20T05:00:00.000Z,2026-11-27T05:00:00.000Z' && V.bounds({ from: '2026-07-01', to: '2026-07-02' }).join() === '2026-07-01T04:00:00.000Z,2026-07-03T04:00:00.000Z', JSON.stringify(V.bounds({ from: '2026-07-01', to: '2026-07-02' })));
 ck('formats: five, each a school EP already has', V.FORMATS.length === 5 && V.FORMATS.every(f => V.formatOf(f.key)) && !V.formatOf('webinar'));
+
+console.log('-- the weekly read only restates numbers: no reasons, conclusions or advice; no figure twice');
+ck('“so …”, “because”, “therefore”, “which means”, “should” are each refused', ['Spend was $1,235, so more is needed.', 'Spend was $1,235 because of the ads.', 'Spend was $1,235, therefore a rise.', 'Spend was $1,235, which means a lot.', 'Spend was $1,235 and we should add more.'].every(t => V.verifyClaim(t, ['m1'], by) !== '' && V.verifyText(t, ['m1'], by) === ''));
+ck('a plain comparison passes (“X is up from Y”, “fell 12%”, “so far”-free)', V.verifyClaim('Spend fell 12% from the week before.', ['m4'], by) === '' && V.verifyClaim('Purchases from ads this week is 12, a quiet week.', ['m2'], by) === '');
+ck('words that only contain “so” (also, sold, some) are not mistaken for it', V.verifyClaim('Kali also sold 7, some of them in the week.', ['m5'], by) === '');
+ck('the same cited metrics and the same numbers make the same claim; another figure does not', V.claimKey('12 purchases.', ['m2']) === V.claimKey('There were 12 purchases again.', ['m2', 'm2']) && V.claimKey('12 purchases.', ['m2']) !== V.claimKey('12 purchases.', ['m1']) && V.claimKey('12 purchases at 2.4×.', ['m2', 'm3']) !== V.claimKey('12 purchases.', ['m2']));
+console.log('-- why a source could not be read, in plain words');
+const e = (status, name) => Object.assign(new Error('x'), { status, name: name || 'Error' });
+ck('401 and 403: the key lacks permission to read purchases', /won’t let this key read purchases \(error 401\)/.test(V.readProblem('Kit', 'purchases', e(401))) && /permission to read purchases/.test(V.readProblem('Kit', 'purchases', e(403))));
+ck('404: no such list', /no purchases list at the address we use \(error 404/.test(V.readProblem('Kit', 'purchases', e(404))));
+ck('429: too many requests, try again in a minute', /too many requests were made \(error 429\)\. Try again in a minute/.test(V.readProblem('Kit', 'purchases', e(429))));
+ck('a timeout: took too long', /took too long to answer/.test(V.readProblem('Kit', 'purchases', e(0, 'TimeoutError'))));
+ck('anything else says the status; with no status it still says it could not be read', /answered with error 502/.test(V.readProblem('Circle', 'purchases', e(502))) && /couldn’t be read just now \(purchases\)\./.test(V.readProblem('Circle', 'purchases', new Error('x'))));
+ck('a note never repeats the error’s own text', !/boom/.test(V.readProblem('Kit', 'purchases', Object.assign(new Error('boom secret'), { status: 500 }))));
 console.log(bad ? `\n${bad} failed` : '\nall passed'); process.exit(bad ? 1 : 0);
