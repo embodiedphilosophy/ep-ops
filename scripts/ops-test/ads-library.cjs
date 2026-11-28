@@ -25,7 +25,7 @@ const SECRET = 'mock-ads-token-for-the-settings-test', PERSON = /Synthetic Perso
     console.log('-- the Audience library tab');
     await p.goto(U + '/ops/ads?view=library'); await p.waitForSelector('.ads-table');
     const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the library one current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience library', tabs.join());
+    ck('the Ads place has Campaigns, Audience library, Safety net and Audience insights tabs, the library one current', tabs.join() === 'Campaigns,Creative results,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience library', tabs.join());
     ck('opening the library posts nothing', p.posts.length === 0);
     const kpi = (await p.innerText('.ads-kpis')).replace(/\n+/g, ' ');
     ck('the four cards count Proven 2, Promising 0, Not tested 2, Retired 1 (the other weak one was brought back by the API flow)', /Proven\s*2/.test(kpi) && /Promising\s*0/.test(kpi) && /Not tested\s*2/.test(kpi) && /Retired\s*1/.test(kpi), kpi);

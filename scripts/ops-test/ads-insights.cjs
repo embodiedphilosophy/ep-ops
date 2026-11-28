@@ -36,7 +36,7 @@ const EMPTY = process.argv[2] === 'empty';
   console.log('-- the page');
   await p.goto(U + '/ops/ads?view=insights'); await p.waitForSelector('.ai-claims');
   const tabs = await p.locator('nav[aria-label="ads views"] a').allInnerTexts();
-  ck('the Ads place has five tabs and Audience insights is current', tabs.join() === 'Campaigns,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience insights', tabs.join());
+  ck('the Ads place has six tabs and Audience insights is current', tabs.join() === 'Campaigns,Creative results,Audience library,Safety net,Audience insights,What we’ve learned' && (await p.locator('nav[aria-label="ads views"] a[aria-current=page]').innerText()) === 'Audience insights', tabs.join());
   ck('opening the page posts nothing', p.posts.length === 0);
   const t = await text();
   ck('the five sources are listed, each connected or not', (await p.locator('.ai-sources li').count()) === 5 && (await p.locator('.ai-sources li .ads-pill.good').count()) === 5 && /Practice Report/.test(t) && /Kit purchases/.test(t) && /Circle purchases/.test(t) && /Meta ads/.test(t) && /Kit emails/.test(t));

@@ -3,7 +3,7 @@
 // Endpoints (under /v21.0): act_MOCK1 (account), PIX1 (pixel, last fired 2 hours ago), PAGE1 (page), search?type=adinterest, act_*/campaigns,
 // act_*/adsets, act_*/adcreatives, act_*/ads, act_*/adimages, act_*/customaudiences (GET and POST), <id>/users (hashed emails), POST <id> (update),
 // act_*/insights (a week of per-day results, the same every time).
-// Test controls: GET /__log (every request, newest last; ?reset=1 clears), GET /__mode?rejectWrites=1|0, ?pixelAgeHours=N, ?noPayment=1|0, ?failInsights=1|0 (results answer with Meta's "too many calls" error), GET /__state (what exists), GET /__reset (forget everything).
+// Test controls: GET /__log (every request, newest last; ?reset=1 clears), GET /__mode?rejectWrites=1|0, ?pixelAgeHours=N, ?noPayment=1|0, ?scale=5,5,0.3 (results sized per campaign by the order made), ?failInsights=1|0 (results answer with Meta's "too many calls" error), GET /__state (what exists), GET /__reset (forget everything).
 // Ads account view: world 'account' is a mix of everything (an active healthy one, one made in Ops (w_ops, and anything made through the app at the mock), past its end, open-ended,
 // spending with nothing to show, a low return, paused, finished, archived, a lead campaign, budgets and start dates); world 'empty' has no campaigns. Modes: ?rateLimitReads=1 (every read answers
 // with Meta's rate-limit code 17), ?permissionReads=1 (the key may not read: code 200), ?failAdsets=1 (only the ad set list fails).
@@ -48,11 +48,12 @@ function insights(level, campaignId) {
   const sets = (objects.adsets.length ? objects.adsets : ROAS.map((_, i) => ({ id: `mock_adset_${i + 1}`, campaign_id: 'mock_campaign_1' }))).map((s, i) => ({ ...s, i })).filter(s => !campaignId || s.campaign_id === campaignId);
   const rows = [];
   for (let d = 7; d >= 1; d--) for (const s of sets) {
-    const i = s.i % 5, spend = 10 + i * 2 + (d % 3), items = level === 'ad' ? objects.ads.filter(a => a.adset_id === s.id).map((a, k) => ({ ad: a.id, share: 0.2, f: AD_SHARE[k % 5] })) : [{ ad: null, share: 1, f: 1 }];
+    const sc = (mode.scale || [])[objects.campaigns.findIndex(c => c.id === s.campaign_id)] ?? 1;   // ?scale=5,5,0.3: a size for each campaign by the order made (the Creative results flow)
+    const i = s.i % 5, spend = (10 + i * 2 + (d % 3)) * sc, items = level === 'ad' ? objects.ads.filter(a => a.adset_id === s.id).map((a, k) => ({ ad: a.id, share: 0.2, f: AD_SHARE[k % 5] })) : [{ ad: null, share: 1, f: 1 }];
     for (const it of items) {
       const sp = spend * it.share, roas = ROAS[i] * it.f, rev = sp * roas, leads = Math.round(sp / (CPL[i] / it.f));
       rows.push({ date_start: day(d), date_stop: day(d), campaign_id: s.campaign_id, ...(level === 'campaign' ? {} : { adset_id: s.id }), ...(it.ad ? { ad_id: it.ad } : {}),
-        spend: sp.toFixed(2), impressions: String(Math.round(1000 * it.share + i * 100)), clicks: String(Math.round(20 * it.share + i)),
+        spend: sp.toFixed(2), impressions: String(Math.round((1000 * it.share + i * 100) * sc)), clicks: String(Math.round((20 * it.share + i) * sc)),
         actions: [{ action_type: 'purchase', value: String(Math.round(rev / 20)) }, { action_type: 'lead', value: String(leads) }],
         action_values: [{ action_type: 'purchase', value: rev.toFixed(2) }], purchase_roas: [{ action_type: 'omni_purchase', value: String(roas) }] });
     }
@@ -184,11 +185,11 @@ function histInsights(since, until) {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), p = url.pathname;
   if (p === '/__log') { const out = { total: log.length, requests: log.slice() }; if (url.searchParams.get('reset')) log.length = 0; return send(res, 200, out); }
-  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
+  if (p === '/__reset') { log.length = 0; counter = 0; for (const k of Object.keys(over)) delete over[k]; for (const k of Object.keys(objects)) objects[k] = Array.isArray(objects[k]) ? [] : {}; Object.assign(mode, { rejectWrites: false, pixelAgeHours: 2, noPayment: false, failInsights: false, accountStatus: 1, failReads: false, rateLimitReads: false, permissionReads: false, failAdsets: false, pageSize: 0, failWriteId: '', scale: [], rateLimitInsightsOnce: false, histFlip: false }); worldName = ''; return send(res, 200, { reset: true }); }
   if (p === '/__touch') { const id = url.searchParams.get('id'), st = url.searchParams.get('status'), dl = url.searchParams.get('daily'); over[id] = { ...(over[id] || {}), ...(st ? { status: st } : {}), ...(dl ? { daily: Number(dl) } : {}) }; return send(res, 200, { id, ...over[id] }); }
   if (p === '/__world') { worldName = url.searchParams.get('name') || ''; return send(res, 200, { world: worldName || 'off', campaigns: (worldCampaigns(worldName) || []).length }); }
   if (p === '/__mode') {
-    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize'].includes(k) ? Number(v) : k === 'failWriteId' ? v : v === '1';
+    for (const [k, v] of url.searchParams) mode[k] = ['pixelAgeHours', 'accountStatus', 'pageSize'].includes(k) ? Number(v) : k === 'failWriteId' ? v : k === 'scale' ? v.split(',').map(Number).filter(Number.isFinite) : v === '1';
     return send(res, 200, mode);
   }
   if (p === '/__state') return send(res, 200, Object.fromEntries(Object.entries(objects).map(([k, v]) => [k, Array.isArray(v) ? v : Object.fromEntries(Object.entries(v).map(([a, b]) => [a, b.length]))])));
