@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { usd, Pill, ModeNote, TYPES, fmt } from './Campaigns';
+import Relaunch from './Relaunch';
 
 const API = '/api/ops/ads';
 const post = async body => { const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const j = await res.json().catch(() => ({})); if (!res.ok) throw new Error(j.error || 'That didn’t work. Try again in a moment.'); return j; };
@@ -43,9 +44,11 @@ export default function Live({ id, first }) {
           {c.status === 'live' && <button className="soc-btn" disabled={!!busy} onClick={() => go({ action: 'pauseCampaign' }, dry ? 'Pause the campaign?\n\nThe safety switch is off, so this is a dry run: nothing is sent.' : 'Pause this campaign now?\n\nNothing more is spent until you start it again.')}>{busy === 'pauseCampaign' ? 'Pausing…' : 'Pause'}</button>}
           {c.status === 'paused' && <button className="soc-btn primary" disabled={!!busy} onClick={() => go({ action: 'resumeCampaign' }, dry ? 'Start the campaign again?\n\nThe safety switch is off, so this is a dry run: nothing is sent.' : 'Start this campaign again?\n\nIt will begin spending its daily budget.')}>{busy === 'resumeCampaign' ? 'Starting…' : 'Start again'}</button>}
           {c.status === 'sent_paused' && <button className="soc-btn primary" disabled={!!busy} onClick={() => go({ action: 'start' }, dry ? 'Start the campaign?\n\nThe safety switch is off, so this is a dry run: nothing is sent.' : 'Start this campaign now?\n\nIt will begin spending your daily budget.')}>{busy === 'start' ? 'Starting…' : 'Start'}</button>}
+          <Relaunch campaign={{ id: c.id, name: c.name, daily_cents: c.daily_budget_cents }} />
           <a className="soc-btn" href="?step=1">See the draft steps</a></div>
       </div>
       <ModeNote d={d} />
+      {d.relaunches?.length > 0 && <p className="ads-mode" role="status">New drafts made from this campaign: {d.relaunches.map((x, i) => <span key={x.id}>{i > 0 && ', '}<a href={`/ops/ads/${x.id}`}>{x.name}</a> ({x.status === 'draft' ? 'draft' : 'sent to Meta'})</span>)}.</p>}
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
 
       <ul className="ads-kpis ads-live-kpis" aria-label="This campaign at a glance">

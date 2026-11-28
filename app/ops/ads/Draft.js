@@ -42,6 +42,7 @@ export default function Draft({ id }) {
         {!locked && <div className="soc-act"><button className="soc-btn small" disabled={!!busy} onClick={swapType}>{test ? 'Switch to Advantage+' : 'Switch to targeting test'}</button><button className="soc-btn small primary" disabled={!!busy} onClick={refresh}>{busy === 'refresh' ? 'Refreshing…' : 'Refresh draft'}</button></div>}
       </div>
       <ModeNote d={d} />
+      {c.meta_settings.relaunched_from && <p className="ads-mode warn" role="status"><b>Relaunched from <a href={`/ops/ads/${c.meta_settings.relaunched_from.id}`}>{c.meta_settings.relaunched_from.name}</a>.</b>{!locked && ' This is a draft. Nothing has gone to Meta. Read the new words before you send it.'}{!locked && !c.start_date && ' Set the dates on step 3.'}</p>}
       {locked && <p className="ads-mode" role="status">This campaign is already in Meta{c.status === 'sent_paused' ? ' (paused)' : ''}. It is read-only here; changes are made in Meta.</p>}
       <nav className="ads-steps" aria-label="The four steps">{STEPS.map((l, i) => <button key={l} type="button" aria-current={step === i + 1 ? 'step' : undefined} onClick={() => go(i + 1)}>{i + 1} · {l}</button>)}</nav>
       {err && <p className="hint err" role="alert">{err}</p>}{msg && <p className="hint" role="status">{msg}</p>}
